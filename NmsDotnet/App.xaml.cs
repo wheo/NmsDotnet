@@ -5,13 +5,39 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Threading;
 
-namespace NmsDotnet
+namespace NmsDotNet
 {
     /// <summary>
     /// App.xaml에 대한 상호 작용 논리
     /// </summary>
     public partial class App : Application
     {
+        Mutex _mtx = null;
+
+        protected override void OnStartup(StartupEventArgs e)
+        {
+            String mtxName = "NmsDotnet";
+            bool isCreateNew = false;
+            try
+            {
+                _mtx = new Mutex(true, mtxName, out isCreateNew);
+
+                if ( isCreateNew )
+                {
+                    base.OnStartup(e);
+                } else
+                {
+                    MessageBox.Show("프로세스 중복 실행이 감지 되었습니다.\n프로그램을 종료 합니다.", "경고", MessageBoxButton.OK);
+                    Application.Current.Shutdown();
+                }
+            }
+            catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message, "경고", MessageBoxButton.OK);
+                Application.Current.Shutdown();
+            }            
+        }
     }
 }

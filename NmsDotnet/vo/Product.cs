@@ -4,18 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace NnmDotnet.vo
+namespace NmsDotNet.vo
 {
     class Product
     {
         public string Name { get; set; }
-        public double Value { get; set; }
+        public String Status { get; set; }
         public string Image { get; set; }
 
-        public Product(string Name, double Value, string Image )
+        public Product(string Name, string Status, string Image )
         {
             this.Name = Name;
-            this.Value = Value;
+            this.Status = Status;
             this.Image = Image;
         }
     }

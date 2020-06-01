@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,19 +14,60 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using log4net;
 using MySql.Data.MySqlClient;
-using NmsDotnet.lib;
+using NmsDotNet.config;
+using NmsDotNet.Database.vo;
+using NmsDotNet.lib;
+using NmsDotNet.Database;
 
-namespace NmsDotnet
+namespace NmsDotNet
 {
     /// <summary>
     /// MainWindow.xaml에 대한 상호 작용 논리
     /// </summary>
     public partial class LoginWindow : Window
     {
+        private readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        JsonConfig jsonConfig;
         public LoginWindow()
         {
             InitializeComponent();
+            LoadConfig();
+        }
+
+        private bool LoadConfig()
+        {
+            // config.json 읽기
+            String jsonString;
+            try
+            {
+                jsonConfig = JsonConfig.getInstance();
+                if (!File.Exists(jsonConfig.configFileName))
+                {
+                    MessageBox.Show("config.json 파일이 없습니다.\n환경설정 파일을 읽지 못했습니다.\n기본값으로 설정합니다.", "경고", MessageBoxButton.OK);
+                    //default value
+                    jsonConfig.ip = "192.168.2.66";
+                    jsonConfig.port = 33306;
+                    jsonConfig.id = "tnmnms";
+                    jsonConfig.pw = "tnmtech";
+                    jsonConfig.DatabaseName = "TNM_NMS";
+
+                    jsonString = JsonSerializer.Serialize(jsonConfig);
+                    File.WriteAllText(jsonConfig.configFileName, jsonString);
+                }
+                
+                jsonString = File.ReadAllText(jsonConfig.configFileName);
+                jsonConfig = JsonSerializer.Deserialize<JsonConfig>(jsonString);
+                
+                DatabaseManager.getInstance().SetConnectionString(jsonConfig.ip, jsonConfig.port, jsonConfig.id, jsonConfig.pw, jsonConfig.DatabaseName);
+            }
+            catch (FileLoadException e)
+            {
+                MessageBox.Show(e.ToString() + "\n\n프로그램을 종료합니다.", "경고", MessageBoxButton.OK);
+            }
+
+            return true;
         }
 
         protected override void OnSourceInitialized(EventArgs e)
@@ -34,32 +77,7 @@ namespace NmsDotnet
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
-            String ip = "192.168.2.66";
-            int port = 33306;
-            String id = "tnmnms";
-            String pw = "tnmtech";
-            String DatabaseName = "TNM_NMS";
-            String strConn = String.Format("server={0};port={1};uid={2};pwd={3};database={4};charset=utf8mb4;",
-                ip,
-                port,
-                id,
-                pw,
-                DatabaseName);
-            MySqlConnection conn = new MySqlConnection(strConn);
-            conn.Open();
-            
-            //나중에 preparestatement로 변경해야함(보안상의 이유)
-            String query = String.Format("SELECT * FROM user WHERE id = '{0}' AND pw = '{1}'", LoginID.Text, LoginPW.Password);
-            MySqlCommand cmd = new MySqlCommand(query, conn);
-            MySqlDataReader rdr = cmd.ExecuteReader();
-
-            /*
-            while(rdr.Read())
-            {
-                MessageBox.Show(String.Format("{0}-{1}", rdr["id"], rdr["name"]));
-            }
-            */            
-            if ( rdr.Read() )
+            if ( Login.GetInstance().LoginCheck(LoginID.Text, LoginPW.Password))
             {
                 NmsMainWindow nmsMainWindow = new NmsMainWindow();
                 nmsMainWindow.Show();
@@ -67,9 +85,8 @@ namespace NmsDotnet
             } else
             {
                 MessageBox.Show("아이디와 비밀번호를 확인해주세요");
+                logger.Info(String.Format("login failed, ({0})", LoginID.Text));
             }
-
-            conn.Close();            
         }
 
         private void TransactionExample()

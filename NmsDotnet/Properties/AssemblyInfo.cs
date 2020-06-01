@@ -53,3 +53,6 @@ using System.Windows;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
+
+//log4net 설정 추가 by wheo
+[assembly: log4net.Config.XmlConfigurator(ConfigFile = "log4net.config")]
