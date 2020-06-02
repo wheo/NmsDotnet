@@ -36,7 +36,6 @@ namespace NmsDotNet.Database.vo
                 cmd.ExecuteNonQuery();
             }
         }
-
         public List<Server> GetServerList()
         {   
             DataTable dt = new DataTable();

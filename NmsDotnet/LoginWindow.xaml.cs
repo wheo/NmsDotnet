@@ -76,7 +76,7 @@ namespace NmsDotNet
         }
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
-        {
+        {            
             if ( Login.GetInstance().LoginCheck(LoginID.Text, LoginPW.Password))
             {
                 NmsMainWindow nmsMainWindow = new NmsMainWindow();

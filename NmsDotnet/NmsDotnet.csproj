@@ -152,8 +152,9 @@
     <Compile Include="Database\DatabaseManager.cs" />
     <Compile Include="Database\vo\Login.cs" />
     <Compile Include="Database\vo\Server.cs" />
+    <Compile Include="Database\vo\Trap.cs" />
     <Compile Include="Interface\SampleInterface.cs" />
-    <Compile Include="lib\Snmp.cs" />
+    <Compile Include="Service\Snmp.cs" />
     <Compile Include="Utils\Util.cs" />
     <Compile Include="vo\LogtItem.cs" />
     <Compile Include="vo\Product.cs" />

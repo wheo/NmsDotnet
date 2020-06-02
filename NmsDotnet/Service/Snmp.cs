@@ -7,14 +7,14 @@ using System.Net;
 using SnmpSharpNet;
 using System.Diagnostics;
 using System.Net.Sockets;
+using NmsDotnet.Database.vo;
+using NmsDotNet.vo;
+using System.Windows.Controls;
 
-namespace NmsDotNet.lib
+namespace NmsDotNet.Service
 {
     class Snmp
-    {
-		protected Socket _socket;
-		protected byte[] _inbuffer;
-		protected IPEndPoint _peerIP;
+    {		
 		public static bool _shouldStop = false;
 
 		public Snmp()
@@ -155,90 +155,14 @@ namespace NmsDotNet.lib
 
         }
 
-        public void Trap()
+        public void TrapSend()
         {
 
         }
 
-		public static async Task<bool> TrapListener()
-		{
-			// Construct a socket and bind it to the trap manager port 162
-			Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-			IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 162);
-			EndPoint ep = (EndPoint)ipep;
-			socket.Bind(ep);
-			// Disable timeout processing. Just block until packet is received
-			socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 0);
-			
-			int inlen = -1;
-			while (!_shouldStop)
-			{
-				byte[] indata = new byte[16 * 1024];
-				// 16KB receive buffer int inlen = 0;
-				IPEndPoint peer = new IPEndPoint(IPAddress.Any, 0);
-				EndPoint inep = (EndPoint)peer;
-				try
-				{
-					inlen = socket.ReceiveFrom(indata, ref inep);
-				}
-				catch (Exception ex)
-				{
-					Debug.WriteLine("Exception {0}", ex.Message);
-					inlen = -1;
-				}
-				if (inlen > 0)
-				{
-					// Check protocol version int
-					int ver = SnmpPacket.GetProtocolVersion(indata, inlen);
-					if (ver == (int)SnmpVersion.Ver1)
-					{
-						// Parse SNMP Version 1 TRAP packet
-						SnmpV1TrapPacket pkt = new SnmpV1TrapPacket();
-						pkt.decode(indata, inlen);
-						Debug.WriteLine("** SNMP Version 1 TRAP received from {0}:", inep.ToString());
-						Debug.WriteLine("*** Trap generic: {0}", pkt.Pdu.Generic);
-						Debug.WriteLine("*** Trap specific: {0}", pkt.Pdu.Specific);
-						Debug.WriteLine("*** Agent address: {0}", pkt.Pdu.AgentAddress.ToString());
-						Debug.WriteLine("*** Timestamp: {0}", pkt.Pdu.TimeStamp.ToString());
-						Debug.WriteLine("*** VarBind count: {0}", pkt.Pdu.VbList.Count);
-						Debug.WriteLine("*** VarBind content:");
-						foreach (Vb v in pkt.Pdu.VbList)
-						{
-							Debug.WriteLine("**** {0} {1}: {2}", v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString());
-						}
-						Debug.WriteLine("** End of SNMP Version 1 TRAP data.");
-					}
-					else
-					{
-						// Parse SNMP Version 2 TRAP packet
-						SnmpV2Packet pkt = new SnmpV2Packet();
-						pkt.decode(indata, inlen);
-						Debug.WriteLine("** SNMP Version 2 TRAP received from {0}:", inep.ToString());
-						if ((SnmpSharpNet.PduType)pkt.Pdu.Type != PduType.V2Trap)
-						{
-							Debug.WriteLine("*** NOT an SNMPv2 trap ****");
-						}
-						else
-						{
-							Debug.WriteLine("*** Community: {0}", pkt.Community.ToString());
-							Debug.WriteLine("*** VarBind count: {0}", pkt.Pdu.VbList.Count);
-							Debug.WriteLine("*** VarBind content:");
-							foreach (Vb v in pkt.Pdu.VbList)
-							{
-								Debug.WriteLine("**** {0} {1}: {2}",
-								   v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString());
-							}
-							Debug.WriteLine("** End of SNMP Version 2 TRAP data.");
-						}
-					}
-				}
-				else
-				{
-					if (inlen == 0)
-						Debug.WriteLine("Zero length packet received.");
-				}
-			}
-			return true;
+		public static async Task<DataGrid> TrapListener()
+		{			
+            return null;			
 		}	
 	}
 }
