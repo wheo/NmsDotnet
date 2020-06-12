@@ -8,14 +8,14 @@ namespace NmsDotNet.vo
 {
     class Product
     {
-        public string Name { get; set; }
-        public String Status { get; set; }
+        public string GroupName { get; set; }
+        public string Name { get; set; }        
         public string Image { get; set; }
 
-        public Product(string Name, string Status, string Image )
+        public Product(string Name, string GroupName, string Image )
         {
             this.Name = Name;
-            this.Status = Status;
+            this.GroupName = GroupName;
             this.Image = Image;
         }
     }

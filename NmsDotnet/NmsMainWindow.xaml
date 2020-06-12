@@ -21,9 +21,9 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="40"/>
+            <RowDefinition Height="30"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="200"/>
+            <RowDefinition Height="250"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="170"/>
@@ -33,18 +33,16 @@
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Grid.ColumnSpan="2" Grid.RowSpan="3">
             <materialDesign:DialogHost x:Name="DialogGroup" BorderBrush="{DynamicResource MaterialDesignDivider}" VerticalAlignment="Center" HorizontalAlignment="Center">
                 <materialDesign:DialogHost.DialogContent>
-                    <Grid Width="500" Height="300">
+                    <Grid Width="400" Height="300">
                         <StackPanel Orientation="Horizontal" Margin="15">
-                            <materialDesign:PackIcon Kind="Folder" Foreground="{StaticResource PrimaryHueMidBrush}" Width="50" Height="50"/>
-                            <TextBlock Foreground="Black" Width="200" Margin="15 5" TextWrapping="Wrap">
-                                그룹추가 UI 개발중
-                            </TextBlock>
+                            <materialDesign:PackIcon Kind="InfoOutline" Width="50" Height="50"/>
+                            <TextBox MaxWidth="200" x:Name="TbGroupName" materialDesign:HintAssist.Hint="그룹 이름" Style="{StaticResource MaterialDesignFloatingHintTextBox}" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="15">
-                            <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" Style="{DynamicResource MaterialDesignFlatLightBgButton}" Margin="4" VerticalAlignment="Center">
+                            <Button x:Name="BtnGroupAdd" Click="BtnGroupAdd_Click" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" Style="{DynamicResource MaterialDesignFlatLightBgButton}" Margin="4" VerticalAlignment="Center">
                                 등록
                             </Button>
-                            <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" Style="{DynamicResource MaterialDesignFlatLightBgButton}" Margin="4" VerticalAlignment="Center">
+                            <Button x:Name="BtnGroupCancel" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" Style="{DynamicResource MaterialDesignFlatLightBgButton}" Margin="4" VerticalAlignment="Center">
                                 취소
                             </Button>
                         </StackPanel>
@@ -53,53 +51,61 @@
             </materialDesign:DialogHost>
         </StackPanel>
 
-        <Grid Grid.Row="0">
-            <TextBlock Text="장비 목록" HorizontalAlignment="Center" Margin="5" FontSize="22"/>
-        </Grid>
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Grid.ColumnSpan="2" Grid.RowSpan="3">
+            <materialDesign:DialogHost x:Name="DialogNotification" BorderBrush="{DynamicResource MaterialDesignDivider}" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <materialDesign:DialogHost.DialogContent>
+                    <Grid Width="400" Height="300">
+                        <StackPanel Orientation="Horizontal" Margin="15">
+                            <TextBlock Foreground="Black" Width="200" Margin="15 5" TextWrapping="Wrap">
+                                Trap 알람
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="15">
+                            <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" Style="{DynamicResource MaterialDesignFlatLightBgButton}" Margin="4" VerticalAlignment="Center">
+                                확인
+                            </Button>                            
+                        </StackPanel>
+                    </Grid>
+                </materialDesign:DialogHost.DialogContent>
+            </materialDesign:DialogHost>
+        </StackPanel>
 
-        <Grid Grid.Row="0" Grid.Column="1">
-            <TextBlock  Text="장비 세부 내역" Margin="5" FontSize="22" FontWeight="Medium"/>
+        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+            <materialDesign:ColorZone
+  Mode="PrimaryLight"
+  Padding="0">
+                <StackPanel
+    Orientation="Horizontal">
+                    <ToggleButton Style="{DynamicResource MaterialDesignHamburgerToggleButton}" Width="25" Height="25" />
+                    <TextBlock VerticalAlignment="Center" Margin="15 0 0 0">
+                        AMS
+                    </TextBlock>
+                </StackPanel>
+            </materialDesign:ColorZone>
         </Grid>
         <Grid Grid.Row="1" Grid.Column="0">
-            <TreeView MinWidth="220">
-                <TreeViewItem Header="장비 그룹1">
-                    <TreeViewItem>
-                        <TreeViewItem.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <Viewbox Width="16" Height="16">
-                                    <Canvas Width="24" Height="24">
-                                        <Path Data="M20,10C22,13 17,22 15,22C13,22 13,21 12,21C11,21 11,22 9,22C7,22 2,13 4,10C6,7 9,7 11,8V5C5.38,8.07 4.11,3.78 4.11,3.78C4.11,3.78 6.77,0.19 11,5V3H13V8C15,7 18,7 20,10Z" 
-                                              Fill="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type TreeViewItem}}, Path=Foreground}" />
-                                    </Canvas>
-                                </Viewbox>
-                                <TextBlock Margin="8 0 0 0">Apple</TextBlock>
-                            </StackPanel>
-                        </TreeViewItem.Header>
-                    </TreeViewItem>
-                    <TreeViewItem Header="Banana" />
-                    <TreeViewItem Header="Grape">
-                        <TextBlock><Run Text="Grapes for us" /></TextBlock>
-                    </TreeViewItem>
-                    <TreeViewItem Header="Peach" />
-                    <TreeViewItem Header="Pear" />
-                    <TreeViewItem Header="Strawberry" />
-                </TreeViewItem>
-                <TreeViewItem Header="장비 그룹2" IsExpanded="True">
-                    <TreeViewItem Header="CM5000" />
-                    <TreeViewItem Header="DR5000" />                    
-                    <TreeViewItem Header="기타장비" />                                        
-                </TreeViewItem>                
-            </TreeView>
-        </Grid>
-        <Grid Grid.Column="1" Grid.Row="1">            
-            <ScrollViewer Background="#FFFFFFFF" Grid.ColumnSpan="2">
-                <ScrollViewer.ContextMenu>
+            <TreeView x:Name="TreeGroup">
+                <TreeView.ContextMenu>
                     <ContextMenu>
                         <MenuItem x:Name="MenuGroupAdd" Header="그룹 추가" Click="MenuGroupAdd_Click"/>
                         <MenuItem x:Name="MenuGroupEdit" Header="그룹 수정" Click="MenuGroupEdit_Click"/>
                         <MenuItem x:Name="MenuGroupDel" Header="그룹 삭제"  Click="MenuGroupDel_Click"/>
                     </ContextMenu>
+                </TreeView.ContextMenu>                    
+            </TreeView>
+        </Grid>
+        <Grid Grid.Column="1" Grid.Row="1">            
+            <ScrollViewer Grid.ColumnSpan="2">
+                <ScrollViewer.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem x:Name="MenuMachineAdd" Header="장비 추가" Click="MenuMachineAdd_Click"/>
+                        <MenuItem x:Name="MenuMachineEdit" Header="장비 수정" Click="MenuMachineEdit_Click"/>
+                        <MenuItem x:Name="MenuMachineDel" Header="장비 삭제"  Click="MenuMachineDel_Click"/>
+                    </ContextMenu>                    
                 </ScrollViewer.ContextMenu>
+                <ScrollViewer.Background>
+                    <ImageBrush ImageSource="/Asset/AtemeLogo.jpg" Stretch="Fill" Opacity="0.04"/>
+                </ScrollViewer.Background>
                 <StackPanel>
                     <StackPanel Margin="10">
                         <ItemsControl x:Name="ListViewProducts" ItemsSource="{Binding Product}"                                  
@@ -108,9 +114,9 @@
                                   MouseRightButtonDown="ListViewProducts_MouseRightButtonDown">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Margin="2" Width="100" Height="90">
+                                    <Border Margin="2" Width="100" Height="44">
                                         <StackPanel>
-                                            <Border Width="102" Height="34" CornerRadius="5" Margin="0">
+                                            <Border Width="92" Height="14" CornerRadius="5" Margin="0">
                                                 <Border.Effect>
                                                     <DropShadowEffect ShadowDepth="1" />
                                                 </Border.Effect>
@@ -118,8 +124,8 @@
                                                     <ImageBrush ImageSource="{Binding Image}"></ImageBrush>
                                                 </Border.Background>
                                             </Border>
-                                            <TextBlock Margin="2" HorizontalAlignment="Center" Text="{Binding Name}" FontSize="14" FontFamily="Franklin Gothic Medium"/>
-                                            <TextBlock Margin="2" HorizontalAlignment="Center" Text="{Binding Status}" FontSize="14" FontFamily="Franklin Gothic Medium"/>
+                                            <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding GroupName}" FontSize="12"/>
+                                            <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Name}" FontSize="10"/>                                            
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
@@ -135,7 +141,7 @@
             </ScrollViewer>
         </Grid>
         <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
-            <StackPanel Margin="10 0 10 10">
+            <DockPanel Margin="10 0 10 10" >
                 <!--
                 <ListView x:Name="LvLog"
                           materialDesign:DataGridAssist.CellPadding="4 2 2 2"
@@ -161,7 +167,7 @@
                     ScrollViewer.IsDeferredScrollingEnabled="True"
                     ScrollViewer.VerticalScrollBarVisibility="Visible">
                 </DataGrid>
-            </StackPanel>
+            </DockPanel>
         </Grid>
     </Grid>
 </Window>
