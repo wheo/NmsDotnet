@@ -55,7 +55,7 @@ namespace NmsDotNet.vo
             return instance;
         }       
 
-        public int LoggingDatabase(Trap trap)
+        public int LoggingDatabase(Snmp trap)
         {
             string query = String.Format(@"INSERT INTO log (oid, ip, port, type, community, value) VALUES (@oid, @ip, @port, @type, @community, @value)");
             int ret = 0;
@@ -66,7 +66,7 @@ namespace NmsDotNet.vo
                 cmd.Parameters.AddWithValue("@oid", trap.Id);
                 cmd.Parameters.AddWithValue("@ip", trap.IP);
                 cmd.Parameters.AddWithValue("@port", trap.Port);
-                cmd.Parameters.AddWithValue("@type", trap.Type);
+                cmd.Parameters.AddWithValue("@type", trap.Syntax);
                 cmd.Parameters.AddWithValue("@community", trap.Community);
                 cmd.Parameters.AddWithValue("@value", trap.Value);
                 cmd.Prepare();
@@ -85,9 +85,9 @@ namespace NmsDotNet.vo
                 $", L.type as type" +
                 $", L.community as community" +
                 $", L.value as value" +
-                $", T.name as name" +
+                $", S.name as name" +
                 $" FROM log L" +
-                $" LEFT JOIN trap T ON T.id = L.oid" +
+                $" LEFT JOIN snmp S ON S.id = L.oid" +
                 $" ORDER BY L.create_time DESC" +
                 $" LIMIT 0,10";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))

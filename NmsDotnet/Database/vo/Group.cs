@@ -31,7 +31,7 @@ namespace NmsDotnet.Database.vo
         public int AddGroup(string name)
         {
             int ret = 0;
-            string query = "INSERT INTO grp (id, name) VALUES (uuid(), @name)";
+            string query = "INSERT INTO group (id, name) VALUES (uuid(), @name)";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -46,7 +46,7 @@ namespace NmsDotnet.Database.vo
         public List<Group> GetGroupList()
         {
             DataTable dt = new DataTable();
-            string query = "SELECT * FROM grp";
+            string query = "SELECT * FROM group";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();

@@ -374,14 +374,15 @@ namespace NmsDotNet
                             Debug.WriteLine("*** VarBind content:");
                             foreach (Vb v in pkt.Pdu.VbList)
                             {
-                                Trap trap = new Trap() { Id = v.Oid.ToString()
+                                NmsDotnet.Database.vo.Snmp snmp = new NmsDotnet.Database.vo.Snmp() { Id = v.Oid.ToString()
                                     , IP = inep.ToString().Split(':')[0]
                                     , Port = inep.ToString().Split(':')[1]
                                     , Community = pkt.Community.ToString()
-                                    , Type = SnmpConstants.GetTypeName(v.Value.Type)
-                                    , Value = v.Value.ToString() };
-                                Trap.GetInstance().RegisterTrapInfo(trap);
-                                LogItem.GetInstance().LoggingDatabase(trap);
+                                    , Syntax = SnmpConstants.GetTypeName(v.Value.Type)
+                                    , Value = v.Value.ToString()
+                                    , type = "trap"};
+                                NmsDotnet.Database.vo.Snmp.GetInstance().RegisterSnmpInfo(snmp);
+                                LogItem.GetInstance().LoggingDatabase(snmp);
 
                                 if (DgLog.Dispatcher.CheckAccess())
                                 {
@@ -425,11 +426,13 @@ namespace NmsDotNet
         {
             MessageBox.Show("right down");
             //Snmp.Get();
+            Service.Snmp.GetNext();
         }
 
         private void ListViewProducts_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             MessageBox.Show("left down");
+            Service.Snmp.GetBulk();
 
             /*
             TrapAgent agent = new TrapAgent();
@@ -461,7 +464,7 @@ namespace NmsDotNet
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             Debug.WriteLine("NMS main windows closing");
-            Snmp._shouldStop = true;
+            Service.Snmp._shouldStop = true;
         }        
 
         private void MenuGroupAdd_Click(object sender, RoutedEventArgs e)

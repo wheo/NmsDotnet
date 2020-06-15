@@ -17,7 +17,7 @@
                 </LinearGradientBrush>
             </Rectangle.Fill>
         </Rectangle>
-        <Image Source="/Asset/home.png" Width="100" Height="100" VerticalAlignment="Top" Margin="20" />
+        <Image Source="/Asset/ATEME-Black.png" Width="200" VerticalAlignment="Top" Margin="30" />
         <Rectangle Width="280" Height="240" Fill="White" VerticalAlignment="Bottom" Margin="0,100">
             <Rectangle.Effect>
                 <DropShadowEffect Color="#FFBBBBBB" Direction="0" BlurRadius="15" ShadowDepth="1" RenderingBias="Quality" />

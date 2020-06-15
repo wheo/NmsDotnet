@@ -36,7 +36,7 @@
                     <Grid Width="400" Height="300">
                         <StackPanel Orientation="Horizontal" Margin="15">
                             <materialDesign:PackIcon Kind="InfoOutline" Width="50" Height="50"/>
-                            <TextBox MaxWidth="200" x:Name="TbGroupName" materialDesign:HintAssist.Hint="그룹 이름" Style="{StaticResource MaterialDesignFloatingHintTextBox}" />
+                            <TextBox MaxWidth="200" x:Name="TbGroupName" materialDesign:HintAssist.Hint="그룹 이름" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="15">
                             <Button x:Name="BtnGroupAdd" Click="BtnGroupAdd_Click" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" Style="{DynamicResource MaterialDesignFlatLightBgButton}" Margin="4" VerticalAlignment="Center">

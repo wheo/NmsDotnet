@@ -10,7 +10,7 @@ using System.Windows;
 [assembly: AssemblyTitle("NnmDotnet")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("Tnmtech")]
 [assembly: AssemblyProduct("NnmDotnet")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("")]
