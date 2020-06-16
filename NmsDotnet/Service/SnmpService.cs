@@ -9,20 +9,23 @@ using System.Diagnostics;
 using System.Net.Sockets;
 using NmsDotNet.vo;
 using System.Windows.Controls;
+using log4net;
 
 namespace NmsDotNet.Service
 {
-    class SnmpService
-    {		
-		public static bool _shouldStop = false;
+    internal class SnmpService
+    {
+        public static bool _shouldStop = false;
 
-		public SnmpService()
-		{
-			//Constructor
-		}
+        private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-		public static void GetTest()
-		{
+        public SnmpService()
+        {
+            //Constructor
+        }
+
+        public static void GetTest()
+        {
             // SNMP community name
             OctetString community = new OctetString("public");
             // Define agent parameters class
@@ -37,7 +40,7 @@ namespace NmsDotNet.Service
             UdpTarget target = new UdpTarget((IPAddress)agent, 161, 2000, 1);
             // Pdu class used for all requests
             Pdu pdu = new Pdu(PduType.Get);
-            pdu.VbList.Add("1.3.6.1.2.1.1.1.0"); //sysDescr            
+            pdu.VbList.Add("1.3.6.1.2.1.1.1.0"); //sysDescr
 
             // Make SNMP request
             SnmpV2Packet result = (SnmpV2Packet)target.Request(pdu, param);
@@ -84,7 +87,7 @@ namespace NmsDotNet.Service
             target.Close();
         }
 
-		public static void Get()
+        public static bool Get(string Ip)
         {
             // SNMP community name
             OctetString community = new OctetString("public");
@@ -95,59 +98,76 @@ namespace NmsDotNet.Service
 
             // Construct the agent address object
             // IPAddress class is easy to use here because it will try to resolve constructor parameter if it doesn't parse to an IP address
-            IpAddress agent = new IpAddress("192.168.2.129");
+            IpAddress agent = new IpAddress(Ip);
             // Construct target
             UdpTarget target = new UdpTarget((IPAddress)agent, 161, 2000, 1);
             // Pdu class used for all requests
             Pdu pdu = new Pdu(PduType.Get);
+            /*
             pdu.VbList.Add("1.3.6.1.2.1.1.1.0"); //sysDescr
             pdu.VbList.Add("1.3.6.1.2.1.1.2.0"); //sysObjectID
             pdu.VbList.Add("1.3.6.1.2.1.1.3.0"); //sysUpTime
             pdu.VbList.Add("1.3.6.1.2.1.1.4.0"); //sysContact
             pdu.VbList.Add("1.3.6.1.2.1.1.5.0"); //sysName
-            pdu.VbList.Add(".1.3.6.1.4.1.27338.4.2.2.0"); // 채널 상태
-            pdu.VbList.Add(".1.3.6.1.4.1.27338.4.2.3.0"); // 채널 상태
-            pdu.VbList.Add(".1.3.6.1.4.1.27338.4.3.2.1");
-            pdu.VbList.Add(".1.3.6.1.4.1.27338.4.14.1.1.1.2");
+            */
+            pdu.VbList.Add("1.3.6.1.4.1.27338.4.2.2.0"); // 장비 이름
 
-            // Make SNMP request
-            SnmpV2Packet result = (SnmpV2Packet)target.Request(pdu, param);
-            // If request is null then agent didn't reply or we couldn't parse the reply.
-            if ( result != null)
+            try
             {
-                // ErrorStatus other then 0 is an error returned by the Agent - see SnmpConstants for error definitions
-                if ( result.Pdu.ErrorStatus != 0)
+                // Make SNMP request
+                SnmpV2Packet result = (SnmpV2Packet)target.Request(pdu, param);
+                // If request is null then agent didn't reply or we couldn't parse the reply.
+                if (result != null)
                 {
-                    // agent reported an error with request
-                    Debug.WriteLine("Error in SNMP reply. Error {0} index {1}",
-                        result.Pdu.ErrorStatus,
-                        result.Pdu.ErrorIndex);
-                } else {
-                    // Reply variables are returned in the same order as they were added to the VbList
-                    for (int i = 0; i < result.Pdu.VbCount; i++)
+                    // ErrorStatus other then 0 is an error returned by the Agent - see SnmpConstants for error definitions
+                    if (result.Pdu.ErrorStatus != 0)
                     {
-                        Debug.WriteLine("sysDescr({0}) ({1}): {2}",
-                            result.Pdu.VbList[i].Oid.ToString(),
-                            SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type),
-                            result.Pdu.VbList[i].Value.ToString());
-                    }                    
+                        // agent reported an error with request
+                        Debug.WriteLine("Error in SNMP reply. Error {0} index {1}",
+                            result.Pdu.ErrorStatus,
+                            result.Pdu.ErrorIndex);
+                    }
+                    else
+                    {
+                        // Reply variables are returned in the same order as they were added to the VbList
+                        for (int i = 0; i < result.Pdu.VbCount; i++)
+                        {
+                            Debug.WriteLine("sysDescr({0}) ({1}): {2}",
+                                result.Pdu.VbList[i].Oid.ToString(),
+                                SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type),
+                                result.Pdu.VbList[i].Value.ToString());
+
+                            logger.Info(String.Format("sysDescr({0}) ({1}): {2}",
+                                result.Pdu.VbList[i].Oid.ToString(),
+                                SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type),
+                                result.Pdu.VbList[i].Value.ToString()));
+                        }
+                        target.Close();
+                        return true;
+                    }
+                }
+                else
+                {
+                    target.Close();
+                    Debug.WriteLine("No response received from SNMP agent.");
+                    return false;
                 }
             }
-            else
+            catch (Exception e)
             {
-                Debug.WriteLine("No response received from SNMP agent.");
+                target.Close();
+                logger.Error(String.Format("Ip : {0}", Ip));
+                //Debug.WriteLine(e.ToString());
             }
-            target.Close();
+            return false;
         }
 
         public void Set()
         {
-
         }
 
         public void TrapSend()
         {
-
         }
 
         public static void GetBulk()
@@ -222,7 +242,7 @@ namespace NmsDotNet.Service
                                 Console.WriteLine("{0} ({1}): {2}",
                                     v.Oid.ToString(),
                                     SnmpConstants.GetTypeName(v.Value.Type),
-                                    v.Value.ToString());                                
+                                    v.Value.ToString());
 
                                 if (v.Value.Type == SnmpConstants.SMI_ENDOFMIBVIEW)
                                     lastOid = null;
@@ -244,8 +264,8 @@ namespace NmsDotNet.Service
                 }
             }
             target.Close();
-        }       
-        
+        }
+
         public static void GetNext()
         {
             // SNMP community name
@@ -317,7 +337,7 @@ namespace NmsDotNet.Service
                                 NmsDotnet.Database.vo.Snmp snmp = new NmsDotnet.Database.vo.Snmp()
                                 {
                                     Id = v.Oid.ToString()
-                                    , IP = agent.ToString() 
+                                    , IP = agent.ToString()
                                     , Community = community.ToString()
                                     , Syntax = SnmpConstants.GetTypeName(v.Value.Type)
                                     , Value = v.Value.ToString()
@@ -344,9 +364,9 @@ namespace NmsDotNet.Service
             target.Close();
         }
 
-		public static async Task<DataGrid> TrapListener()
-		{			
-            return null;			
-		}	
-	}
+        public static async Task<DataGrid> TrapListener()
+        {
+            return null;
+        }
+    }
 }

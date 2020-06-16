@@ -52,6 +52,41 @@
         </StackPanel>
 
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Grid.ColumnSpan="2" Grid.RowSpan="3">
+            <materialDesign:DialogHost x:Name="DialogServer" BorderBrush="{DynamicResource MaterialDesignDivider}" VerticalAlignment="Center" HorizontalAlignment="Center" DialogOpened="DialogServer_DialogOpened">
+                <materialDesign:DialogHost.DialogContent>
+                    <Grid Width="400" Height="300">
+                        <StackPanel Orientation="Horizontal" Margin="15">
+                            <materialDesign:PackIcon Kind="InfoOutline" Width="50" Height="50" />
+                            <StackPanel>
+                                <TextBox MaxWidth="200" x:Name="TbServerName" materialDesign:HintAssist.Hint="장비 이름" />
+                                <TextBox MaxWidth="200" x:Name="TbServerIp" materialDesign:HintAssist.Hint="IP" />
+                                <ComboBox x:Name="CbGroup" materialDesign:HintAssist.Hint="그룹 선택(필수)">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" />
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                <ComboBox x:Name="CbServerType" materialDesign:HintAssist.Hint="Type (필수)">
+                                    <ComboBoxItem>CM5000</ComboBoxItem>
+                                    <ComboBoxItem>DR5000</ComboBoxItem>
+                                </ComboBox>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="15">
+                            <Button x:Name="BtnServerAdd" Click="BtnServerAdd_Click" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" Style="{DynamicResource MaterialDesignFlatLightBgButton}" Margin="4" VerticalAlignment="Center">
+                                등록
+                            </Button>
+                            <Button x:Name="BtnServerCancel" Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" Style="{DynamicResource MaterialDesignFlatLightBgButton}" Margin="4" VerticalAlignment="Center">
+                                취소
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </materialDesign:DialogHost.DialogContent>
+            </materialDesign:DialogHost>
+        </StackPanel>
+
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Grid.ColumnSpan="2" Grid.RowSpan="3">
             <materialDesign:DialogHost x:Name="DialogNotification" BorderBrush="{DynamicResource MaterialDesignDivider}" VerticalAlignment="Center" HorizontalAlignment="Center">
                 <materialDesign:DialogHost.DialogContent>
                     <Grid Width="400" Height="300">
@@ -94,7 +129,7 @@
                 </TreeView.ContextMenu>
                 <TreeView.ItemTemplate>
                     <HierarchicalDataTemplate ItemsSource="{Binding Servers}">
-                        <TextBlock Text="{Binding Name}"/>
+                        <TextBlock Text="{Binding Name}" />
                     </HierarchicalDataTemplate>
                 </TreeView.ItemTemplate>
             </TreeView>
@@ -113,13 +148,12 @@
                 </ScrollViewer.Background>
                 <StackPanel>
                     <StackPanel Margin="10">
-                        <ItemsControl x:Name="ListViewServer"
-                                  MouseLeftButtonDown="ListViewProducts_MouseLeftButtonDown"
-                                  MouseMove="ListViewProducts_MouseMove"
-                                  MouseRightButtonDown="ListViewProducts_MouseRightButtonDown">
+                        <ItemsControl x:Name="ServerList"
+                                  MouseLeftButtonDown="ServerList_MouseLeftButtonDown"
+                                  MouseRightButtonDown="ServerList_MouseRightButtonDown">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Margin="2" Width="100" Height="44">
+                                    <Border Margin="2" Width="100" Height="60">
                                         <StackPanel>
                                             <Border Width="92" Height="14" CornerRadius="5" Margin="0">
                                                 <Border.Effect>
@@ -129,6 +163,7 @@
                                                     <ImageBrush ImageSource="{Binding Image}"></ImageBrush>
                                                 </Border.Background>
                                             </Border>
+                                            <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Ip}" FontSize="12" />
                                             <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding GroupName}" FontSize="12" />
                                             <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Name}" FontSize="10" />
                                         </StackPanel>

@@ -50,10 +50,26 @@ namespace NmsDotNet.Database.vo
             return ret;
         }
 
+        public int EditGroup(Group grp)
+        {
+            int ret = 0;
+            string query = "UPDATE grp set name = @name WHERE id = @id";
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", grp.Id);
+                cmd.Parameters.AddWithValue("@name", grp.Name);
+                cmd.Prepare();
+                ret = cmd.ExecuteNonQuery();
+            }
+            return ret;
+        }
+
         public int DelGroup(string id)
         {
             int ret = 0;
-            string query = "DELETE FROM grp WHERE = @id";
+            string query = "DELETE FROM grp WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -68,7 +84,7 @@ namespace NmsDotNet.Database.vo
         public IEnumerable<Group> GetGroupList()
         {
             DataTable dt = new DataTable();
-            string query = "SELECT * FROM grp";
+            string query = "SELECT G.* FROM grp G ORDER BY G.create_time";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
