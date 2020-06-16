@@ -59,13 +59,11 @@ namespace NmsDotNet
 
         private void GetGroupList()
         {
-            /*
             var groups = Database.vo.Group.GetInstance().GetGroupList();
             if (groups.Count > 0)
             {
                 TreeGroup.ItemsSource = groups;
             }
-            */
         }
 
         private void GetServerList()

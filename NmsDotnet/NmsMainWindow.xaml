@@ -92,11 +92,6 @@
                         <MenuItem x:Name="MenuGroupDel" Header="그룹 삭제"  Click="MenuGroupDel_Click" />
                     </ContextMenu>
                 </TreeView.ContextMenu>
-                <DataTemplate>
-                    <DockPanel>
-                        <Image Source="/Asset/item/group.png"></Image>
-                    </DockPanel>
-                </DataTemplate>
             </TreeView>
         </Grid>
         <Grid Grid.Column="1" Grid.Row="1">

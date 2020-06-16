@@ -87,8 +87,8 @@ LEFT JOIN grp G ON G.id = S.gid WHERE S.gid = @gid";
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@gid", gid);
                 cmd.Prepare();
+                cmd.Parameters.AddWithValue("@gid", gid);
                 MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
                 adpt.Fill(dt);
             }

@@ -22,6 +22,8 @@ namespace NmsDotNet.Database.vo
         public string Id { get; set; }
         public string Name { get; set; }
 
+        public List<Server> servers { get; set; }
+
         public static Group group;
 
         public static Group GetInstance()
@@ -61,11 +63,18 @@ namespace NmsDotNet.Database.vo
                 adpt.Fill(dt);
             }
 
-            return dt.AsEnumerable().Select(row => new Group
+            List<Group> groups = dt.AsEnumerable().Select(row => new Group
             {
                 Id = row.Field<string>("id"),
                 Name = row.Field<string>("name")
             }).ToList();
+
+            foreach (Group g in groups)
+            {
+                g.servers = Server.GetInstance().GetServerListByGroup(g.Id);
+            }
+
+            return groups;
         }
     }
 }
