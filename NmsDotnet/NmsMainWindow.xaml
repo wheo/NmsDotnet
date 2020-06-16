@@ -92,6 +92,11 @@
                         <MenuItem x:Name="MenuGroupDel" Header="그룹 삭제"  Click="MenuGroupDel_Click" />
                     </ContextMenu>
                 </TreeView.ContextMenu>
+                <TreeView.ItemTemplate>
+                    <HierarchicalDataTemplate ItemsSource="{Binding Servers}">
+                        <TextBlock Text="{Binding Name}"/>
+                    </HierarchicalDataTemplate>
+                </TreeView.ItemTemplate>
             </TreeView>
         </Grid>
         <Grid Grid.Column="1" Grid.Row="1">

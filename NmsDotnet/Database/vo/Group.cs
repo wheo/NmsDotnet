@@ -22,7 +22,7 @@ namespace NmsDotNet.Database.vo
         public string Id { get; set; }
         public string Name { get; set; }
 
-        public List<Server> servers { get; set; }
+        public List<Server> Servers { get; set; }
 
         public static Group group;
 
@@ -50,15 +50,32 @@ namespace NmsDotNet.Database.vo
             return ret;
         }
 
-        public List<Group> GetGroupList()
+        public int DelGroup(string id)
+        {
+            int ret = 0;
+            string query = "DELETE FROM grp WHERE = @id";
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", id);
+                cmd.Prepare();
+                ret = cmd.ExecuteNonQuery();
+            }
+            return ret;
+        }
+
+        public IEnumerable<Group> GetGroupList()
         {
             DataTable dt = new DataTable();
             string query = "SELECT * FROM grp";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
+                /*
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Prepare();
+                */
                 MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
                 adpt.Fill(dt);
             }
@@ -71,7 +88,7 @@ namespace NmsDotNet.Database.vo
 
             foreach (Group g in groups)
             {
-                g.servers = Server.GetInstance().GetServerListByGroup(g.Id);
+                g.Servers = Server.GetInstance().GetServerListByGroup(g.Id);
             }
 
             return groups;

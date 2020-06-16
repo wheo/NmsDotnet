@@ -60,10 +60,7 @@ namespace NmsDotNet
         private void GetGroupList()
         {
             var groups = Database.vo.Group.GetInstance().GetGroupList();
-            if (groups.Count > 0)
-            {
-                TreeGroup.ItemsSource = groups;
-            }
+            TreeGroup.ItemsSource = groups;
         }
 
         private void GetServerList()
@@ -241,6 +238,8 @@ namespace NmsDotNet
 
         private void MenuGroupDel_Click(object sender, RoutedEventArgs e)
         {
+            TreeViewItem item = sender as TreeViewItem;
+            //del 할차례
         }
 
         private void MenuMachineAdd_Click(object sender, RoutedEventArgs e)

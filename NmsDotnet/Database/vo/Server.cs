@@ -78,17 +78,10 @@ namespace NmsDotNet.Database.vo
         public List<Server> GetServerListByGroup(string gid)
         {
             DataTable dt = new DataTable();
-            string query = @"SELECT S.*
-, G.name as grp_name
-, A.path FROM server S
-LEFT JOIN asset A ON S.status = A.id
-LEFT JOIN grp G ON G.id = S.gid WHERE S.gid = @gid";
+            string query = String.Format($"SELECT S.*, G.name as grp_name, A.path FROM server S LEFT JOIN asset A ON S.status = A.id LEFT JOIN grp G ON G.id = S.gid WHERE S.gid = '{gid}'");
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Prepare();
-                cmd.Parameters.AddWithValue("@gid", gid);
                 MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
                 adpt.Fill(dt);
             }
