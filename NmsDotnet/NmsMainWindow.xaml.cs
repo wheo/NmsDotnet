@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -21,7 +20,8 @@ using NmsDotNet.Database.vo;
 using System.Windows.Controls.Primitives;
 using System.Net;
 using System.Runtime.CompilerServices;
-using NmsDotnet.Database.vo;
+
+using NmsDotNet.Database.vo;
 
 namespace NmsDotNet
 {
@@ -34,15 +34,21 @@ namespace NmsDotNet
 
         public static bool _shouldStop = false;
 
-        //CancellationTokenSource source;        
+        //CancellationTokenSource source;
         public NmsMainWindow()
         {
-            InitializeComponent();            
+            InitializeComponent();
         }
 
-        private void GetServerList()
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            List<Server> server = Server.GetInstance().GetServerList();
+            LoadMibFiles();
+            GetGroupList();
+            GetServerList();
+            GetLog();
+
+            await Task.Run(() => TrapListener());
+            Debug.WriteLine("TrapListener Completed");
         }
 
         private void LoadMibFiles()
@@ -51,255 +57,24 @@ namespace NmsDotNet
             String[] files = Directory.GetFiles(path);
         }
 
-        private void InitializeItems()
+        private void GetGroupList()
         {
-            var products = GetProducts();
-            if (products.Count > 0)
+            /*
+            var groups = Database.vo.Group.GetInstance().GetGroupList();
+            if (groups.Count > 0)
             {
-                ListViewProducts.ItemsSource = products;
-            }            
+                TreeGroup.ItemsSource = groups;
+            }
+            */
         }
 
-        private List<Product> GetProducts()
+        private void GetServerList()
         {
-            return new List<Product>()
+            var servers = Database.vo.Server.GetInstance().GetServerList();
+            if (servers.Count > 0)
             {
-                new Product("CM5000", "LG UPLUS1", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS1", "/Asset/item/CM5000-ERR.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000-ERR.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-                new Product("CM5000", "LG UPLUS-SBS", "/Asset/item/CM5000.png"),
-            };
-        }
-
-        private async void Window_Loaded(object sender, RoutedEventArgs e)
-        {
-            InitializeItems();
-            LoadMibFiles();
-            GetServerList();
-            GetLog();
-
-            await Task.Run(() => TrapListener());
-            Debug.WriteLine("TrapListener Completed");
+                ListViewServer.ItemsSource = servers;
+            }
         }
 
         private void GetLog()
@@ -313,6 +88,8 @@ namespace NmsDotNet
 
             // Construct a socket and bind it to the trap manager port 162
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            socket.ReceiveTimeout = 1000;
+            socket.SendTimeout = 1000;
             IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 162);
             EndPoint ep = (EndPoint)ipep;
             socket.Bind(ep);
@@ -328,6 +105,7 @@ namespace NmsDotNet
                 EndPoint inep = (EndPoint)peer;
                 try
                 {
+                    Debug.WriteLine("Waiting for snmp");
                     inlen = socket.ReceiveFrom(indata, ref inep);
                 }
                 catch (Exception ex)
@@ -374,32 +152,43 @@ namespace NmsDotNet
                             Debug.WriteLine("*** VarBind content:");
                             foreach (Vb v in pkt.Pdu.VbList)
                             {
-                                NmsDotnet.Database.vo.Snmp snmp = new NmsDotnet.Database.vo.Snmp() { Id = v.Oid.ToString()
-                                    , IP = inep.ToString().Split(':')[0]
-                                    , Port = inep.ToString().Split(':')[1]
-                                    , Community = pkt.Community.ToString()
-                                    , Syntax = SnmpConstants.GetTypeName(v.Value.Type)
-                                    , Value = v.Value.ToString()
-                                    , type = "trap"};
-                                NmsDotnet.Database.vo.Snmp.GetInstance().RegisterSnmpInfo(snmp);
+                                Database.vo.Snmp snmp = new Database.vo.Snmp()
+                                {
+                                    Id = v.Oid.ToString()
+                                    ,
+                                    IP = inep.ToString().Split(':')[0]
+                                    ,
+                                    Port = inep.ToString().Split(':')[1]
+                                    ,
+                                    Community = pkt.Community.ToString()
+                                    ,
+                                    Syntax = SnmpConstants.GetTypeName(v.Value.Type)
+                                    ,
+                                    Value = v.Value.ToString()
+                                    ,
+                                    type = "trap"
+                                };
+                                Database.vo.Snmp.GetInstance().RegisterSnmpInfo(snmp);
                                 LogItem.GetInstance().LoggingDatabase(snmp);
 
                                 if (DgLog.Dispatcher.CheckAccess())
                                 {
                                     DgLog.ItemsSource = LogItem.GetInstance().GetLog().DefaultView;
-                                } else
+                                }
+                                else
                                 {
                                     DgLog.Dispatcher.Invoke(() => { DgLog.ItemsSource = LogItem.GetInstance().GetLog().DefaultView; });
                                 }
 
-                                if ( DialogNotification.Dispatcher.CheckAccess())
+                                if (DialogNotification.Dispatcher.CheckAccess())
                                 {
                                     DialogNotification.IsOpen = true;
-                                } else
+                                }
+                                else
                                 {
                                     DialogNotification.Dispatcher.Invoke(() => { DialogNotification.IsOpen = true; });
                                 }
-                                
+
                                 Debug.WriteLine("**** {0} {1}: {2}",
                                     v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString());
                             }
@@ -426,86 +215,52 @@ namespace NmsDotNet
         {
             MessageBox.Show("right down");
             //Snmp.Get();
-            Service.Snmp.GetNext();
+            Service.SnmpService.GetNext();
         }
 
         private void ListViewProducts_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            /*
             MessageBox.Show("left down");
             Service.Snmp.GetBulk();
-
-            /*
-            TrapAgent agent = new TrapAgent();
-            // Variable Binding collection to send with the trap
-            VbCollection col = new VbCollection();
-            col.Add(new Oid("1.3.6.1.2.1.1.1.0"), new SnmpSharpNet.OctetString("Test string"));
-            col.Add(new Oid("1.3.6.1.2.1.1.2.0"), new Oid("1.3.6.1.9.1.1.0"));
-            col.Add(new Oid("1.3.6.1.2.1.1.3.0"), new SnmpSharpNet.TimeTicks(2324));
-            col.Add(new Oid("1.3.6.1.2.1.1.4.0"), new SnmpSharpNet.OctetString("Milan"));
-            // Send the trap to the localhost port 162
-            agent.SendV1Trap(new IpAddress("192.168.2.81"), 162, "public",
-                             new Oid("1.3.6.1.2.1.1.1.0"), new IpAddress(Util.GetLocalIpAddress()),
-                             SnmpConstants.LinkUp, 0, 13432, col);
             */
-
-
-            /*
-            Messenger.SendTrapV1(new IPEndPoint(IPAddress.Parse("192.168.2.81"), 162),
-                    IPAddress.Parse("192.168.2.77"),
-                    new OctetString("public"),
-                    new ObjectIdentifier("1.3.6.1.2.1.1"),
-                    GenericCode.ColdStart,
-                    0,
-                    0,
-                    new List<Variable>());
-                    */
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             Debug.WriteLine("NMS main windows closing");
-            Service.Snmp._shouldStop = true;
-        }        
+            _shouldStop = true;
+        }
 
         private void MenuGroupAdd_Click(object sender, RoutedEventArgs e)
-        {            
+        {
             DialogGroup.IsOpen = true;
         }
 
         private void MenuGroupEdit_Click(object sender, RoutedEventArgs e)
         {
-         
         }
 
         private void MenuGroupDel_Click(object sender, RoutedEventArgs e)
         {
-         
         }
 
         private void MenuMachineAdd_Click(object sender, RoutedEventArgs e)
         {
-
         }
 
         private void MenuMachineEdit_Click(object sender, RoutedEventArgs e)
         {
-
         }
 
         private void MenuMachineDel_Click(object sender, RoutedEventArgs e)
         {
-
         }
 
         private void BtnGroupAdd_Click(object sender, RoutedEventArgs e)
         {
             // group Add
             Group.GetInstance().AddGroup(TbGroupName.Text);
-            List<Group> groupList = Group.GetInstance().GetGroupList();
-            foreach( Group g in groupList)
-            {
-                Debug.WriteLine(g.Id, g.Name);
-            }
         }
-    }        
+    }
 }

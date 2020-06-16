@@ -6,15 +6,15 @@ using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using NmsDotNet.Database;
 
-namespace NmsDotnet.Database.vo
+namespace NmsDotNet.Database.vo
 {
     /// <summary>
     /// Trap을 수신할 때 정보를 데이터베이스에 기록
     /// </summary>
 
-    class Snmp
-    {        
-        public string Id { get; set; }        
+    internal class Snmp
+    {
+        public string Id { get; set; }
         public string Syntax { get; set; }
 
         public string type { get; set; }
@@ -25,15 +25,17 @@ namespace NmsDotnet.Database.vo
         public bool Enable { get; set; }
         public string Desc { get; set; }
 
-        public static Snmp trap;
+        public static Snmp snmp;
+
         public static Snmp GetInstance()
         {
-            if (trap == null)
+            if (snmp == null)
             {
-                trap = new Snmp();
+                snmp = new Snmp();
             }
-            return trap;
+            return snmp;
         }
+
         public void RegisterSnmpInfo(Snmp snmp)
         {
             string query = String.Format(@"INSERT INTO snmp (id, ip, syntax, community, type, value) VALUES (@id, @ip, @syntax, @community, @type, @value) ON DUPLICATE KEY UPDATE edit_time = CURRENT_TIMESTAMP(), ip = @ip, syntax = @syntax, community = @community, type = @type, value = @value");

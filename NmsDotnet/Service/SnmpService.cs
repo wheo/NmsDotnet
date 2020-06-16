@@ -7,17 +7,16 @@ using System.Net;
 using SnmpSharpNet;
 using System.Diagnostics;
 using System.Net.Sockets;
-using NmsDotnet.Database.vo;
 using NmsDotNet.vo;
 using System.Windows.Controls;
 
 namespace NmsDotNet.Service
 {
-    class Snmp
+    class SnmpService
     {		
 		public static bool _shouldStop = false;
 
-		public Snmp()
+		public SnmpService()
 		{
 			//Constructor
 		}

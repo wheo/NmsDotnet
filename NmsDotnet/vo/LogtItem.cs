@@ -9,8 +9,8 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
-using NmsDotnet.Database.vo;
 using NmsDotNet.Database;
+using NmsDotNet.Database.vo;
 
 namespace NmsDotNet.vo
 {    

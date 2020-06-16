@@ -1,24 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using NmsDotNet.Database;
+using Org.BouncyCastle.Crypto.Engines;
 
-namespace NmsDotnet.Database.vo
+namespace NmsDotNet.Database.vo
 {
-    class Group
+    internal class Group
     {
+        private ObservableCollection<Server> DataSource = new ObservableCollection<Server>();
+
         private Group()
         {
-
         }
+
         public string Id { get; set; }
-        public string Name { get; set; }        
+        public string Name { get; set; }
 
         public static Group group;
+
         public static Group GetInstance()
         {
             if (group == null)
@@ -31,7 +36,7 @@ namespace NmsDotnet.Database.vo
         public int AddGroup(string name)
         {
             int ret = 0;
-            string query = "INSERT INTO group (id, name) VALUES (uuid(), @name)";
+            string query = "INSERT INTO grp (id, name) VALUES (uuid(), @name)";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -42,11 +47,11 @@ namespace NmsDotnet.Database.vo
             }
             return ret;
         }
-        
+
         public List<Group> GetGroupList()
         {
             DataTable dt = new DataTable();
-            string query = "SELECT * FROM group";
+            string query = "SELECT * FROM grp";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();

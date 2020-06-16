@@ -8,62 +8,63 @@ using Renci.SshNet.Messages.Connection;
 
 namespace NmsDotNet.Database
 {
-    class DatabaseManager
-    {    
-		DatabaseManager()
-		{
-			conn = null;
-		}
-		public String server { get; set; }
-		public int port { get; set; }
-		public String user { get; set; }
-		public String pw { get; set; }
-		public String databaseName { get; set; }
+    internal class DatabaseManager
+    {
+        private DatabaseManager()
+        {
+            conn = null;
+        }
 
-		private MySqlConnection conn;
-		public static DatabaseManager instance;
+        public String server { get; set; }
+        public int port { get; set; }
+        public String user { get; set; }
+        public String pw { get; set; }
+        public String databaseName { get; set; }
 
-		public string ConnectionString { get; set; }
+        private MySqlConnection conn;
+        public static DatabaseManager instance;
 
-		public void SetConnectionString(string server, int port, string user, string pw, string databaseName)
-		{
-			this.server = server;
-			this.port = port;						
-			this.user = user;
-			this.pw = pw;
-			this.databaseName = databaseName;
+        public string ConnectionString { get; set; }
 
-			ConnectionString = String.Format("server={0};port={1};uid={2};pwd={3};database={4};charset=utf8mb4;",
+        public void SetConnectionString(string server, int port, string user, string pw, string databaseName)
+        {
+            this.server = server;
+            this.port = port;
+            this.user = user;
+            this.pw = pw;
+            this.databaseName = databaseName;
+
+            ConnectionString = String.Format("server={0};port={1};uid={2};pwd={3};database={4};charset=utf8mb4;",
                     server,
                     port,
                     user,
                     pw,
                     databaseName);
-		}		
+        }
 
-		public static DatabaseManager getInstance()
-		{
-			if (instance == null)
-			{
-				instance = new DatabaseManager();
-			}
-			return instance;
-		}
+        public static DatabaseManager getInstance()
+        {
+            if (instance == null)
+            {
+                instance = new DatabaseManager();
+            }
+            return instance;
+        }
 
-		public void Close()
-		{
-			if ( conn != null)
-			{
-				conn.Close();
-			}
-		}
+        public void Close()
+        {
+            if (conn != null)
+            {
+                conn.Close();
+            }
+        }
 
-		public void Dispose()
-		{
-			if ( conn != null)
-			{
-				conn.Dispose();
-			}
-		}
-	}
+        public void Dispose()
+        {
+            if (conn != null)
+            {
+                conn.Dispose();
+            }
+        }
+    }
 }

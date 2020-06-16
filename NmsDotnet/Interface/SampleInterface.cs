@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace NmsDotNet.Interface
 {
-    interface SampleInterface
+    internal interface SampleInterface
     {
         void Send();
     }

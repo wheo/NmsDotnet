@@ -7,16 +7,17 @@ using System.Windows.Controls;
 
 namespace NmsDotNet.Database
 {
-    interface IDao
+    internal interface IDao
     {
-
     }
-    abstract class AbstractDAO<T> : IDao
-    {        
+
+    internal abstract class AbstractDAO<T> : IDao
+    {
         public T Select(T entity)
         {
             return default(T);
         }
+
         public T SelectByOne(int id)
         {
             return default(T);
