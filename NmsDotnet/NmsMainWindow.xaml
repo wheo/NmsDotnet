@@ -115,11 +115,12 @@
                     <TextBlock VerticalAlignment="Center" Margin="15 0 0 0">
                         AMS
                     </TextBlock>
+                    <Button x:Name="add_testserver" Click="add_testserver_Click">테스트서버 추가</Button>
                 </StackPanel>
             </materialDesign:ColorZone>
         </Grid>
         <Grid Grid.Row="1" Grid.Column="0">
-            <TreeView x:Name="TreeGroup">
+            <TreeView x:Name="TreeGroup" MouseRightButtonDown="TreeGroup_MouseRightButtonDown">
                 <TreeView.ContextMenu>
                     <ContextMenu>
                         <MenuItem x:Name="MenuGroupAdd" Header="그룹 추가" Click="MenuGroupAdd_Click" />
@@ -135,7 +136,7 @@
             </TreeView>
         </Grid>
         <Grid Grid.Column="1" Grid.Row="1">
-            <ScrollViewer Grid.ColumnSpan="2">
+            <ScrollViewer>
                 <ScrollViewer.ContextMenu>
                     <ContextMenu>
                         <MenuItem x:Name="MenuMachineAdd" Header="장비 추가" Click="MenuMachineAdd_Click" />
@@ -148,7 +149,8 @@
                 </ScrollViewer.Background>
                 <StackPanel>
                     <StackPanel Margin="10">
-                        <ItemsControl x:Name="ServerList"
+                        <ItemsControl x:Name="ServerList" AllowDrop="True"
+                                  MouseDoubleClick="ServerList_MouseDoubleClick"
                                   MouseLeftButtonDown="ServerList_MouseLeftButtonDown"
                                   MouseRightButtonDown="ServerList_MouseRightButtonDown">
                             <ItemsControl.ItemTemplate>
@@ -182,25 +184,10 @@
         </Grid>
         <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
             <DockPanel Margin="10 0 10 10">
-                <!--
-                <ListView x:Name="LvLog"
-                          materialDesign:DataGridAssist.CellPadding="4 2 2 2"
-                          materialDesign:DataGridAssist.ColumnHeaderPadding="4 2 2 2">
-                    <ListView.View>
-                        <GridView>
-                            <GridViewColumn Header="Time" Width="100" DisplayMemberBinding="{Binding Time}" />
-                            <GridViewColumn Header="Level" Width="100" DisplayMemberBinding="{Binding Time}" />
-                            <GridViewColumn Header="Server" Width="100" DisplayMemberBinding="{Binding Server}" />
-                            <GridViewColumn Header="Info" Width="100" DisplayMemberBinding="{Binding Info}" />
-                            <GridViewColumn Header="Desc" Width="100" DisplayMemberBinding="{Binding Desc}" />
-                        </GridView>
-                    </ListView.View>
-                </ListView>
-                -->
                 <DataGrid x:Name="DgLog"
                     Margin="0 8 0 0"
                     CanUserSortColumns="True"
-                    CanUserAddRows="False"
+                    CanUserAddRows="False" CanUserDeleteRows="False"
                     materialDesign:DataGridAssist.CellPadding="4 2 2 2"
                     materialDesign:DataGridAssist.ColumnHeaderPadding="4 2 2 2"
                     ScrollViewer.CanContentScroll="True"

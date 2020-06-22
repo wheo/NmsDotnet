@@ -38,11 +38,10 @@ namespace NmsDotNet.Database.vo
             return server;
         }
 
-        public void SetServerInfo(string name, string ip, string type, string gid)
+        public void SetServerInfo(string name, string ip, string gid)
         {
             Name = name;
-            Ip = ip;
-            Type = type;
+            Ip = ip;            
             Gid = gid;
         }
 
@@ -53,22 +52,18 @@ namespace NmsDotNet.Database.vo
             }
             else if (String.IsNullOrEmpty(Ip))
             {
-            }
-            else if (String.IsNullOrEmpty(Type))
-            {
-            }
+            }            
             else if (String.IsNullOrEmpty(Gid))
             {
             }
 
-            string query = "INSERT INTO server (id, ip, name, type, gid) VALUES (uuid(), @ip, @name, @type, @gid)";
+            string query = "INSERT INTO server (id, ip, name, gid) VALUES (uuid(), @ip, @name, @gid)";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@name", server.Name);
-                cmd.Parameters.AddWithValue("@ip", server.Ip);
-                cmd.Parameters.AddWithValue("@type", server.Type);
+                cmd.Parameters.AddWithValue("@ip", server.Ip);                
                 cmd.Parameters.AddWithValue("@gid", server.Gid);
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
