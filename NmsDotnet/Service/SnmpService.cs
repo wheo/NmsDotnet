@@ -153,7 +153,7 @@ namespace NmsDotNet.Service
                     return false;
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
                 target.Close();
                 logger.Error(String.Format("Ip : {0}", Ip));
@@ -362,6 +362,11 @@ namespace NmsDotNet.Service
                 }
             }
             target.Close();
+        }
+
+        public static async Task<DataGrid> TrapListener()
+        {
+            return null;
         }
     }
 }

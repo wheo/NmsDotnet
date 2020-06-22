@@ -25,10 +25,6 @@ namespace NmsDotNet.Database.vo
         public bool Enable { get; set; }
         public string Desc { get; set; }
 
-        private Snmp()
-        {
-        }
-
         public static Snmp snmp;
 
         public static Snmp GetInstance()

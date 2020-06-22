@@ -80,15 +80,6 @@ namespace NmsDotNet
         private void ServerService(Server server)
         {
             logger.Info(String.Format("{0} ServerService is starting", server.Ip));
-            if (ServerList.Dispatcher.CheckAccess())
-            {
-                ServerList.ItemsSource = Server.GetInstance().GetServerList();
-            }
-            else
-            {
-                ServerList.Dispatcher.Invoke(() => { ServerList.ItemsSource = Server.GetInstance().GetServerList(); });
-            }
-
             while (!_shouldStop)
             {
                 if (SnmpService.Get(server.Ip))
@@ -97,7 +88,16 @@ namespace NmsDotNet
                 else
                 {
                     server.Status = "error";
-                    Server.GetInstance().UpdateServerStatus(server);                    
+                    Server.GetInstance().UpdateServerStatus(server);
+
+                    if (ServerList.Dispatcher.CheckAccess())
+                    {
+                        ServerList.ItemsSource = Server.GetInstance().GetServerList();
+                    }
+                    else
+                    {
+                        ServerList.Dispatcher.Invoke(() => { ServerList.ItemsSource = Server.GetInstance().GetServerList(); });
+                    }
                 }
                 Thread.Sleep(1000); // 나중에 변수로
             }
@@ -112,8 +112,8 @@ namespace NmsDotNet
 
         private void ServerList_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            MessageBox.Show("left down");
             /*
+            MessageBox.Show("left down");
             Service.Snmp.GetBulk();
             */
         }
@@ -203,7 +203,7 @@ namespace NmsDotNet
             else
             {
                 var group = (Group)CbGroup.SelectedItem;
-                Server.GetInstance().SetServerInfo(TbServerName.Text, TbServerIp.Text, group.Id);
+                Server.GetInstance().SetServerInfo(TbServerName.Text, TbServerIp.Text, CbServerType.Text, group.Id);
                 Server.GetInstance().AddServer();
                 ServerList.ItemsSource = Server.GetInstance().GetServerList();
                 TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
@@ -287,16 +287,18 @@ namespace NmsDotNet
                             Debug.WriteLine("*** VarBind content:");
                             foreach (Vb v in pkt.Pdu.VbList)
                             {
-                                Snmp.GetInstance().Id = v.Oid.ToString();
-                                Snmp.GetInstance().IP = inep.ToString().Split(':')[0];
-                                Snmp.GetInstance().Port = inep.ToString().Split(':')[1];
-                                Snmp.GetInstance().Community = pkt.Community.ToString();
-                                Snmp.GetInstance().Syntax = SnmpConstants.GetTypeName(v.Value.Type);
-                                Snmp.GetInstance().Value = v.Value.ToString();
-                                Snmp.GetInstance().type = "trap";
-
-                                Snmp.GetInstance().RegisterSnmpInfo(Snmp.GetInstance());
-                                LogItem.GetInstance().LoggingDatabase(Snmp.GetInstance());
+                                Database.vo.Snmp snmp = new Database.vo.Snmp()
+                                {
+                                    Id = v.Oid.ToString(),
+                                    IP = inep.ToString().Split(':')[0],
+                                    Port = inep.ToString().Split(':')[1],
+                                    Community = pkt.Community.ToString(),
+                                    Syntax = SnmpConstants.GetTypeName(v.Value.Type),
+                                    Value = v.Value.ToString(),
+                                    type = "trap"
+                                };
+                                Database.vo.Snmp.GetInstance().RegisterSnmpInfo(snmp);
+                                LogItem.GetInstance().LoggingDatabase(snmp);
 
                                 if (DgLog.Dispatcher.CheckAccess())
                                 {
@@ -332,25 +334,6 @@ namespace NmsDotNet
                     }
                 }
             }
-        }
-
-        private void ServerList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            string uri = "http://";
-            ListView lv = sender as ListView;
-            Server server = (Server)lv.SelectedItem;
-            System.Diagnostics.Process.Start(String.Format($"{uri}{server.Ip}"));
-        }
-
-        private void add_testserver_Click(object sender, RoutedEventArgs e)
-        {
-            string group_id = "12d4b03e-b055-11ea-ab0a-0242ac130002"; //고정
-            Server.GetInstance().SetServerInfo("테스트서버", "127.0.0.1", group_id);
-            Server.GetInstance().AddServer();
-            ServerList.ItemsSource = Server.GetInstance().GetServerList();
-            TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
-            Task.Run(() => ServerService(Server.GetInstance()));
-            logger.Info(String.Format("{0} New Service is created", Server.GetInstance().Ip));
         }
     }
 }
