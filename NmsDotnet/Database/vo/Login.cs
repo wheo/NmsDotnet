@@ -9,7 +9,7 @@ using MySql.Data.MySqlClient;
 
 namespace NmsDotNet.Database.vo
 {
-    public class Login
+    internal class Login
     {
         private Login()
         {

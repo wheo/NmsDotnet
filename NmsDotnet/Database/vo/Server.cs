@@ -38,11 +38,10 @@ namespace NmsDotNet.Database.vo
             return server;
         }
 
-        public void SetServerInfo(string name, string ip, string type, string gid)
+        public void SetServerInfo(string name, string ip, string gid)
         {
             Name = name;
             Ip = ip;
-            Type = type;
             Gid = gid;
         }
 
