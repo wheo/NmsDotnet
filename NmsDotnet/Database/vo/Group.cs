@@ -66,7 +66,7 @@ namespace NmsDotNet.Database.vo
             return ret;
         }
 
-        public int DelGroup(string id)
+        public int DeleteGroup(string id)
         {
             int ret = 0;
             string query = "DELETE FROM grp WHERE id = @id";
@@ -104,7 +104,7 @@ namespace NmsDotNet.Database.vo
 
             foreach (Group g in groups)
             {
-                g.Servers = Server.GetInstance().GetServerListByGroup(g.Id);
+                g.Servers = Server.GetServerListByGroup(g.Id);
             }
 
             return groups;

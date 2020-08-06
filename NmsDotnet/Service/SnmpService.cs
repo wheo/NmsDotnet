@@ -100,7 +100,7 @@ namespace NmsDotNet.Service
             // IPAddress class is easy to use here because it will try to resolve constructor parameter if it doesn't parse to an IP address
             IpAddress agent = new IpAddress(Ip);
             // Construct target
-            UdpTarget target = new UdpTarget((IPAddress)agent, 161, 2000, 1);
+            UdpTarget target = new UdpTarget((IPAddress)agent, 161, 10, 1);
             // Pdu class used for all requests
             Pdu pdu = new Pdu(PduType.Get);
             /*
@@ -132,15 +132,13 @@ namespace NmsDotNet.Service
                         // Reply variables are returned in the same order as they were added to the VbList
                         for (int i = 0; i < result.Pdu.VbCount; i++)
                         {
+                            /*
                             Debug.WriteLine("sysDescr({0}) ({1}): {2}",
                                 result.Pdu.VbList[i].Oid.ToString(),
                                 SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type),
                                 result.Pdu.VbList[i].Value.ToString());
-
-                            logger.Info(String.Format("sysDescr({0}) ({1}): {2}",
-                                result.Pdu.VbList[i].Oid.ToString(),
-                                SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type),
-                                result.Pdu.VbList[i].Value.ToString()));
+                            */
+                            //logger.Info(String.Format($"[{Ip}] sysDescr({result.Pdu.VbList[i].Oid.ToString()}) ({ SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type)}): { result.Pdu.VbList[i].Value.ToString()}"));
                         }
                         target.Close();
                         return true;
@@ -153,7 +151,7 @@ namespace NmsDotNet.Service
                     return false;
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 target.Close();
                 logger.Error(String.Format("Ip : {0}", Ip));

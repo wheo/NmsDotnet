@@ -13,20 +13,13 @@
         Loaded="Window_Loaded"
         Closing="Window_Closing">
 
-    <Window.Resources>
-        <Style x:Key="CenterGridHeaderStyle" TargetType="DataGridColumnHeader">
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-        </Style>
-    </Window.Resources>
-
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="30" />
             <RowDefinition Height="*" />
             <RowDefinition Height="250" />
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="190" />
+            <ColumnDefinition Width="150" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
@@ -50,7 +43,6 @@
                 </materialDesign:DialogHost.DialogContent>
             </materialDesign:DialogHost>
         </StackPanel>
-
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Grid.ColumnSpan="2" Grid.RowSpan="3">
             <materialDesign:DialogHost x:Name="DialogServer" BorderBrush="{DynamicResource MaterialDesignDivider}" VerticalAlignment="Center" HorizontalAlignment="Center" DialogOpened="DialogServer_DialogOpened">
                 <materialDesign:DialogHost.DialogContent>
@@ -58,7 +50,8 @@
                         <StackPanel Orientation="Horizontal" Margin="15">
                             <materialDesign:PackIcon Kind="InfoOutline" Width="50" Height="50" />
                             <StackPanel>
-                                <TextBox MaxWidth="200" x:Name="TbServerName" materialDesign:HintAssist.Hint="장비 이름" />
+                                <TextBox MaxWidth="200" x:Name="TbServerName" materialDesign:HintAssist.Hint="장비 이름"
+                                         Style="{StaticResource MaterialDesignFloatingHintTextBox}" />
                                 <TextBox MaxWidth="200" x:Name="TbServerIp" materialDesign:HintAssist.Hint="IP" />
                                 <ComboBox x:Name="CbGroup" materialDesign:HintAssist.Hint="그룹 선택(필수)">
                                     <ComboBox.ItemTemplate>
@@ -66,10 +59,6 @@
                                             <TextBlock Text="{Binding Name}" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
-                                </ComboBox>
-                                <ComboBox x:Name="CbServerType" materialDesign:HintAssist.Hint="Type (필수)">
-                                    <ComboBoxItem>CM5000</ComboBoxItem>
-                                    <ComboBoxItem>DR5000</ComboBoxItem>
                                 </ComboBox>
                             </StackPanel>
                         </StackPanel>
@@ -105,21 +94,7 @@
             </materialDesign:DialogHost>
         </StackPanel>
 
-        <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
-            <materialDesign:ColorZone
-  Mode="PrimaryLight"
-  Padding="0">
-                <StackPanel
-    Orientation="Horizontal">
-                    <ToggleButton Style="{DynamicResource MaterialDesignHamburgerToggleButton}" Width="25" Height="25" />
-                    <TextBlock VerticalAlignment="Center" Margin="15 0 0 0">
-                        AMS
-                    </TextBlock>
-                    <Button x:Name="add_testserver" Click="add_testserver_Click">테스트서버 추가</Button>
-                </StackPanel>
-            </materialDesign:ColorZone>
-        </Grid>
-        <Grid Grid.Row="1" Grid.Column="0">
+        <Grid Grid.Row="0" Grid.Column="0">
             <TreeView x:Name="TreeGroup" MouseRightButtonDown="TreeGroup_MouseRightButtonDown">
                 <TreeView.ContextMenu>
                     <ContextMenu>
@@ -135,25 +110,25 @@
                 </TreeView.ItemTemplate>
             </TreeView>
         </Grid>
-        <Grid Grid.Column="1" Grid.Row="1">
-            <ScrollViewer>
-                <ScrollViewer.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem x:Name="MenuMachineAdd" Header="장비 추가" Click="MenuMachineAdd_Click" />
-                        <MenuItem x:Name="MenuMachineEdit" Header="장비 수정" Click="MenuMachineEdit_Click" />
-                        <MenuItem x:Name="MenuMachineDel" Header="장비 삭제"  Click="MenuMachineDel_Click" />
-                    </ContextMenu>
-                </ScrollViewer.ContextMenu>
-                <ScrollViewer.Background>
+        <Grid Grid.Column="1" Grid.Row="0">
+            <WrapPanel>
+                <WrapPanel.Background>
                     <ImageBrush ImageSource="/Asset/AtemeLogo.jpg" Stretch="Fill" Opacity="0.04" />
-                </ScrollViewer.Background>
+                </WrapPanel.Background>
                 <StackPanel>
                     <StackPanel Margin="10">
-                        <ItemsControl x:Name="ServerList" AllowDrop="True"
+                        <ListView x:Name="ServerListItem" AllowDrop="True" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                   MouseDoubleClick="ServerList_MouseDoubleClick"
                                   MouseLeftButtonDown="ServerList_MouseLeftButtonDown"
                                   MouseRightButtonDown="ServerList_MouseRightButtonDown">
-                            <ItemsControl.ItemTemplate>
+                            <ListView.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem x:Name="MenuServerAdd" Header="장비 추가" Click="MenuServerAdd_Click" />
+                                    <MenuItem x:Name="MenuServerEdit" Header="장비 수정" Click="MenuServerEdit_Click" />
+                                    <MenuItem x:Name="MenuServerDel" Header="장비 삭제"  Click="MenuServerDel_Click" />
+                                </ContextMenu>
+                            </ListView.ContextMenu>
+                            <ListView.ItemTemplate>
                                 <DataTemplate>
                                     <Border Margin="2" Width="100" Height="60">
                                         <StackPanel>
@@ -171,19 +146,21 @@
                                         </StackPanel>
                                     </Border>
                                 </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                            <ItemsControl.ItemsPanel>
+                            </ListView.ItemTemplate>
+
+                            <ListView.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <WrapPanel></WrapPanel>
                                 </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                        </ItemsControl>
+                            </ListView.ItemsPanel>
+                        </ListView>
                     </StackPanel>
                 </StackPanel>
-            </ScrollViewer>
+            </WrapPanel>
         </Grid>
-        <Grid Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2">
+        <Grid Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2">
             <DockPanel Margin="10 0 10 10">
+                <!--
                 <DataGrid x:Name="DgLog"
                     Margin="0 8 0 0"
                     CanUserSortColumns="True"
@@ -194,6 +171,30 @@
                     ScrollViewer.IsDeferredScrollingEnabled="True"
                     ScrollViewer.VerticalScrollBarVisibility="Visible">
                 </DataGrid>
+                -->
+                <ListView x:Name="LvLog"
+                          ScrollViewer.CanContentScroll="True"
+                          ScrollViewer.IsDeferredScrollingEnabled="True"
+                          ScrollViewer.VerticalScrollBarVisibility="Visible">
+                    <ListView.Resources>
+                        <Style TargetType="{x:Type ListViewItem}">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsConfirm}" Value="N">
+                                    <Setter Property="Background" Value="Red" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ListView.Resources>
+                    <ListView.View>
+                        <GridView AllowsColumnReorder="False" ColumnHeaderToolTip="Log">
+                            <GridViewColumn Header="Start at" Width="150"  DisplayMemberBinding="{Binding StartAt }" />
+                            <GridViewColumn Header="End at" Width="150"  DisplayMemberBinding="{Binding EndAt }" />
+                            <GridViewColumn Header="IP address" Width="130"  DisplayMemberBinding="{Binding Ip }" />
+                            <GridViewColumn Header="Level" Width="100"  DisplayMemberBinding="{Binding Level }" />
+                            <GridViewColumn Header="Value" Width="1250"  DisplayMemberBinding="{Binding Value }" />
+                        </GridView>
+                    </ListView.View>
+                </ListView>
             </DockPanel>
         </Grid>
     </Grid>

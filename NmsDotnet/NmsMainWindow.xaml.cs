@@ -22,6 +22,10 @@ using System.Net;
 using System.Runtime.CompilerServices;
 
 using System.Runtime.Remoting.Contexts;
+using System.Media;
+using System.Windows.Media;
+using System.Windows.Data;
+using System.Collections.ObjectModel;
 
 namespace NmsDotNet
 {
@@ -33,6 +37,9 @@ namespace NmsDotNet
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public static bool _shouldStop = false;
+        private ObservableCollection<Server> _serverList;
+
+        private SoundPlayer _simpleSound = null;
 
         //CancellationTokenSource source;
         public NmsMainWindow()
@@ -44,11 +51,10 @@ namespace NmsDotNet
         {
             LoadMibFiles();
             GetGroupList();
-            GetServerList();
+            ServerDispatcherTimer();
             GetLog();
 
             Task.Run(() => TrapListener());
-            Debug.WriteLine("TrapListener Completed");
         }
 
         private void LoadMibFiles()
@@ -62,58 +68,90 @@ namespace NmsDotNet
             TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
         }
 
-        private void GetServerList()
+        private int GetLog()
         {
-            ServerList.ItemsSource = Server.GetInstance().GetServerList();
-
-            foreach (Server item in ServerList.ItemsSource)
-            {
-                Task.Run(() => ServerService(item));
-            }
+            LvLog.ItemsSource = null;
+            LvLog.ItemsSource = LogItem.GetInstance().GetLog();
+            return LogItem.GetInstance().LogItemCount;
         }
 
-        private void GetLog()
+        private void ServerDispatcherTimer()
         {
-            DgLog.ItemsSource = LogItem.GetInstance().GetLog().DefaultView;
+            DispatcherTimer SnmpGetTimer = new DispatcherTimer(DispatcherPriority.Render);
+            SnmpGetTimer.Interval = TimeSpan.FromSeconds(5);
+            SnmpGetTimer.Tick += new EventHandler(SService);
+            _serverList = new ObservableCollection<Server>(Server.GetServerList());
+            ServerListItem.ItemsSource = _serverList;
+            SnmpGetTimer.Start();
         }
 
-        private void ServerService(Server server)
+        private void SService(object sender, EventArgs e)
         {
-            logger.Info(String.Format("{0} ServerService is starting", server.Ip));
-            if (ServerList.Dispatcher.CheckAccess())
+            var Servers = _serverList;
+            bool drawItem = false;
+            foreach (Server server in Servers)
             {
-                ServerList.ItemsSource = Server.GetInstance().GetServerList();
-            }
-            else
-            {
-                ServerList.Dispatcher.Invoke(() => { ServerList.ItemsSource = Server.GetInstance().GetServerList(); });
-            }
-
-            while (!_shouldStop)
-            {
+                string old_status = null;
                 if (SnmpService.Get(server.Ip))
                 {
+                    //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
+                    if (server.Status == "idle" || server.Status == "error")
+                    {
+                        server.Status = "normal";
+                        //server.IsChange = true; INotify 인터페이스로 대체
+                        logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed"));
+                        drawItem = true;
+                    }
                 }
                 else
                 {
-                    server.Status = "error";
-                    //Server.GetInstance().UpdateServerStatus(server);
+                    if (server.Status == "normal")
+                    {
+                        server.Status = "error";
+                        //server.IsChange = true;
+                        logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed"));
+                        drawItem = true;
+                    }
+                    if (server.Status == "idle")
+                    {
+                        //최초 등록시 snmp get 응답 없을땐 idle 상태로 계속 유지
+                    }
                 }
-                Thread.Sleep(5000); // 나중에 변수로 변경(현재는 5초)
             }
-            logger.Info(String.Format("{0} ServerService is done", server.Ip));
+
+            if (drawItem)
+            {
+                if (ServerListItem.Dispatcher.CheckAccess())
+                {
+                    ServerListItem.ItemsSource = null;
+                    ServerListItem.ItemsSource = Server.GetServerList();
+                }
+                else
+                {
+                    ServerListItem.Dispatcher.Invoke(() =>
+                    {
+                        ServerListItem.ItemsSource = null;
+                        ServerListItem.ItemsSource = Server.GetServerList();
+                    });
+                }
+            }
         }
 
         private void ServerList_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             //MessageBox.Show("Get");
             //Service.SnmpService.GetNext();
+            logger.Info(sender);
+            MenuItem menuItem = (MenuItem)e.Source;
+            ContextMenu menu = (ContextMenu)menuItem.Parent;
+            ListView lv = (ListView)menu.PlacementTarget;
+            lv.Focus();
         }
 
         private void ServerList_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             logger.Info(sender);
-            
+
             MessageBox.Show("left down");
             /*
             Service.Snmp.GetBulk();
@@ -133,6 +171,9 @@ namespace NmsDotNet
 
         private void MenuGroupEdit_Click(object sender, RoutedEventArgs e)
         {
+            DialogGroup.IsOpen = true;
+
+            /*
             MenuItem menuItem = (MenuItem)e.Source;
             ContextMenu menu = (ContextMenu)menuItem.Parent;
             TreeView tv = (TreeView)menu.PlacementTarget;
@@ -148,6 +189,7 @@ namespace NmsDotNet
                 {
                 }
             }
+            */
         }
 
         private void MenuGroupDel_Click(object sender, RoutedEventArgs e)
@@ -162,27 +204,60 @@ namespace NmsDotNet
             else
             {
                 var group = (Group)tv.SelectedItem;
-                Debug.WriteLine(group.Id);
-                if (Group.GetInstance().DelGroup(group.Id) > 0)
+                if (Group.GetInstance().DeleteGroup(group.Id) > 0)
                 {
                     TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
-                    ServerList.ItemsSource = Server.GetInstance().GetServerList();
+                    ServerListItem.ItemsSource = Server.GetServerList();
                     //서비스 스레드 종료 꼭 해야함
                 }
             }
         }
 
-        private void MenuMachineAdd_Click(object sender, RoutedEventArgs e)
+        private void MenuServerAdd_Click(object sender, RoutedEventArgs e)
         {
+            //clear 먼저
             DialogServer.IsOpen = true;
         }
 
-        private void MenuMachineEdit_Click(object sender, RoutedEventArgs e)
+        private void MenuServerEdit_Click(object sender, RoutedEventArgs e)
         {
+            MenuItem menuItem = (MenuItem)e.Source;
+            ContextMenu menu = (ContextMenu)menuItem.Parent;
+            ListView lv = (ListView)menu.PlacementTarget;
+            Server info = (Server)lv.SelectedItem;
+            if (info == null)
+            {
+                MessageBox.Show("선택된 그룹이 없습니다.");
+            }
+            logger.Debug(info.GroupName);
+            logger.Debug(info.Gid);
+            TbServerIp.Text = info.Ip;
+            TbServerName.Text = info.Name;
+            CbGroup.Text = info.GroupName;
+            DialogServer.IsOpen = true;
         }
 
-        private void MenuMachineDel_Click(object sender, RoutedEventArgs e)
+        private void MenuServerDel_Click(object sender, RoutedEventArgs e)
         {
+            MenuItem menuItem = (MenuItem)e.Source;
+            ContextMenu menu = (ContextMenu)menuItem.Parent;
+            ListView lv = (ListView)menu.PlacementTarget;
+            if ((Server)lv.SelectedItem == null)
+            {
+                MessageBox.Show("선택된 그룹이 없습니다.");
+            }
+            else
+            {
+                var server = (Server)lv.SelectedItem;
+                logger.Debug(server.Id);
+                if (Server.DeleteServer(server) > 0)
+                {
+                    logger.Debug(String.Format("[{0}/{1} deleted]", server.Ip, server.Status));
+
+                    TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
+                    ServerListItem.ItemsSource = Server.GetServerList();
+                }
+            }
         }
 
         private void BtnGroupAdd_Click(object sender, RoutedEventArgs e)
@@ -200,17 +275,23 @@ namespace NmsDotNet
             if (CbGroup.SelectedItem == null)
             {
                 MessageBox.Show("그룹을 선택해 주세요");
-                return;
+            }
+            else if (Server.ValidServerIP(TbServerIp.Text))
+            {
+                MessageBox.Show("중복된 IP는 등록할 수 없습니다");
             }
             else
             {
                 var group = (Group)CbGroup.SelectedItem;
-                Server.GetInstance().SetServerInfo(TbServerName.Text, TbServerIp.Text, group.Id);
-                Server.GetInstance().AddServer();
-                ServerList.ItemsSource = Server.GetInstance().GetServerList();
+                Server server = new Server();
+                server.SetServerInfo(TbServerName.Text, TbServerIp.Text, group.Id);
+                server.Id = server.AddServer();
+                server.Status = "idle";
+                ServerListItem.ItemsSource = Server.GetServerList();
                 TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
-                Task.Run(() => ServerService(Server.GetInstance()));
-                logger.Info(String.Format("{0} New Service is created", Server.GetInstance().Ip));
+
+                //Task.Run(() => ServerService(server));
+                logger.Info(String.Format("{0} New Service is created", server.Ip, server.Status, server.Name));
             }
         }
 
@@ -219,14 +300,20 @@ namespace NmsDotNet
             CbGroup.ItemsSource = Group.GetInstance().GetGroupList();
         }
 
+        private void InitServerPopup()
+        {
+            TbServerIp.Text = null;
+            TbServerName.Text = null;
+        }
+
         private void TrapListener()
         {
-            Debug.WriteLine("hello task");
+            logger.Info("TrapListener is created");
 
             // Construct a socket and bind it to the trap manager port 162
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            socket.ReceiveTimeout = 1000;
-            socket.SendTimeout = 1000;
+            socket.ReceiveTimeout = 100;
+            socket.SendTimeout = 100;
             IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 162);
             EndPoint ep = (EndPoint)ipep;
             socket.Bind(ep);
@@ -242,7 +329,7 @@ namespace NmsDotNet
                 EndPoint inep = (EndPoint)peer;
                 try
                 {
-                    Debug.WriteLine("Waiting for snmp");
+                    Debug.WriteLine("Waiting for snmp trap");
                     inlen = socket.ReceiveFrom(indata, ref inep);
                 }
                 catch (Exception ex)
@@ -259,13 +346,13 @@ namespace NmsDotNet
                         // Parse SNMP Version 1 TRAP packet
                         SnmpV1TrapPacket pkt = new SnmpV1TrapPacket();
                         pkt.decode(indata, inlen);
-                        Debug.WriteLine("** SNMP Version 1 TRAP received from {0}:", inep.ToString());
-                        Debug.WriteLine("*** Trap generic: {0}", pkt.Pdu.Generic);
-                        Debug.WriteLine("*** Trap specific: {0}", pkt.Pdu.Specific);
-                        Debug.WriteLine("*** Agent address: {0}", pkt.Pdu.AgentAddress.ToString());
-                        Debug.WriteLine("*** Timestamp: {0}", pkt.Pdu.TimeStamp.ToString());
-                        Debug.WriteLine("*** VarBind count: {0}", pkt.Pdu.VbList.Count);
-                        Debug.WriteLine("*** VarBind content:");
+                        logger.Info(string.Format("** SNMP Version 1 TRAP received from {0}:", inep.ToString()));
+                        logger.Info(string.Format("*** Trap generic: {0}", pkt.Pdu.Generic));
+                        logger.Info(string.Format("*** Trap specific: {0}", pkt.Pdu.Specific));
+                        logger.Info(string.Format("*** Agent address: {0}", pkt.Pdu.AgentAddress.ToString()));
+                        logger.Info(string.Format("*** Timestamp: {0}", pkt.Pdu.TimeStamp.ToString()));
+                        logger.Info(string.Format("*** VarBind count: {0}", pkt.Pdu.VbList.Count));
+                        logger.Info("*** VarBind content:");
                         foreach (Vb v in pkt.Pdu.VbList)
                         {
                             Debug.WriteLine("**** {0} {1}: {2}", v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString());
@@ -287,28 +374,65 @@ namespace NmsDotNet
                             Debug.WriteLine("*** Community: {0}", pkt.Community.ToString());
                             Debug.WriteLine("*** VarBind count: {0}", pkt.Pdu.VbList.Count);
                             Debug.WriteLine("*** VarBind content:");
+
+                            Snmp snmp = new Snmp();
+
                             foreach (Vb v in pkt.Pdu.VbList)
                             {
-                                Snmp.GetInstance().Id = v.Oid.ToString();
-                                Snmp.GetInstance().IP = inep.ToString().Split(':')[0];
-                                Snmp.GetInstance().Port = inep.ToString().Split(':')[1];
-                                Snmp.GetInstance().Community = pkt.Community.ToString();
-                                Snmp.GetInstance().Syntax = SnmpConstants.GetTypeName(v.Value.Type);
-                                Snmp.GetInstance().Value = v.Value.ToString();
-                                Snmp.GetInstance().type = "trap";
+                                snmp.Id = v.Oid.ToString();
+                                snmp.IP = inep.ToString().Split(':')[0];
+                                snmp.Port = inep.ToString().Split(':')[1];
+                                snmp.Syntax = SnmpConstants.GetTypeName(v.Value.Type);
+                                snmp.Community = pkt.Community.ToString();
+                                snmp.Value = v.Value.ToString();
+                                snmp.type = "trap";
 
-                                Snmp.GetInstance().RegisterSnmpInfo(Snmp.GetInstance());
-                                LogItem.GetInstance().LoggingDatabase(Snmp.GetInstance());
+                                logger.Info("Oid : " + v.Oid.ToString());
 
-                                if (DgLog.Dispatcher.CheckAccess())
+                                string value = Snmp.GetNameFromOid(v.Oid.ToString());
+                                logger.Info("value : " + value);
+
+                                if (value.LastIndexOf("Level") > 0)
                                 {
-                                    DgLog.ItemsSource = LogItem.GetInstance().GetLog().DefaultView;
+                                    snmp.LevelString = Snmp.GetLevelString(Convert.ToInt32(v.Value.ToString()));
+                                    logger.Info("LevelString : " + snmp.LevelString);
+                                }
+                                else if (value.LastIndexOf("Type") > 0)
+                                {
+                                    snmp.TranslateValue = Snmp.GetTranslateValue(value);
+                                    snmp.TypeValue = Enum.GetName(typeof(Snmp.TrapType), Convert.ToInt32(v.Value.ToString()));
+                                    snmp.TypeOid = v.Oid.ToString();
+                                }
+                                else if (value.LastIndexOf("Channel") > 0)
+                                {
+                                    snmp.Channel = Convert.ToInt32(v.Value.ToString()) + 1; //0받으면 채널 1로
+                                }
+                                else if (value.LastIndexOf("Main") > 0)
+                                {
+                                    snmp.Main = Enum.GetName(typeof(Snmp.EnumMain), Convert.ToInt32(v.Value.ToString()));
+                                }
+
+                                //logger.Info("TranslateValue : " + snmp.TranslateValue);
+
+                                //데이터베이스 테이블을 만들기 위해 등록함(로그는 translate 테이블을 이용하자)
+                                Snmp.RegisterSnmpInfo(snmp);
+
+                                logger.Info(String.Format("[{0}] Trap : {1} {2}: {3}", inep.ToString().Split(':')[0], v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString()));
+                            }
+                            int logCount = 0;
+                            if (!String.IsNullOrEmpty(snmp.LevelString))
+                            {
+                                snmp.TrapString = snmp.MakeTrapLogString();
+                                LogItem.GetInstance().LoggingDatabase(snmp);
+                                if (LvLog.Dispatcher.CheckAccess())
+                                {
+                                    logCount = GetLog();
                                 }
                                 else
                                 {
-                                    DgLog.Dispatcher.Invoke(() => { DgLog.ItemsSource = LogItem.GetInstance().GetLog().DefaultView; });
+                                    LvLog.Dispatcher.Invoke(() => { logCount = GetLog(); });
                                 }
-
+                                /*
                                 if (DialogNotification.Dispatcher.CheckAccess())
                                 {
                                     DialogNotification.IsOpen = true;
@@ -316,13 +440,18 @@ namespace NmsDotNet
                                 else
                                 {
                                     DialogNotification.Dispatcher.Invoke(() => { DialogNotification.IsOpen = true; });
-                                }
-
-                                Debug.WriteLine("**** {0} {1}: {2}",
-                                    v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString());
-                                logger.Info(String.Format("[{0}] Trap : {1} {2}: {3}", inep.ToString().Split(':')[0], v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString()));
+                                }*/
                             }
-                            Debug.WriteLine("** End of SNMP Version 2 TRAP data.");
+                            if (logCount > 0)
+                            {
+                                Task.Run(() => SoundPlayAsync());
+                            }
+                            else
+                            {
+                                SoundStop();
+                            }
+
+                            logger.Info("** End of SNMP Version 2 TRAP data.");
                         }
                     }
                 }
@@ -333,6 +462,25 @@ namespace NmsDotNet
                         Debug.WriteLine("Zero length packet received.");
                     }
                 }
+            }
+            logger.Info("TrapListener is done");
+        }
+
+        private async Task SoundPlayAsync()
+        {
+            if (_simpleSound == null)
+            {
+                _simpleSound = new SoundPlayer(@"Sound\alarm.wav");
+                _simpleSound.PlayLooping();
+            }
+        }
+
+        private void SoundStop()
+        {
+            if (_simpleSound != null)
+            {
+                _simpleSound.Stop();
+                _simpleSound = null;
             }
         }
 
@@ -346,18 +494,47 @@ namespace NmsDotNet
 
         private void add_testserver_Click(object sender, RoutedEventArgs e)
         {
-            string group_id = "c60479e4-afd7-11ea-90ac-0242ac130002"; //고정
-            Server.GetInstance().SetServerInfo("테스트서버", "127.0.0.1", group_id);
-            Server.GetInstance().AddServer();
-            ServerList.ItemsSource = Server.GetInstance().GetServerList();
+            string group_id = "3140e0fd-b752-11ea-a91a-0242ac160002"; //고정
+            Server server = new Server();
+            server.SetServerInfo("테스트서버", "192.168.2.189", group_id);
+            server.AddServer();
+            ServerListItem.ItemsSource = Server.GetServerList();
             TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
-            Task.Run(() => ServerService(Server.GetInstance()));
-            logger.Info(String.Format("{0} New Service is created", Server.GetInstance().Ip));
+            //Task.Run(() => ServerService(server)); // 스레드 돌리지 않음
+            logger.Info(String.Format("{0} New Service is created", server.Ip));
         }
 
         private void TreeGroup_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
             logger.Info(sender);
+        }
+
+        private void lvBtnConfirm_Click(object sender, RoutedEventArgs e)
+        {
+            LogItem logItem = GetLvItem(e);
+            LogItem.ChangeConfirmStatus(logItem.idx);
+            logger.Info(String.Format($"{logItem.Ip}, {logItem.Value}, {logItem.idx}"));
+            GetLog();
+        }
+
+        private LogItem GetLvItem(RoutedEventArgs e)
+        {
+            DependencyObject dep = (DependencyObject)e.OriginalSource;
+            while (!(dep is System.Windows.Controls.ListViewItem))
+            {
+                try
+                {
+                    dep = VisualTreeHelper.GetParent(dep);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+            ListViewItem item = (ListViewItem)dep;
+            item.Background = Brushes.Transparent;
+            LogItem content = (LogItem)item.Content;
+            return content;
         }
     }
 }
