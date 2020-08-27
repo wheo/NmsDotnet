@@ -21,8 +21,10 @@ namespace NmsDotNet.vo
         public string EndtAt { get; set; }
 
         public string Ip { get; set; }
+        public string Name { get; set; }
 
         public string Level { get; set; }
+        public string Color { get; set; }
 
         public string Value { get; set; }
 
@@ -124,16 +126,18 @@ namespace NmsDotNet.vo
         public List<LogItem> GetLog()
         {
             DataTable dt = new DataTable();
-            string query = $"SELECT DATE_FORMAT(L.start_at, '%Y-%m-%d %H:%i:%s') as start_at" +
-                $", DATE_FORMAT(L.end_at, '%Y-%m-%d %H:%i:%s') as end_at" +
-                $", L.ip as ip" +
-                $", L.level as level" +
-                $", L.value as value" +
-                $", L.snmp_type_value as type_value" +
-                $", L.idx as idx" +
-                $" FROM log L" +
-                $" WHERE is_display = 'Y'" +
-                $" ORDER BY L.start_at DESC";
+            string query = String.Format(@"SELECT DATE_FORMAT(L.start_at, '%Y-%m-%d %H:%i:%s') as start_at, DATE_FORMAT(L.end_at, '%Y-%m-%d %H:%i:%s') as end_at
+, L.ip as ip
+, S.name AS name
+, L.level as level
+, IF(L.level = 'Critical', 'Red', IF(L.level = 'Warning', 'Yellow', IF(L.level = 'Information', 'Blue', 'Black'))) AS color
+, L.value as value
+, L.snmp_type_value as type_value
+, L.idx as idx
+FROM log L
+LEFT JOIN server S ON S.ip = L.ip
+WHERE is_display = 'Y'
+ORDER BY L.start_at DESC");
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -150,7 +154,9 @@ namespace NmsDotNet.vo
                 StartAt = row.Field<string>("start_at"),
                 EndtAt = row.Field<string>("end_at"),
                 Ip = row.Field<string>("ip"),
+                Name = row.Field<string>("name"),
                 Level = row.Field<string>("level"),
+                Color = row.Field<string>("color"),
                 Value = row.Field<string>("value"),
                 TypeValue = row.Field<string>("type_value")
             }).ToList();

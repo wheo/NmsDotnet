@@ -60,7 +60,7 @@ namespace NmsDotNet.Database.vo
 
         public string MakeTrapLogString()
         {
-            string logString = string.Format($"{TranslateValue} ({Main}) (Channel : {Channel}) (Index : {Index}) ({TypeValue})");
+            string logString = string.Format($"{TranslateValue} ({Main}) (Channel : {Channel}) ({TypeValue})");
             logger.Info("logString : " + logString);
             return logString;
         }

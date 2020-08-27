@@ -171,8 +171,7 @@ namespace NmsDotNet
 
         private void MenuGroupEdit_Click(object sender, RoutedEventArgs e)
         {
-            DialogGroup.IsOpen = true;
-
+            //DialogGroup.IsOpen = true;
             /*
             MenuItem menuItem = (MenuItem)e.Source;
             ContextMenu menu = (ContextMenu)menuItem.Parent;

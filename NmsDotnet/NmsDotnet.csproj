@@ -290,10 +290,13 @@
     </Resource>
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Asset\item\CM5000-INFO.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Asset\item\CM5000-CRITICAL.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
-    <Resource Include="Asset\item\CM5000-INFO.png">
+    <Resource Include="Asset\item\CM5000-WARN.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Content Include="Sound\alarm.wav">
