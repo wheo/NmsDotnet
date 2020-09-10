@@ -11,31 +11,18 @@ using Org.BouncyCastle.Crypto.Engines;
 
 namespace NmsDotNet.Database.vo
 {
-    internal class Group
+    public class Group
     {
         private ObservableCollection<Server> DataSource = new ObservableCollection<Server>();
-
-        private Group()
-        {
-        }
 
         public string Id { get; set; }
         public string Name { get; set; }
 
         public List<Server> Servers { get; set; }
 
-        public static Group group;
+        //public static Group group;
 
-        public static Group GetInstance()
-        {
-            if (group == null)
-            {
-                group = new Group();
-            }
-            return group;
-        }
-
-        public int AddGroup(string name)
+        public static int AddGroup(Group grp)
         {
             int ret = 0;
             string query = "INSERT INTO grp (id, name) VALUES (uuid(), @name)";
@@ -43,14 +30,14 @@ namespace NmsDotNet.Database.vo
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@name", name);
+                cmd.Parameters.AddWithValue("@name", grp.Name);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
             return ret;
         }
 
-        public int EditGroup(Group grp)
+        public static int EditGroup(Group grp)
         {
             int ret = 0;
             string query = "UPDATE grp set name = @name WHERE id = @id";
@@ -66,7 +53,7 @@ namespace NmsDotNet.Database.vo
             return ret;
         }
 
-        public int DeleteGroup(string id)
+        public static int DeleteGroup(string id)
         {
             int ret = 0;
             string query = "DELETE FROM grp WHERE id = @id";
@@ -81,7 +68,7 @@ namespace NmsDotNet.Database.vo
             return ret;
         }
 
-        public IEnumerable<Group> GetGroupList()
+        public static IEnumerable<Group> GetGroupList()
         {
             DataTable dt = new DataTable();
             string query = "SELECT G.* FROM grp G ORDER BY G.create_time";

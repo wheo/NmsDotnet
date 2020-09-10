@@ -27,6 +27,8 @@ using System.Windows.Media;
 using System.Windows.Data;
 using System.Collections.ObjectModel;
 
+using MaterialDesignThemes.Wpf;
+
 namespace NmsDotNet
 {
     /// <summary>
@@ -65,7 +67,7 @@ namespace NmsDotNet
 
         private void GetGroupList()
         {
-            TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
+            TreeGroup.ItemsSource = Group.GetGroupList();
         }
 
         private int GetLog()
@@ -79,19 +81,18 @@ namespace NmsDotNet
         {
             DispatcherTimer SnmpGetTimer = new DispatcherTimer(DispatcherPriority.Render);
             SnmpGetTimer.Interval = TimeSpan.FromSeconds(5);
-            SnmpGetTimer.Tick += new EventHandler(SService);
+            SnmpGetTimer.Tick += new EventHandler(SnmpGetService);
             _serverList = new ObservableCollection<Server>(Server.GetServerList());
             ServerListItem.ItemsSource = _serverList;
             SnmpGetTimer.Start();
         }
 
-        private void SService(object sender, EventArgs e)
+        private void SnmpGetService(object sender, EventArgs e)
         {
             var Servers = _serverList;
             bool drawItem = false;
             foreach (Server server in Servers)
             {
-                string old_status = null;
                 if (SnmpService.Get(server.Ip))
                 {
                     //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
@@ -164,31 +165,54 @@ namespace NmsDotNet
             _shouldStop = true;
         }
 
-        private void MenuGroupAdd_Click(object sender, RoutedEventArgs e)
+        private async void MenuGroupAdd_Click(object sender, RoutedEventArgs e)
         {
-            DialogGroup.IsOpen = true;
+            //var result = await DialogHost.Show("DialogGroup");
+            this.IsEnabled = false;
+
+            Group group = new Group();
+            var result = await DialogHost.Show(group, "DialogGroup");
         }
 
-        private void MenuGroupEdit_Click(object sender, RoutedEventArgs e)
+        private async void MenuGroupEdit_Click(object sender, RoutedEventArgs e)
         {
-            //DialogGroup.IsOpen = true;
-            /*
             MenuItem menuItem = (MenuItem)e.Source;
             ContextMenu menu = (ContextMenu)menuItem.Parent;
             TreeView tv = (TreeView)menu.PlacementTarget;
-            if ((Group)tv.SelectedItem == null)
+            TreeViewItem item = (TreeViewItem)(tv.ItemContainerGenerator.ContainerFromItem(tv.SelectedItem));
+
+            if (item == null)
             {
-                MessageBox.Show("선택된 그룹이 없습니다.");
+                MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                var group = (Group)tv.SelectedItem;
+                this.IsEnabled = false;
+                var group = (Group)item.Header;
+                var result = await DialogHost.Show(group, "DialogGroup");
+            }
+        }
+
+        private void ClosingGroupDialogEventHandler(object sender, MaterialDesignThemes.Wpf.DialogClosingEventArgs eventArgs)
+        {
+            if (this.IsEnabled == false)
+            {
+                this.IsEnabled = true;
+            }
+            if ((bool)eventArgs.Parameter == true)
+            {
+                Group group = (Group)eventArgs.Session.Content;
                 Debug.WriteLine(group.Id);
-                if (Group.GetInstance().EditGroup(group) > 0)
+                if (string.IsNullOrEmpty(group.Id))
                 {
+                    Group.AddGroup(group);
+                    TreeGroup.ItemsSource = Group.GetGroupList();
+                }
+                else
+                {
+                    Group.EditGroup(group);
                 }
             }
-            */
         }
 
         private void MenuGroupDel_Click(object sender, RoutedEventArgs e)
@@ -198,42 +222,79 @@ namespace NmsDotNet
             TreeView tv = (TreeView)menu.PlacementTarget;
             if ((Group)tv.SelectedItem == null)
             {
-                MessageBox.Show("선택된 그룹이 없습니다.");
+                MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
                 var group = (Group)tv.SelectedItem;
-                if (Group.GetInstance().DeleteGroup(group.Id) > 0)
+                if (Group.DeleteGroup(group.Id) > 0)
                 {
-                    TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
+                    TreeGroup.ItemsSource = Group.GetGroupList();
                     ServerListItem.ItemsSource = Server.GetServerList();
-                    //서비스 스레드 종료 꼭 해야함
+                    //서비스 스레드 종료 꼭 해야함 (서비스 스레드는 1개로 운영)
                 }
             }
         }
 
-        private void MenuServerAdd_Click(object sender, RoutedEventArgs e)
+        private async void MenuServerAdd_Click(object sender, RoutedEventArgs e)
         {
             //clear 먼저
-            DialogServer.IsOpen = true;
+            //DialogServer.IsOpen = true;
+
+            this.IsEnabled = false;
+
+            Server server = new Server();
+            server.Groups = (List<Group>)Group.GetGroupList();
+            var result = await DialogHost.Show(server, "DialogServer");
         }
 
-        private void MenuServerEdit_Click(object sender, RoutedEventArgs e)
+        private async void MenuServerEdit_Click(object sender, RoutedEventArgs e)
         {
             MenuItem menuItem = (MenuItem)e.Source;
             ContextMenu menu = (ContextMenu)menuItem.Parent;
             ListView lv = (ListView)menu.PlacementTarget;
-            Server info = (Server)lv.SelectedItem;
-            if (info == null)
+            Server server = (Server)lv.SelectedItem;
+            if (server == null)
             {
-                MessageBox.Show("선택된 그룹이 없습니다.");
+                MessageBox.Show("서버를 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            logger.Debug(info.GroupName);
-            logger.Debug(info.Gid);
+            logger.Debug(server.GroupName);
+            logger.Debug(server.Gid);
+            /*
             TbServerIp.Text = info.Ip;
             TbServerName.Text = info.Name;
             CbGroup.Text = info.GroupName;
-            DialogServer.IsOpen = true;
+            */
+            //DialogServer.IsOpen = true;
+
+            this.IsEnabled = false;
+            var result = await DialogHost.Show(server, "DialogServer");
+        }
+
+        private void ClosingServerDialog(object sender, MaterialDesignThemes.Wpf.DialogClosingEventArgs eventArgs)
+        {
+            if (this.IsEnabled == false)
+            {
+                this.IsEnabled = true;
+            }
+            if ((bool)eventArgs.Parameter == true)
+            {
+                Server server = (Server)eventArgs.Session.Content;
+                Debug.WriteLine(server.Id);
+                if (string.IsNullOrEmpty(server.Id))
+                {
+                    server.AddServer();
+                    ServerListItem.ItemsSource = Server.GetServerList();
+                    TreeGroup.ItemsSource = Group.GetGroupList();
+                }
+                else
+                {
+                    server.EditServer();
+                    //바인딩이 지저분해짐 한번에 할 수 있는것을 연구해야함
+                    TreeGroup.ItemsSource = Group.GetGroupList();
+                    ServerListItem.ItemsSource = Server.GetServerList();
+                }
+            }
         }
 
         private void MenuServerDel_Click(object sender, RoutedEventArgs e)
@@ -243,7 +304,7 @@ namespace NmsDotNet
             ListView lv = (ListView)menu.PlacementTarget;
             if ((Server)lv.SelectedItem == null)
             {
-                MessageBox.Show("선택된 그룹이 없습니다.");
+                MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
@@ -253,23 +314,15 @@ namespace NmsDotNet
                 {
                     logger.Debug(String.Format("[{0}/{1} deleted]", server.Ip, server.Status));
 
-                    TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
+                    TreeGroup.ItemsSource = Group.GetGroupList();
                     ServerListItem.ItemsSource = Server.GetServerList();
                 }
             }
         }
 
-        private void BtnGroupAdd_Click(object sender, RoutedEventArgs e)
-        {
-            // group Add
-            if (Group.GetInstance().AddGroup(TbGroupName.Text) > 0)
-            {
-                TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
-            }
-        }
-
         private void BtnServerAdd_Click(object sender, RoutedEventArgs e)
         {
+            /*
             // 검증
             if (CbGroup.SelectedItem == null)
             {
@@ -292,18 +345,15 @@ namespace NmsDotNet
                 //Task.Run(() => ServerService(server));
                 logger.Info(String.Format("{0} New Service is created", server.Ip, server.Status, server.Name));
             }
+            */
         }
 
+        /*
         private void DialogServer_DialogOpened(object sender, MaterialDesignThemes.Wpf.DialogOpenedEventArgs eventArgs)
         {
-            CbGroup.ItemsSource = Group.GetInstance().GetGroupList();
+            //CbGroup.ItemsSource = Group.GetInstance().GetGroupList();
         }
-
-        private void InitServerPopup()
-        {
-            TbServerIp.Text = null;
-            TbServerName.Text = null;
-        }
+        */
 
         private void TrapListener()
         {
@@ -317,7 +367,7 @@ namespace NmsDotNet
             EndPoint ep = (EndPoint)ipep;
             socket.Bind(ep);
             // Disable timeout processing. Just block until packet is received
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 0);
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 100);
 
             int inlen = -1;
             while (!_shouldStop)
@@ -423,6 +473,18 @@ namespace NmsDotNet
                             {
                                 snmp.TrapString = snmp.MakeTrapLogString();
                                 LogItem.GetInstance().LoggingDatabase(snmp);
+                                Server s = null;
+                                foreach (var server in _serverList)
+                                {
+                                    if (server.Ip == snmp.IP)
+                                    {
+                                        s = server;
+                                        break;
+                                    }
+                                }
+
+                                s.Status = Server.CompareState(s.Status, snmp.LevelString.ToLower());
+
                                 if (LvLog.Dispatcher.CheckAccess())
                                 {
                                     logCount = GetLog();
@@ -431,6 +493,21 @@ namespace NmsDotNet
                                 {
                                     LvLog.Dispatcher.Invoke(() => { logCount = GetLog(); });
                                 }
+
+                                if (ServerListItem.Dispatcher.CheckAccess())
+                                {
+                                    ServerListItem.ItemsSource = null;
+                                    ServerListItem.ItemsSource = Server.GetServerList();
+                                }
+                                else
+                                {
+                                    ServerListItem.Dispatcher.Invoke(() =>
+                                    {
+                                        ServerListItem.ItemsSource = null;
+                                        ServerListItem.ItemsSource = Server.GetServerList();
+                                    });
+                                }
+
                                 /*
                                 if (DialogNotification.Dispatcher.CheckAccess())
                                 {
@@ -498,14 +575,9 @@ namespace NmsDotNet
             server.SetServerInfo("테스트서버", "192.168.2.189", group_id);
             server.AddServer();
             ServerListItem.ItemsSource = Server.GetServerList();
-            TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
+            TreeGroup.ItemsSource = Group.GetGroupList();
             //Task.Run(() => ServerService(server)); // 스레드 돌리지 않음
             logger.Info(String.Format("{0} New Service is created", server.Ip));
-        }
-
-        private void TreeGroup_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            logger.Info(sender);
         }
 
         private void lvBtnConfirm_Click(object sender, RoutedEventArgs e)
@@ -534,6 +606,87 @@ namespace NmsDotNet
             item.Background = Brushes.Transparent;
             LogItem content = (LogItem)item.Content;
             return content;
+        }
+
+        private void TreeGroup_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+        {
+            if (e.NewValue is Group)
+            {
+                var group = (Group)e.NewValue;
+                Debug.WriteLine(group.Name);
+            }
+        }
+
+        private void TreeGroup_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            TreeViewItem treeViewItem = VisualUpwardSearch(e.OriginalSource as DependencyObject);
+
+            if (treeViewItem != null)
+            {
+                treeViewItem.Focus();
+                e.Handled = true;
+            }
+        }
+
+        private TreeViewItem VisualUpwardSearch(DependencyObject source)
+        {
+            while (source != null && !(source is TreeViewItem))
+            {
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return source as TreeViewItem;
+        }
+
+        private async void BtnMenuSetting_Click(object sender, RoutedEventArgs e)
+        {
+            this.IsEnabled = false;
+
+            SnmpSettings snmps = new SnmpSettings();
+            snmps.Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList();
+            var result = await DialogHost.Show(snmps, "DialogSettingInfo");
+        }
+
+        private void ClosingSettingDialogEventHandler(object sender, DialogClosingEventArgs eventArgs)
+        {
+            if (this.IsEnabled == false)
+            {
+                this.IsEnabled = true;
+            }
+            if ((bool)eventArgs.Parameter == true)
+            {
+                SnmpSettings settings = (SnmpSettings)eventArgs.Session.Content;
+                Snmp.UpdateSnmpMessgeUseage(settings);
+            }
+        }
+
+        private void HiddenAlarm_Click(object sender, RoutedEventArgs e)
+        {
+            LogItem.LogHide();
+            LvLog.ItemsSource = LogItem.GetInstance().GetLog();
+        }
+
+        private async void LogView_Click(object sender, RoutedEventArgs e)
+        {
+            this.IsEnabled = false;
+            LogList logs = new LogList();
+            logs.Logs = LogItem.GetInstance().GetLog("dialog");
+            var result = await DialogHost.Show(logs, "DialogLogViewInfo");
+        }
+
+        private void ClosingLogViewDialogEventHandler(object sender, DialogClosingEventArgs eventArgs)
+        {
+            if (this.IsEnabled == false)
+            {
+                this.IsEnabled = true;
+            }
+            /*
+            if ((bool)eventArgs.Parameter == true)
+            {
+                SnmpSettings settings = (SnmpSettings)eventArgs.Session.Content;
+                Snmp.UpdateSnmpMessgeUseage(settings);
+            }
+            */
         }
     }
 }

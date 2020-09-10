@@ -15,21 +15,21 @@ using NmsDotNet.Database.vo;
 
 namespace NmsDotNet.vo
 {
-    internal class LogItem
+    public class LogList
+    {
+        public List<LogItem> Logs { get; set; }
+    }
+
+    public class LogItem
     {
         public string StartAt { get; set; }
-        public string EndtAt { get; set; }
-
+        public string EndAt { get; set; }
         public string Ip { get; set; }
         public string Name { get; set; }
-
         public string Level { get; set; }
         public string Color { get; set; }
-
         public string Value { get; set; }
-
         public string TypeValue { get; set; }
-
         public string IsConfirm { get; set; }
 
         public int idx { get; set; }
@@ -123,10 +123,38 @@ namespace NmsDotNet.vo
             return ret;
         }
 
+        public static int LogHide()
+        {
+            int ret = 0;
+
+            string query = "UPDATE log set is_display = 'N'";
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Prepare();
+                ret = cmd.ExecuteNonQuery();
+            }
+            return ret;
+        }
+
         public List<LogItem> GetLog()
         {
+            return GetLog("");
+        }
+
+        public List<LogItem> GetLog(string type)
+        {
+            string option_query = null;
+
+            if (!type.Equals("dialog"))
+            {
+                option_query = " AND L.is_display = 'Y'";
+            }
+
             DataTable dt = new DataTable();
-            string query = String.Format(@"SELECT DATE_FORMAT(L.start_at, '%Y-%m-%d %H:%i:%s') as start_at, DATE_FORMAT(L.end_at, '%Y-%m-%d %H:%i:%s') as end_at
+            string query = String.Format(@"SELECT DATE_FORMAT(L.start_at, '%Y-%m-%d %H:%i:%s') as start_at
+, IFNULL(DATE_FORMAT(L.end_at, '%Y-%m-%d %H:%i:%s'), '') as end_at
 , L.ip as ip
 , S.name AS name
 , L.level as level
@@ -136,8 +164,10 @@ namespace NmsDotNet.vo
 , L.idx as idx
 FROM log L
 LEFT JOIN server S ON S.ip = L.ip
-WHERE is_display = 'Y'
-ORDER BY L.start_at DESC");
+WHERE 1=1
+{0}
+AND snmp_type_value = 'begin'
+ORDER BY L.start_at DESC", option_query);
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -152,7 +182,7 @@ ORDER BY L.start_at DESC");
             {
                 idx = row.Field<int>("idx"),
                 StartAt = row.Field<string>("start_at"),
-                EndtAt = row.Field<string>("end_at"),
+                EndAt = row.Field<string>("end_at"),
                 Ip = row.Field<string>("ip"),
                 Name = row.Field<string>("name"),
                 Level = row.Field<string>("level"),

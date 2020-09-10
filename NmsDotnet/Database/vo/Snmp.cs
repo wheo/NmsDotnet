@@ -6,14 +6,27 @@ using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
 using NmsDotNet.Database;
 using log4net;
+using System.Data;
 
 namespace NmsDotNet.Database.vo
 {
     /// <summary>
     /// Trap을 수신할 때 정보를 데이터베이스에 기록
     /// </summary>
+    ///
+    public class SnmpSetting
+    {
+        public string Name { get; set; }
+        public bool IsEnable { get; set; }
+        public int Idx { get; set; }
+    }
 
-    internal class Snmp
+    public class SnmpSettings
+    {
+        public List<SnmpSetting> Settings { get; set; }
+    }
+
+    public class Snmp
     {
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
@@ -36,8 +49,9 @@ namespace NmsDotNet.Database.vo
         public string TranslateValue { get; set; }
         public string TrapString { get; set; }
         public TrapType Type { get; set; }
+        public EnumLevel Level { get; set; }
 
-        public enum Level
+        public enum EnumLevel
         {
             Disabled = 1,
             Information = 2,
@@ -60,7 +74,7 @@ namespace NmsDotNet.Database.vo
 
         public string MakeTrapLogString()
         {
-            string logString = string.Format($"{TranslateValue} ({Main}) (Channel : {Channel}) ({TypeValue})");
+            string logString = string.Format($"{TranslateValue} ({TypeValue})");
             logger.Info("logString : " + logString);
             return logString;
         }
@@ -68,7 +82,7 @@ namespace NmsDotNet.Database.vo
         public static string GetLevelString(int level)
         {
             logger.Info("GetLevelString : " + level);
-            return Enum.GetName(typeof(Level), level);
+            return Enum.GetName(typeof(EnumLevel), level);
         }
 
         public static string GetNameFromOid(string oid)
@@ -93,6 +107,27 @@ namespace NmsDotNet.Database.vo
             return value;
         }
 
+        public static IEnumerable<SnmpSetting> GetTrapAlarmList()
+        {
+            DataTable dt = new DataTable();
+            string query = "SELECT * FROM translate";
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
+                adpt.Fill(dt);
+            }
+
+            List<SnmpSetting> settings = dt.AsEnumerable().Select(row => new SnmpSetting
+            {
+                Name = row.Field<string>("translate"),
+                Idx = row.Field<int>("idx"),
+                IsEnable = row["is_enable"].ToString() == "Y" ? true : false
+            }).ToList();
+
+            return settings;
+        }
+
         public static string GetTranslateValue(string name)
         {
             string value = null;
@@ -113,6 +148,48 @@ namespace NmsDotNet.Database.vo
                 value = "no value";
             }
             return value;
+        }
+
+        public static Server GetServerInfo(Snmp snmp)
+        {
+            Server server = null;
+            string query = string.Format($"SELECT * FROM server WHERE ip = '{snmp.IP}'");
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                MySqlDataReader rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                {
+                    server = new Server
+                    {
+                        Id = rdr["id"].ToString(),
+                        Ip = rdr["ip"].ToString(),
+                        Name = rdr["name"].ToString(),
+                        Status = rdr["status"].ToString()
+                    };
+                }
+            }
+
+            return server;
+        }
+
+        public static void UpdateSnmpMessgeUseage(SnmpSettings settings)
+        {
+            foreach (var item in settings.Settings)
+            {
+                int ret = 0;
+                string query = "UPDATE translate set is_enable = @is_enable WHERE idx = @idx";
+                using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+                {
+                    conn.Open();
+                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@idx", item.Idx);
+                    cmd.Parameters.AddWithValue("@is_enable", item.IsEnable == true ? "Y" : "N");
+                    cmd.Prepare();
+                    ret = cmd.ExecuteNonQuery();
+                }
+            }
         }
 
         public static void RegisterSnmpInfo(Snmp snmp)
