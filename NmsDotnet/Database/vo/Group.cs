@@ -1,19 +1,17 @@
-﻿using System;
+﻿using log4net;
+using MySql.Data.MySqlClient;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
-using NmsDotNet.Database;
-using Org.BouncyCastle.Crypto.Engines;
 
 namespace NmsDotNet.Database.vo
 {
     public class Group
     {
         private ObservableCollection<Server> DataSource = new ObservableCollection<Server>();
+
+        private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public string Id { get; set; }
         public string Name { get; set; }

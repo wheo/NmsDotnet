@@ -17,6 +17,9 @@ namespace NmsDotNet.Service
     {
         public static bool _shouldStop = false;
 
+        public static string _DR5000UnitName_oid = "1.3.6.1.4.1.27338.5.2.2.0";
+        public static string _CM5000UnitName_oid = "1.3.6.1.4.1.27338.4.2.2.0";
+
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public SnmpService()
@@ -87,8 +90,9 @@ namespace NmsDotNet.Service
             target.Close();
         }
 
-        public static bool Get(string Ip)
+        public static bool Get(string Ip, out string unitName)
         {
+            unitName = null;
             // SNMP community name
             OctetString community = new OctetString("public");
             // Define agent parameters class
@@ -110,7 +114,9 @@ namespace NmsDotNet.Service
             pdu.VbList.Add("1.3.6.1.2.1.1.4.0"); //sysContact
             pdu.VbList.Add("1.3.6.1.2.1.1.5.0"); //sysName
             */
-            pdu.VbList.Add("1.3.6.1.4.1.27338.4.2.2.0"); // 장비 이름
+            // _oid : 장비 이름
+            pdu.VbList.Add(_DR5000UnitName_oid);
+            pdu.VbList.Add(_CM5000UnitName_oid);
 
             try
             {
@@ -132,12 +138,20 @@ namespace NmsDotNet.Service
                         // Reply variables are returned in the same order as they were added to the VbList
                         for (int i = 0; i < result.Pdu.VbCount; i++)
                         {
-                            /*
-                            Debug.WriteLine("sysDescr({0}) ({1}): {2}",
+                            Debug.WriteLine("[{3}] sysDescr({0}) ({1}): {2}",
                                 result.Pdu.VbList[i].Oid.ToString(),
                                 SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type),
-                                result.Pdu.VbList[i].Value.ToString());
-                            */
+                                result.Pdu.VbList[i].Value.ToString(), Ip);
+
+                            if (result.Pdu.VbList[i].Value.ToString().Equals("SNMP No-Such-Object"))
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                unitName = result.Pdu.VbList[i].Value.ToString();
+                            }
+
                             //logger.Info(String.Format($"[{Ip}] sysDescr({result.Pdu.VbList[i].Oid.ToString()}) ({ SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type)}): { result.Pdu.VbList[i].Value.ToString()}"));
                         }
                         target.Close();
@@ -186,8 +200,8 @@ namespace NmsDotNet.Service
             // Define Oid that is the root of the MIB
             //  tree you wish to retrieve
             Oid rootOid = new Oid(".1.3.6.1.4.1.27338.4"); // ifDescr
-            // This Oid represents last Oid returned by
-            //  the SNMP agent
+                                                           // This Oid represents last Oid returned by
+                                                           //  the SNMP agent
             Oid lastOid = (Oid)rootOid.Clone();
             // Pdu class used for all requests
             Pdu pdu = new Pdu(PduType.GetBulk);
@@ -282,8 +296,8 @@ namespace NmsDotNet.Service
             // Define Oid that is the root of the MIB
             //  tree you wish to retrieve
             Oid rootOid = new Oid(".1.3.6.1.4.1.27338.4"); // ifDescr
-            // This Oid represents last Oid returned by
-            //  the SNMP agent
+                                                           // This Oid represents last Oid returned by
+                                                           //  the SNMP agent
             Oid lastOid = (Oid)rootOid.Clone();
             // Pdu class used for all requests
             Pdu pdu = new Pdu(PduType.GetNext);

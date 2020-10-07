@@ -1,20 +1,18 @@
-﻿using System;
+﻿using log4net;
+using MySql.Data.MySqlClient;
+using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
-using System.IO.Packaging;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
-using MySqlX.XDevAPI.Relational;
 
 namespace NmsDotNet.Database.vo
 {
     public class Server : INotifyPropertyChanged
     {
+        private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+
         private string _Status;
         public string Id { get; set; }
         public string Ip { get; set; }
@@ -23,6 +21,13 @@ namespace NmsDotNet.Database.vo
         public string GroupName { get; set; }
         public string Type { get; set; }
         public List<Group> Groups { get; set; }
+        public int ErrorCount { get; set; }
+        public string Color { get; set; }
+
+        public Server()
+        {
+            _Status = "normal";
+        }
 
         public enum EnumStatus
         {
@@ -39,14 +44,18 @@ namespace NmsDotNet.Database.vo
             get { return _Status; }
             set
             {
-                _Status = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("Status"));
+                if (_Status != value)
+                {
+                    logger.Info(String.Format($"[{Ip}] ServerService ({_Status}) => ({value}) changed"));
+                    _Status = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("Status"));
+                }
             }
         }
 
         public string Image { get; set; }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
         public void OnPropertyChanged(PropertyChangedEventArgs e)
         {
@@ -89,6 +98,31 @@ namespace NmsDotNet.Database.vo
             }
 
             return str.ToLower();
+        }
+
+        public static IEnumerable<Server> GetServerSettings()
+        {
+            DataTable dt = new DataTable();
+            string query = @"SELECT S.*, G.name as grp_name, A.path FROM server S LEFT JOIN asset A ON S.status = A.id LEFT JOIN grp G ON G.id = S.gid ORDER BY G.name, S.create_time";
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Prepare();
+                MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
+                adpt.Fill(dt);
+            }
+
+            return dt.AsEnumerable().Select(row => new Server
+            {
+                Id = row.Field<string>("id"),
+                Gid = row.Field<string>("gid"),
+                Name = row.Field<string>("name"),
+                Ip = row.Field<string>("ip"),
+                GroupName = row.Field<string>("grp_name"),
+                Status = row.Field<string>("status"),
+                Image = row.Field<string>("path")
+            }).ToList();
         }
 
         public string AddServer()
@@ -169,13 +203,14 @@ namespace NmsDotNet.Database.vo
         public static int UpdateServerStatus(Server server)
         {
             int ret = 0;
-            string query = "UPDATE server set status = @status WHERE id = @id";
+            string query = "UPDATE server set status = @status, type = @type WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", server.Id);
                 cmd.Parameters.AddWithValue("@status", server.Status);
+                cmd.Parameters.AddWithValue("@type", server.Type);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
@@ -224,6 +259,7 @@ namespace NmsDotNet.Database.vo
                 GroupName = row.Field<string>("grp_name"),
                 Status = row.Field<string>("status"),
                 Image = row.Field<string>("path"),
+                Type = row.Field<string>("type"),
                 Groups = g
             }).ToList();
         }
@@ -231,7 +267,13 @@ namespace NmsDotNet.Database.vo
         public static List<Server> GetServerListByGroup(string gid)
         {
             DataTable dt = new DataTable();
-            string query = String.Format($"SELECT S.*, G.name as grp_name, A.path FROM server S LEFT JOIN asset A ON S.status = A.id LEFT JOIN grp G ON G.id = S.gid WHERE S.gid = '{gid}'");
+            string query = String.Format($"SELECT S.*" +
+                $", IF(S.status = 'critical', 'Red', IF(S.status = 'warning', 'Yellow', IF(S.status = 'information', 'Blue', 'Green'))) AS color" +
+                $", G.name as grp_name" +
+                $", A.path FROM server S" +
+                $" LEFT JOIN asset A ON S.status = A.id" +
+                $" LEFT JOIN grp G ON G.id = S.gid" +
+                $" WHERE S.gid = '{gid}'");
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -246,7 +288,8 @@ namespace NmsDotNet.Database.vo
                 Name = row.Field<string>("name"),
                 GroupName = row.Field<string>("grp_name"),
                 Status = row.Field<string>("status"),
-                Image = row.Field<string>("path")
+                Image = row.Field<string>("path"),
+                Color = row.Field<string>("color")
             }).ToList();
         }
     }

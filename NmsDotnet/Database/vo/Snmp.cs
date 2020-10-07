@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using log4net;
 using MySql.Data.MySqlClient;
-using NmsDotNet.Database;
-using log4net;
+using NmsDotNet.Utils;
+using System;
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 
 namespace NmsDotNet.Database.vo
 {
@@ -21,9 +19,10 @@ namespace NmsDotNet.Database.vo
         public int Idx { get; set; }
     }
 
-    public class SnmpSettings
+    public class GlobalSettings
     {
-        public List<SnmpSetting> Settings { get; set; }
+        public List<SnmpSetting> SnmpSettings { get; set; }
+        public List<Server> ServerSettings { get; set; }
     }
 
     public class Snmp
@@ -51,6 +50,13 @@ namespace NmsDotNet.Database.vo
         public TrapType Type { get; set; }
         public EnumLevel Level { get; set; }
 
+        public string _LocalIP { get; set; }
+
+        public Snmp()
+        {
+            _LocalIP = Util.GetLocalIpAddress();
+        }
+
         public enum EnumLevel
         {
             Disabled = 1,
@@ -74,7 +80,15 @@ namespace NmsDotNet.Database.vo
 
         public string MakeTrapLogString()
         {
-            string logString = string.Format($"{TranslateValue} ({TypeValue})");
+            string logString = "";
+            if (Channel > 0)
+            {
+                string.Format($"{TranslateValue} ({TypeValue}) (Channel : {Channel}");
+            }
+            else
+            {
+                string.Format($"{TranslateValue} ({TypeValue})");
+            }
             logger.Info("logString : " + logString);
             return logString;
         }
@@ -174,9 +188,9 @@ namespace NmsDotNet.Database.vo
             return server;
         }
 
-        public static void UpdateSnmpMessgeUseage(SnmpSettings settings)
+        public static void UpdateSnmpMessgeUseage(GlobalSettings settings)
         {
-            foreach (var item in settings.Settings)
+            foreach (var item in settings.SnmpSettings)
             {
                 int ret = 0;
                 string query = "UPDATE translate set is_enable = @is_enable WHERE idx = @idx";

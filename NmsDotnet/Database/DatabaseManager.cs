@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using MySql.Data.MySqlClient;
-using Renci.SshNet.Messages.Connection;
+﻿using MySql.Data.MySqlClient;
+using System;
 
 namespace NmsDotNet.Database
 {
-    internal class DatabaseManager
+    public class DatabaseManager
     {
         private DatabaseManager()
         {

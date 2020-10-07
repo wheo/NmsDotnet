@@ -1,33 +1,25 @@
-﻿using System;
+﻿using log4net;
+using MaterialDesignThemes.Wpf;
+using Microsoft.Win32;
+using NmsDotnet.lib;
+using NmsDotNet.Database.vo;
+using NmsDotNet.Service;
+using NmsDotNet.vo;
+using SnmpSharpNet;
+using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
-using System.Threading;
+using System.Media;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Threading;
-using System.Diagnostics;
-using System.Net.Sockets;
-using log4net;
-
-using SnmpSharpNet;
-
-using NmsDotNet.Service;
-using NmsDotNet.vo;
-using NmsDotNet.Utils;
-using NmsDotNet.Database.vo;
-using System.Windows.Controls.Primitives;
-using System.Net;
-using System.Runtime.CompilerServices;
-
-using System.Runtime.Remoting.Contexts;
-using System.Media;
 using System.Windows.Media;
-using System.Windows.Data;
-using System.Collections.ObjectModel;
-
-using MaterialDesignThemes.Wpf;
+using System.Windows.Threading;
 
 namespace NmsDotNet
 {
@@ -41,7 +33,17 @@ namespace NmsDotNet
         public static bool _shouldStop = false;
         private ObservableCollection<Server> _serverList;
 
+        private ObservableCollection<LogItem> _dialogLogList;
+
         private SoundPlayer _simpleSound = null;
+
+        private LogList _logs;
+
+        private LogItem _currentSelectedItem = null;
+
+        private ObservableCollection<LogItem> _logItem;
+
+        private int _logCount;
 
         //CancellationTokenSource source;
         public NmsMainWindow()
@@ -54,6 +56,8 @@ namespace NmsDotNet
             LoadMibFiles();
             GetGroupList();
             ServerDispatcherTimer();
+            _logCount = 0;
+            _logs = new LogList();
             GetLog();
 
             Task.Run(() => TrapListener());
@@ -72,8 +76,9 @@ namespace NmsDotNet
 
         private int GetLog()
         {
+            _logItem = new ObservableCollection<LogItem>(LogItem.GetInstance().GetLog());
             LvLog.ItemsSource = null;
-            LvLog.ItemsSource = LogItem.GetInstance().GetLog();
+            LvLog.ItemsSource = _logItem;
             return LogItem.GetInstance().LogItemCount;
         }
 
@@ -93,14 +98,18 @@ namespace NmsDotNet
             bool drawItem = false;
             foreach (Server server in Servers)
             {
-                if (SnmpService.Get(server.Ip))
+                string unitName = null;
+                if (SnmpService.Get(server.Ip, out unitName))
                 {
                     //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
-                    if (server.Status == "idle" || server.Status == "error")
+                    if (server.Status == "idle" || server.Status == "critical")
                     {
+                        server.Type = unitName;
                         server.Status = "normal";
+                        Snmp snmp = new Snmp { IP = server.Ip, Port = "65535", Community = "public", TypeOid = SnmpService._DR5000UnitName_oid, LevelString = "Critical", TypeValue = "end", TranslateValue = "Failed to connection" };
+                        LogItem.GetInstance().LoggingDatabase(snmp);
                         //server.IsChange = true; INotify 인터페이스로 대체
-                        logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed"));
+                        //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
                         drawItem = true;
                     }
                 }
@@ -108,9 +117,13 @@ namespace NmsDotNet
                 {
                     if (server.Status == "normal")
                     {
-                        server.Status = "error";
+                        server.Status = "critical";
                         //server.IsChange = true;
-                        logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed"));
+                        //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
+
+                        Snmp snmp = new Snmp { IP = server.Ip, Port = "65535", Community = "public", TypeOid = SnmpService._DR5000UnitName_oid, LevelString = "Critical", TypeValue = "begin", TranslateValue = "Failed to connection" };
+                        LogItem.GetInstance().LoggingDatabase(snmp);
+
                         drawItem = true;
                     }
                     if (server.Status == "idle")
@@ -134,6 +147,15 @@ namespace NmsDotNet
                         ServerListItem.ItemsSource = null;
                         ServerListItem.ItemsSource = Server.GetServerList();
                     });
+                }
+
+                if (LvLog.Dispatcher.CheckAccess())
+                {
+                    _logCount = GetLog();
+                }
+                else
+                {
+                    LvLog.Dispatcher.Invoke(() => { _logCount = GetLog(); });
                 }
             }
         }
@@ -283,9 +305,16 @@ namespace NmsDotNet
                 Debug.WriteLine(server.Id);
                 if (string.IsNullOrEmpty(server.Id))
                 {
-                    server.AddServer();
-                    ServerListItem.ItemsSource = Server.GetServerList();
-                    TreeGroup.ItemsSource = Group.GetGroupList();
+                    if (!string.IsNullOrEmpty(server.Gid))
+                    {
+                        server.AddServer();
+                        ServerListItem.ItemsSource = Server.GetServerList();
+                        TreeGroup.ItemsSource = Group.GetGroupList();
+                    }
+                    else
+                    {
+                        MessageBox.Show("그룹을 설정해야 합니다");
+                    }
                 }
                 else
                 {
@@ -413,7 +442,7 @@ namespace NmsDotNet
                         // Parse SNMP Version 2 TRAP packet
                         SnmpV2Packet pkt = new SnmpV2Packet();
                         pkt.decode(indata, inlen);
-                        Debug.WriteLine("** SNMP Version 2 TRAP received from {0}:", inep.ToString());
+                        logger.Info(string.Format("** SNMP Version 2 TRAP received from {0}:", inep.ToString()));
                         if ((SnmpSharpNet.PduType)pkt.Pdu.Type != PduType.V2Trap)
                         {
                             Debug.WriteLine("*** NOT an SNMPv2 trap ****");
@@ -468,7 +497,7 @@ namespace NmsDotNet
 
                                 logger.Info(String.Format("[{0}] Trap : {1} {2}: {3}", inep.ToString().Split(':')[0], v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString()));
                             }
-                            int logCount = 0;
+
                             if (!String.IsNullOrEmpty(snmp.LevelString))
                             {
                                 snmp.TrapString = snmp.MakeTrapLogString();
@@ -483,29 +512,57 @@ namespace NmsDotNet
                                     }
                                 }
 
-                                s.Status = Server.CompareState(s.Status, snmp.LevelString.ToLower());
+                                if (string.Equals(snmp.TypeValue, "begin"))
+                                {
+                                    s.ErrorCount++;
+                                }
+                                else if (string.Equals(snmp.TypeValue, "end"))
+                                {
+                                    if (s.ErrorCount > 0)
+                                    {
+                                        s.ErrorCount--;
+                                    }
+                                }
 
-                                if (LvLog.Dispatcher.CheckAccess())
+                                if (!string.Equals(snmp.TypeValue, "log"))
                                 {
-                                    logCount = GetLog();
-                                }
-                                else
-                                {
-                                    LvLog.Dispatcher.Invoke(() => { logCount = GetLog(); });
-                                }
+                                    if (s.ErrorCount > 0)
+                                    {
+                                        s.Status = Server.CompareState(s.Status, snmp.LevelString.ToLower());
+                                    }
+                                    else
+                                    {
+                                        s.Status = "normal";
+                                    }
 
-                                if (ServerListItem.Dispatcher.CheckAccess())
-                                {
-                                    ServerListItem.ItemsSource = null;
-                                    ServerListItem.ItemsSource = Server.GetServerList();
-                                }
-                                else
-                                {
-                                    ServerListItem.Dispatcher.Invoke(() =>
+                                    if (ServerListItem.Dispatcher.CheckAccess())
                                     {
                                         ServerListItem.ItemsSource = null;
                                         ServerListItem.ItemsSource = Server.GetServerList();
-                                    });
+                                        //TreeGroup.ItemsSource = null;
+                                        TreeGroup.ItemsSource = Group.GetGroupList();
+                                        //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
+                                    }
+                                    else
+                                    {
+                                        ServerListItem.Dispatcher.Invoke(() =>
+                                        {
+                                            ServerListItem.ItemsSource = null;
+                                            ServerListItem.ItemsSource = Server.GetServerList();
+                                            //TreeGroup.ItemsSource = null;
+                                            TreeGroup.ItemsSource = Group.GetGroupList();
+                                            //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
+                                        });
+                                    }
+                                }
+
+                                if (LvLog.Dispatcher.CheckAccess())
+                                {
+                                    _logCount = GetLog();
+                                }
+                                else
+                                {
+                                    LvLog.Dispatcher.Invoke(() => { _logCount = GetLog(); });
                                 }
 
                                 /*
@@ -518,7 +575,7 @@ namespace NmsDotNet
                                     DialogNotification.Dispatcher.Invoke(() => { DialogNotification.IsOpen = true; });
                                 }*/
                             }
-                            if (logCount > 0)
+                            if (_logCount > 0)
                             {
                                 Task.Run(() => SoundPlayAsync());
                             }
@@ -580,15 +637,16 @@ namespace NmsDotNet
             logger.Info(String.Format("{0} New Service is created", server.Ip));
         }
 
+        //deprecated
         private void lvBtnConfirm_Click(object sender, RoutedEventArgs e)
         {
-            LogItem logItem = GetLvItem(e);
+            LogItem logItem = (LogItem)GetLvItem(e);
             LogItem.ChangeConfirmStatus(logItem.idx);
             logger.Info(String.Format($"{logItem.Ip}, {logItem.Value}, {logItem.idx}"));
             GetLog();
         }
 
-        private LogItem GetLvItem(RoutedEventArgs e)
+        private object GetLvItem(RoutedEventArgs e)
         {
             DependencyObject dep = (DependencyObject)e.OriginalSource;
             while (!(dep is System.Windows.Controls.ListViewItem))
@@ -603,9 +661,8 @@ namespace NmsDotNet
                 }
             }
             ListViewItem item = (ListViewItem)dep;
-            item.Background = Brushes.Transparent;
-            LogItem content = (LogItem)item.Content;
-            return content;
+            //item.Background = Brushes.Transparent;
+            return item.Content;
         }
 
         private void TreeGroup_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
@@ -642,9 +699,10 @@ namespace NmsDotNet
         {
             this.IsEnabled = false;
 
-            SnmpSettings snmps = new SnmpSettings();
-            snmps.Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList();
-            var result = await DialogHost.Show(snmps, "DialogSettingInfo");
+            GlobalSettings settings = new GlobalSettings();
+            settings.SnmpSettings = (List<SnmpSetting>)Snmp.GetTrapAlarmList();
+            settings.ServerSettings = (List<Server>)Server.GetServerList();
+            var result = await DialogHost.Show(settings, "DialogSettingInfo");
         }
 
         private void ClosingSettingDialogEventHandler(object sender, DialogClosingEventArgs eventArgs)
@@ -655,23 +713,54 @@ namespace NmsDotNet
             }
             if ((bool)eventArgs.Parameter == true)
             {
-                SnmpSettings settings = (SnmpSettings)eventArgs.Session.Content;
+                GlobalSettings settings = (GlobalSettings)eventArgs.Session.Content;
                 Snmp.UpdateSnmpMessgeUseage(settings);
+
+                TreeGroup.ItemsSource = Group.GetGroupList();
+                ServerListItem.ItemsSource = Server.GetServerList();
             }
         }
 
         private void HiddenAlarm_Click(object sender, RoutedEventArgs e)
         {
+#if false
             LogItem.LogHide();
             LvLog.ItemsSource = LogItem.GetInstance().GetLog();
+#endif
+            // 알람 끄기로 변경
+            SoundStop();
         }
 
         private async void LogView_Click(object sender, RoutedEventArgs e)
         {
             this.IsEnabled = false;
-            LogList logs = new LogList();
-            logs.Logs = LogItem.GetInstance().GetLog("dialog");
-            var result = await DialogHost.Show(logs, "DialogLogViewInfo");
+
+            _logs.Logs = new ObservableCollection<LogItem>(LogItem.GetInstance().GetLog("dialog"));
+            var result = await DialogHost.Show(_logs, "DialogLogViewInfo");
+        }
+
+        private void BtnDialogLogSumit_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = (Button)sender as Button;
+            DatePicker DpDayFrom = (DatePicker)FindElemetByName(e, "DpDayFrom");
+            DatePicker DpDayTo = (DatePicker)FindElemetByName(e, "DpDayTo");
+
+            if (String.IsNullOrEmpty(DpDayFrom.Text))
+            {
+                DpDayFrom.Text = DateTime.Now.ToString("yyyy-MM-dd");
+            }
+            if (String.IsNullOrEmpty(DpDayTo.Text))
+            {
+                DpDayTo.Text = DateTime.Now.AddDays(1).ToString("yyyy-MM-dd");
+            }
+            if (DpDayFrom.Text == DpDayTo.Text)
+            {
+                DpDayTo.Text = Convert.ToDateTime(DpDayTo.Text).AddDays(1).ToString("yyyy-MM-dd");
+            }
+
+            _logs.Logs = new ObservableCollection<LogItem>(LogItem.GetInstance().GetLog("dialog", DpDayFrom.Text, DpDayTo.Text));
+            ListView lvDialog = (ListView)FindElemetByName(e, "DialogLvLog");
+            lvDialog.ItemsSource = _logs.Logs;
         }
 
         private void ClosingLogViewDialogEventHandler(object sender, DialogClosingEventArgs eventArgs)
@@ -687,6 +776,112 @@ namespace NmsDotNet
                 Snmp.UpdateSnmpMessgeUseage(settings);
             }
             */
+        }
+
+        private void ServerEdit_Click(object sender, RoutedEventArgs e)
+        {
+            if (MessageBoxResult.Yes == MessageBox.Show(String.Format("정보를 수정 하시겠습니까?"), "알림", MessageBoxButton.YesNo, MessageBoxImage.Information))
+            {
+                Server s = (Server)GetLvItem(e);
+                s.EditServer();
+            }
+        }
+
+        private void BtnExcelDownload_Click(object sender, RoutedEventArgs e)
+        {
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "Csv file (*.csv)|*.csv";
+            string downloadsPath = KnownFolders.GetPath(KnownFolder.Downloads);
+            saveFileDialog.InitialDirectory = downloadsPath;
+            string csvString = "";
+            saveFileDialog.FileName = DateTime.Now.ToString("yyyy-MM-dd");
+            csvString = LogItem.MakeCsvFile(LogItem.GetInstance().GetLog("dialog"));
+
+            if (String.IsNullOrEmpty(csvString))
+            {
+                MessageBox.Show("저장할 항목이 없습니다", "정보", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            else if (saveFileDialog.ShowDialog() == true)
+                File.WriteAllText(saveFileDialog.FileName, csvString);
+        }
+
+        private void MenuItem_LogHide_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentSelectedItem != null)
+            {
+                LogItem.HideLogAlarm(_currentSelectedItem.idx);
+                GetLog();
+            }
+        }
+
+        private void ListViewItem_PreviewMouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _currentSelectedItem = (LogItem)GetLvItem(e);
+        }
+
+        private DependencyObject FindElemetByName(RoutedEventArgs e, string Name)
+        {
+            DependencyObject dep = (DependencyObject)e.OriginalSource;
+            DependencyObject ret = null;
+            while (ret == null)
+            {
+                dep = VisualTreeHelper.GetParent(dep);
+
+                for (int i = 0; i < VisualTreeHelper.GetChildrenCount(dep); i++)
+                {
+                    DependencyObject child = VisualTreeHelper.GetChild(dep, i);
+                    ret = FindChild<DependencyObject>(child, Name);
+                    if (ret != null)
+                    {
+                        break;
+                    }
+                }
+            }
+            return ret;
+        }
+
+        public static T FindChild<T>(DependencyObject parent, string childName)
+        where T : DependencyObject
+        {
+            // Confirm parent and childName are valid.
+            if (parent == null) return null;
+
+            T foundChild = null;
+
+            int childrenCount = VisualTreeHelper.GetChildrenCount(parent);
+            for (int i = 0; i < childrenCount; i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                // If the child is not of the request child type child
+                T childType = child as T;
+                if (childType == null)
+                {
+                    // recursively drill down the tree
+                    foundChild = FindChild<T>(child, childName);
+
+                    // If the child is found, break so we do not overwrite the found child.
+                    if (foundChild != null) break;
+                }
+                else if (!string.IsNullOrEmpty(childName))
+                {
+                    var frameworkElement = child as FrameworkElement;
+                    // If the child's name is set for search
+                    if (frameworkElement != null && frameworkElement.Name == childName)
+                    {
+                        // if the child's name is of the request name
+                        foundChild = (T)child;
+                        break;
+                    }
+                }
+                else
+                {
+                    // child element found.
+                    foundChild = (T)child;
+                    break;
+                }
+            }
+
+            return foundChild;
         }
     }
 }
