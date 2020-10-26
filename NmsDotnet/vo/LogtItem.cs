@@ -101,7 +101,8 @@ namespace NmsDotNet.vo
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 string is_display = trap.TypeValue == "begin" ? "Y" : "N";
-                string query = string.Format(@"INSERT INTO log (client_ip, ip, port, community, level, oid, value, snmp_type_value, is_display) VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_value, @is_display)");
+                string query = string.Format(@"INSERT INTO log (client_ip, ip, port, community, level, oid, value, snmp_type_value, is_display)
+VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_value, @is_display) ON DUPLICATE KEY UPDATE client_ip = @client_ip");
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@client_ip", trap._LocalIP);
@@ -187,7 +188,7 @@ namespace NmsDotNet.vo
 
             if (!string.IsNullOrEmpty(dayFrom) && !string.IsNullOrEmpty(dayTo))
             {
-                date_query = string.Format($" AND L.start_at >= '{dayFrom}' AND L.start_at <= '{dayTo}'");
+                date_query = string.Format($" AND L.start_at BETWEEN '{dayFrom}' AND '{dayTo}'");
             }
 
             DataTable dt = new DataTable();

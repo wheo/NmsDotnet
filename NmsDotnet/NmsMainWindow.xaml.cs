@@ -54,7 +54,11 @@ namespace NmsDotNet
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             LoadMibFiles();
+            //SetServerIdle();
             GetGroupList();
+
+            SnmpSetServiceTest();
+
             ServerDispatcherTimer();
             _logCount = 0;
             _logs = new LogList();
@@ -67,6 +71,11 @@ namespace NmsDotNet
         {
             String path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MIB");
             String[] files = Directory.GetFiles(path);
+        }
+
+        private void SetServerIdle()
+        {
+            Server.GetServerLastStatus();
         }
 
         private void GetGroupList()
@@ -92,6 +101,11 @@ namespace NmsDotNet
             SnmpGetTimer.Start();
         }
 
+        private void SnmpSetServiceTest()
+        {
+            SnmpService.Set();
+        }
+
         private void SnmpGetService(object sender, EventArgs e)
         {
             var Servers = _serverList;
@@ -99,37 +113,70 @@ namespace NmsDotNet
             foreach (Server server in Servers)
             {
                 string unitName = null;
-                if (SnmpService.Get(server.Ip, out unitName))
+                string serviceOID = null;
+                try
                 {
-                    //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
-                    if (server.Status == "idle" || server.Status == "critical")
+                    if (SnmpService.Get(server.Ip, out unitName))
                     {
-                        server.Type = unitName;
-                        server.Status = "normal";
-                        Snmp snmp = new Snmp { IP = server.Ip, Port = "65535", Community = "public", TypeOid = SnmpService._DR5000UnitName_oid, LevelString = "Critical", TypeValue = "end", TranslateValue = "Failed to connection" };
-                        LogItem.GetInstance().LoggingDatabase(snmp);
-                        //server.IsChange = true; INotify 인터페이스로 대체
-                        //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
-                        drawItem = true;
+                        //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
+
+                        if ("CM5000".Equals(unitName))
+                        {
+                            serviceOID = SnmpService._CM5000UnitName_oid;
+                        }
+                        else
+                        {
+                            serviceOID = SnmpService._DR5000UnitName_oid;
+                        }
+                        if (!string.IsNullOrEmpty(unitName) && server.Status != "normal")
+                        {
+                            server.Type = unitName;
+
+                            if (server.ErrorCount == 0)
+                            {
+                                //server.Status = "normal";
+                            }
+                            if (!server.IsConnect)
+                            {
+                                Snmp snmp = new Snmp { IP = server.Ip, Port = "65535", Community = "public", TypeOid = serviceOID, LevelString = "Critical", TypeValue = "end", TranslateValue = "Failed to connection" };
+                                LogItem.GetInstance().LoggingDatabase(snmp);
+                                //server.IsChange = true; INotify 인터페이스로 대체
+                                //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
+                                drawItem = true;
+                            }
+                        }
+                        server.IsConnect = true;
+                    }
+                    else
+                    {
+                        if (server.IsConnect)
+                        {
+                            //server.Type = unitName;
+                            //server.Status = "critical";
+                            //server.IsChange = true;
+                            //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
+                            Debug.WriteLine(server.Type);
+
+                            if (server.Type.Equals(unitName))
+                            {
+                                serviceOID = SnmpService._CM5000UnitName_oid;
+                            }
+                            else
+                            {
+                                serviceOID = SnmpService._DR5000UnitName_oid;
+                            }
+
+                            Snmp snmp = new Snmp { IP = server.Ip, Port = "65535", Community = "public", TypeOid = serviceOID, LevelString = "Critical", TypeValue = "begin", TranslateValue = "Failed to connection" };
+                            LogItem.GetInstance().LoggingDatabase(snmp);
+
+                            drawItem = true;
+                        }
+                        server.IsConnect = false;
                     }
                 }
-                else
+                catch (Exception ex)
                 {
-                    if (server.Status == "normal")
-                    {
-                        server.Status = "critical";
-                        //server.IsChange = true;
-                        //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
-
-                        Snmp snmp = new Snmp { IP = server.Ip, Port = "65535", Community = "public", TypeOid = SnmpService._DR5000UnitName_oid, LevelString = "Critical", TypeValue = "begin", TranslateValue = "Failed to connection" };
-                        LogItem.GetInstance().LoggingDatabase(snmp);
-
-                        drawItem = true;
-                    }
-                    if (server.Status == "idle")
-                    {
-                        //최초 등록시 snmp get 응답 없을땐 idle 상태로 계속 유지
-                    }
+                    logger.Error(ex.ToString());
                 }
             }
 
@@ -139,6 +186,7 @@ namespace NmsDotNet
                 {
                     ServerListItem.ItemsSource = null;
                     ServerListItem.ItemsSource = Server.GetServerList();
+                    //ServerListItem.ItemsSource = _serverList;
                 }
                 else
                 {
@@ -146,6 +194,7 @@ namespace NmsDotNet
                     {
                         ServerListItem.ItemsSource = null;
                         ServerListItem.ItemsSource = Server.GetServerList();
+                        //ServerListItem.ItemsSource = _serverList;
                     });
                 }
 
@@ -399,6 +448,7 @@ namespace NmsDotNet
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 100);
 
             int inlen = -1;
+            Debug.WriteLine(string.Format($"Waiting for snmp trap"));
             while (!_shouldStop)
             {
                 byte[] indata = new byte[16 * 1024];
@@ -407,12 +457,11 @@ namespace NmsDotNet
                 EndPoint inep = (EndPoint)peer;
                 try
                 {
-                    Debug.WriteLine("Waiting for snmp trap");
                     inlen = socket.ReceiveFrom(indata, ref inep);
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("Exception {0}", ex.Message);
+                    //Debug.WriteLine("Exception {0}", ex.Message);
                     inlen = -1;
                 }
                 if (inlen > 0)
@@ -498,82 +547,85 @@ namespace NmsDotNet
                                 logger.Info(String.Format("[{0}] Trap : {1} {2}: {3}", inep.ToString().Split(':')[0], v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString()));
                             }
 
-                            if (!String.IsNullOrEmpty(snmp.LevelString))
+                            if (Snmp.IsEnableTrap(snmp.TypeOid))
                             {
-                                snmp.TrapString = snmp.MakeTrapLogString();
-                                LogItem.GetInstance().LoggingDatabase(snmp);
-                                Server s = null;
-                                foreach (var server in _serverList)
+                                if (!String.IsNullOrEmpty(snmp.LevelString))
                                 {
-                                    if (server.Ip == snmp.IP)
+                                    snmp.TrapString = snmp.MakeTrapLogString();
+                                    LogItem.GetInstance().LoggingDatabase(snmp);
+                                    Server s = null;
+                                    foreach (var server in _serverList)
                                     {
-                                        s = server;
-                                        break;
-                                    }
-                                }
-
-                                if (string.Equals(snmp.TypeValue, "begin"))
-                                {
-                                    s.ErrorCount++;
-                                }
-                                else if (string.Equals(snmp.TypeValue, "end"))
-                                {
-                                    if (s.ErrorCount > 0)
-                                    {
-                                        s.ErrorCount--;
-                                    }
-                                }
-
-                                if (!string.Equals(snmp.TypeValue, "log"))
-                                {
-                                    if (s.ErrorCount > 0)
-                                    {
-                                        s.Status = Server.CompareState(s.Status, snmp.LevelString.ToLower());
-                                    }
-                                    else
-                                    {
-                                        s.Status = "normal";
+                                        if (server.Ip == snmp.IP)
+                                        {
+                                            s = server;
+                                            break;
+                                        }
                                     }
 
-                                    if (ServerListItem.Dispatcher.CheckAccess())
+                                    if (string.Equals(snmp.TypeValue, "begin"))
                                     {
-                                        ServerListItem.ItemsSource = null;
-                                        ServerListItem.ItemsSource = Server.GetServerList();
-                                        //TreeGroup.ItemsSource = null;
-                                        TreeGroup.ItemsSource = Group.GetGroupList();
-                                        //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
+                                        s.ErrorCount++;
                                     }
-                                    else
+                                    else if (string.Equals(snmp.TypeValue, "end"))
                                     {
-                                        ServerListItem.Dispatcher.Invoke(() =>
+                                        if (s.ErrorCount > 0)
+                                        {
+                                            s.ErrorCount--;
+                                        }
+                                    }
+
+                                    if (!string.Equals(snmp.TypeValue, "log"))
+                                    {
+                                        if (s.ErrorCount > 0)
+                                        {
+                                            s.Status = Server.CompareState(s.Status, snmp.LevelString.ToLower());
+                                        }
+                                        else
+                                        {
+                                            s.Status = "normal";
+                                        }
+
+                                        if (ServerListItem.Dispatcher.CheckAccess())
                                         {
                                             ServerListItem.ItemsSource = null;
                                             ServerListItem.ItemsSource = Server.GetServerList();
                                             //TreeGroup.ItemsSource = null;
                                             TreeGroup.ItemsSource = Group.GetGroupList();
                                             //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
-                                        });
+                                        }
+                                        else
+                                        {
+                                            ServerListItem.Dispatcher.Invoke(() =>
+                                            {
+                                                ServerListItem.ItemsSource = null;
+                                                ServerListItem.ItemsSource = Server.GetServerList();
+                                                //TreeGroup.ItemsSource = null;
+                                                TreeGroup.ItemsSource = Group.GetGroupList();
+                                                //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
+                                            });
+                                        }
                                     }
-                                }
 
-                                if (LvLog.Dispatcher.CheckAccess())
-                                {
-                                    _logCount = GetLog();
-                                }
-                                else
-                                {
-                                    LvLog.Dispatcher.Invoke(() => { _logCount = GetLog(); });
-                                }
+                                    if (LvLog.Dispatcher.CheckAccess())
+                                    {
+                                        _logCount = GetLog();
+                                    }
+                                    else
+                                    {
+                                        LvLog.Dispatcher.Invoke(() => { _logCount = GetLog(); });
+                                    }
 
-                                /*
-                                if (DialogNotification.Dispatcher.CheckAccess())
-                                {
-                                    DialogNotification.IsOpen = true;
+                                    /*
+                                    if (DialogNotification.Dispatcher.CheckAccess())
+                                    {
+                                        DialogNotification.IsOpen = true;
+                                    }
+                                    else
+                                    {
+                                        DialogNotification.Dispatcher.Invoke(() => { DialogNotification.IsOpen = true; });
+                                    }*/
                                 }
-                                else
-                                {
-                                    DialogNotification.Dispatcher.Invoke(() => { DialogNotification.IsOpen = true; });
-                                }*/
                             }
                             if (_logCount > 0)
                             {
@@ -700,7 +752,8 @@ namespace NmsDotNet
             this.IsEnabled = false;
 
             GlobalSettings settings = new GlobalSettings();
-            settings.SnmpSettings = (List<SnmpSetting>)Snmp.GetTrapAlarmList();
+            settings.SnmpCM5000Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList("CM5000");
+            settings.SnmpDR5000Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList("DR5000");
             settings.ServerSettings = (List<Server>)Server.GetServerList();
             var result = await DialogHost.Show(settings, "DialogSettingInfo");
         }
@@ -794,15 +847,25 @@ namespace NmsDotNet
             string downloadsPath = KnownFolders.GetPath(KnownFolder.Downloads);
             saveFileDialog.InitialDirectory = downloadsPath;
             string csvString = "";
+
             saveFileDialog.FileName = DateTime.Now.ToString("yyyy-MM-dd");
             csvString = LogItem.MakeCsvFile(LogItem.GetInstance().GetLog("dialog"));
 
-            if (String.IsNullOrEmpty(csvString))
+            try
             {
-                MessageBox.Show("저장할 항목이 없습니다", "정보", MessageBoxButton.OK, MessageBoxImage.Warning);
+                if (String.IsNullOrEmpty(csvString))
+                {
+                    MessageBox.Show("저장할 항목이 없습니다", "정보", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                else if (saveFileDialog.ShowDialog() == true)
+                {
+                    File.WriteAllText(saveFileDialog.FileName, csvString, System.Text.Encoding.GetEncoding("euc-kr"));
+                }
             }
-            else if (saveFileDialog.ShowDialog() == true)
-                File.WriteAllText(saveFileDialog.FileName, csvString);
+            catch (Exception)
+            {
+                MessageBox.Show("파일을 저장할 수 없습니다. 열려있는 파일을 닫아주세요", "경고", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private void MenuItem_LogHide_Click(object sender, RoutedEventArgs e)

@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace NmsDotNet.Utils
 {
-    internal class Util
+    public class Util
     {
         public static String GetLocalIpAddress()
         {
@@ -30,6 +31,20 @@ namespace NmsDotNet.Utils
         private static bool IsTextAllowed(string text)
         {
             return !_regex.IsMatch(text);
+        }
+
+        public static string UTF8_TO_EUCKR(string s)
+        {
+            System.Text.Encoding euckr = System.Text.Encoding.GetEncoding(51949);
+            byte[] euckrBytes = euckr.GetBytes(s);
+
+            string urlEncodingText = "";
+            foreach (byte b in euckrBytes)
+            {
+                string addText = Convert.ToString(b, 16);
+                urlEncodingText = urlEncodingText + "%" + addText;
+            }
+            return Convert.ToString(urlEncodingText);
         }
     }
 }

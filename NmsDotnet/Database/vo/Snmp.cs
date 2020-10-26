@@ -21,7 +21,8 @@ namespace NmsDotNet.Database.vo
 
     public class GlobalSettings
     {
-        public List<SnmpSetting> SnmpSettings { get; set; }
+        public List<SnmpSetting> SnmpCM5000Settings { get; set; }
+        public List<SnmpSetting> SnmpDR5000Settings { get; set; }
         public List<Server> ServerSettings { get; set; }
     }
 
@@ -89,8 +90,37 @@ namespace NmsDotNet.Database.vo
             {
                 string.Format($"{TranslateValue} ({TypeValue})");
             }
-            logger.Info("logString : " + logString);
+            logger.Info(string.Format($"logString : {logString}"));
             return logString;
+        }
+
+        public static bool IsEnableTrap(string compareID)
+        {
+            logger.Debug(string.Format($"compareID : {compareID}"));
+            string value = null;
+            string query = String.Format(@"SELECT S.id, T.translate FROM translate T
+INNER JOIN snmp S ON S.name = T.name
+WHERE T.is_enable = 'N' ");
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                MySqlDataReader rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                {
+                    value = rdr["id"].ToString();
+                    int idx = compareID.LastIndexOf('.');
+                    string searchID = compareID.Substring(0, idx);
+                    if (value.Contains(searchID))
+                    {
+                        logger.Debug(string.Format($"value : {value}, searchID : {searchID}"));
+                        return false;
+                    }
+                }
+                rdr.Close();
+            }
+
+            return true;
         }
 
         public static string GetLevelString(int level)
@@ -121,10 +151,10 @@ namespace NmsDotNet.Database.vo
             return value;
         }
 
-        public static IEnumerable<SnmpSetting> GetTrapAlarmList()
+        public static IEnumerable<SnmpSetting> GetTrapAlarmList(string type)
         {
             DataTable dt = new DataTable();
-            string query = "SELECT * FROM translate";
+            string query = String.Format($"SELECT * FROM translate WHERE type = '{type}'");
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -190,7 +220,22 @@ namespace NmsDotNet.Database.vo
 
         public static void UpdateSnmpMessgeUseage(GlobalSettings settings)
         {
-            foreach (var item in settings.SnmpSettings)
+            foreach (var item in settings.SnmpCM5000Settings)
+            {
+                int ret = 0;
+                string query = "UPDATE translate set is_enable = @is_enable WHERE idx = @idx";
+                using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+                {
+                    conn.Open();
+                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@idx", item.Idx);
+                    cmd.Parameters.AddWithValue("@is_enable", item.IsEnable == true ? "Y" : "N");
+                    cmd.Prepare();
+                    ret = cmd.ExecuteNonQuery();
+                }
+            }
+
+            foreach (var item in settings.SnmpDR5000Settings)
             {
                 int ret = 0;
                 string query = "UPDATE translate set is_enable = @is_enable WHERE idx = @idx";

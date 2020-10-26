@@ -22,6 +22,7 @@ namespace NmsDotNet.Database.vo
         public string Type { get; set; }
         public List<Group> Groups { get; set; }
         public int ErrorCount { get; set; }
+        public bool IsConnect { get; set; }
         public string Color { get; set; }
 
         public Server()
@@ -67,6 +68,21 @@ namespace NmsDotNet.Database.vo
                     UpdateServerStatus(this);
                 }
             }
+        }
+
+        public static int GetServerLastStatus()
+        {
+            int ret = 0;
+            string query = "UPDATE server set status = @status";
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@status", "idle");
+                cmd.Prepare();
+                ret = cmd.ExecuteNonQuery();
+            }
+            return ret;
         }
 
         public void SetServerInfo(string name, string ip, string gid)
@@ -203,7 +219,7 @@ namespace NmsDotNet.Database.vo
         public static int UpdateServerStatus(Server server)
         {
             int ret = 0;
-            string query = "UPDATE server set status = @status, type = @type WHERE id = @id";
+            string query = "UPDATE server set status = @status, type = @type, error_count = @error_count WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -211,6 +227,7 @@ namespace NmsDotNet.Database.vo
                 cmd.Parameters.AddWithValue("@id", server.Id);
                 cmd.Parameters.AddWithValue("@status", server.Status);
                 cmd.Parameters.AddWithValue("@type", server.Type);
+                cmd.Parameters.AddWithValue("@error_count", server.ErrorCount);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
@@ -260,6 +277,7 @@ namespace NmsDotNet.Database.vo
                 Status = row.Field<string>("status"),
                 Image = row.Field<string>("path"),
                 Type = row.Field<string>("type"),
+                ErrorCount = row.Field<int>("error_count"),
                 Groups = g
             }).ToList();
         }
