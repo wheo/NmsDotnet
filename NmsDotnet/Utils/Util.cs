@@ -4,7 +4,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace NmsDotNet.Utils
+namespace NmsDotnet.Utils
 {
     public class Util
     {

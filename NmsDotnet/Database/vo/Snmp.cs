@@ -1,12 +1,12 @@
 ﻿using log4net;
 using MySql.Data.MySqlClient;
-using NmsDotNet.Utils;
+using NmsDotnet.Utils;
 using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 
-namespace NmsDotNet.Database.vo
+namespace NmsDotnet.Database.vo
 {
     /// <summary>
     /// Trap을 수신할 때 정보를 데이터베이스에 기록

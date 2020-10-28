@@ -1,44 +1,55 @@
 ﻿using log4net;
 using MySql.Data.MySqlClient;
+using NmsDotnet.Database.vo;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
 
-namespace NmsDotNet.Database.vo
+namespace NmsDotnet.Database.vo
 {
     public class Server : INotifyPropertyChanged
     {
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         private string _Status;
+        private string _Type;
         public string Id { get; set; }
         public string Ip { get; set; }
+
         public string Name { get; set; }
         public string Gid { get; set; }
+        public ObservableCollection<Group> Groups { get; set; }
         public string GroupName { get; set; }
-        public string Type { get; set; }
-        public List<Group> Groups { get; set; }
+
+        public string Type
+        {
+            get { return _Type; }
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    HeaderType = 'I';
+                }
+                else
+                {
+                    HeaderType = value[0];
+                }
+                _Type = value;
+            }
+        }
+
+        public char HeaderType { get; set; }
+        //public ObservableCollection<Group> Groups { get; set; }
+
+        //public List<Group> Groups { get; set; }
         public int ErrorCount { get; set; }
+
         public bool IsConnect { get; set; }
         public string Color { get; set; }
-
-        public Server()
-        {
-            _Status = "normal";
-        }
-
-        public enum EnumStatus
-        {
-            Idle = 0,
-            Normal = 1,
-            Disabled = 2,
-            Information = 3,
-            Warning = 4,
-            Critical = 5
-        }
 
         public string Status
         {
@@ -52,6 +63,21 @@ namespace NmsDotNet.Database.vo
                     OnPropertyChanged(new PropertyChangedEventArgs("Status"));
                 }
             }
+        }
+
+        public enum EnumStatus
+        {
+            Idle = 0,
+            Normal = 1,
+            Disabled = 2,
+            Information = 3,
+            Warning = 4,
+            Critical = 5
+        }
+
+        public Server()
+        {
+            _Status = "normal";
         }
 
         public string Image { get; set; }
@@ -254,10 +280,14 @@ namespace NmsDotNet.Database.vo
 
         public static List<Server> GetServerList()
         {
-            List<Group> g = (List<Group>)Group.GetGroupList();
-
             DataTable dt = new DataTable();
-            string query = @"SELECT S.*, G.name as grp_name, A.path FROM server S LEFT JOIN asset A ON S.status = A.id LEFT JOIN grp G ON G.id = S.gid ORDER BY G.name, S.create_time";
+            string query = @"SELECT S.*
+, IF(S.status = 'critical', 'Red', IF(S.status = 'warning', 'Yellow', IF(S.status = 'information', 'Blue', 'Green'))) AS color
+, G.name as grp_name
+, A.path FROM server S
+LEFT JOIN asset A ON S.status = A.id
+LEFT JOIN grp G ON G.id = S.gid
+ORDER BY G.name, S.create_time";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -278,7 +308,7 @@ namespace NmsDotNet.Database.vo
                 Image = row.Field<string>("path"),
                 Type = row.Field<string>("type"),
                 ErrorCount = row.Field<int>("error_count"),
-                Groups = g
+                Color = row.Field<string>("color")
             }).ToList();
         }
 

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Threading;
 
-namespace NmsDotNet
+namespace NmsDotnet
 {
     /// <summary>
     /// App.xaml에 대한 상호 작용 논리

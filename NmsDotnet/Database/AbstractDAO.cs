@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 
-namespace NmsDotNet.Database
+namespace NmsDotnet.Database
 {
     internal interface IDao
     {

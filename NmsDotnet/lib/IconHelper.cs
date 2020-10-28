@@ -5,7 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace NmsDotNet.lib
+namespace NmsDotnet.lib
 {
     public static class IconHelper
     {

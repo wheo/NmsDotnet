@@ -1,7 +1,7 @@
 ﻿using MySql.Data.MySqlClient;
 using System;
 
-namespace NmsDotNet.Database
+namespace NmsDotnet.Database
 {
     public class DatabaseManager
     {

@@ -16,12 +16,12 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using log4net;
 using MySql.Data.MySqlClient;
-using NmsDotNet.config;
-using NmsDotNet.Database.vo;
-using NmsDotNet.lib;
-using NmsDotNet.Database;
+using NmsDotnet.config;
+using NmsDotnet.Database.vo;
+using NmsDotnet.lib;
+using NmsDotnet.Database;
 
-namespace NmsDotNet
+namespace NmsDotnet
 {
     /// <summary>
     /// MainWindow.xaml에 대한 상호 작용 논리

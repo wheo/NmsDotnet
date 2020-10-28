@@ -158,11 +158,15 @@
     <Compile Include="Database\DatabaseManager.cs" />
     <Compile Include="Database\vo\Group.cs" />
     <Compile Include="Database\vo\Login.cs" />
+    <Compile Include="Database\vo\NmsInfo.cs" />
     <Compile Include="Database\vo\Server.cs" />
     <Compile Include="Database\vo\Snmp.cs" />
     <Compile Include="Interface\SampleInterface.cs" />
     <Compile Include="lib\KnownFolders.cs" />
     <Compile Include="Service\SnmpService.cs" />
+    <Compile Include="Utils\DragAdorner.cs" />
+    <Compile Include="Utils\ListViewDragDropManager.cs" />
+    <Compile Include="Utils\MouseUtilities.cs" />
     <Compile Include="Utils\Util.cs" />
     <Compile Include="vo\LogtItem.cs" />
     <Page Include="LoginWindow.xaml">

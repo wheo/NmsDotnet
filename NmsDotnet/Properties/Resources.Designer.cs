@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace NmsDotNet.Properties {
+namespace NmsDotnet.Properties {
     using System;
     
     

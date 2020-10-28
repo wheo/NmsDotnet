@@ -7,11 +7,11 @@ using System.Net;
 using SnmpSharpNet;
 using System.Diagnostics;
 using System.Net.Sockets;
-using NmsDotNet.vo;
+using NmsDotnet.vo;
 using System.Windows.Controls;
 using log4net;
 
-namespace NmsDotNet.Service
+namespace NmsDotnet.Service
 {
     public class SnmpService
     {

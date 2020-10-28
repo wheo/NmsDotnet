@@ -1,7 +1,7 @@
 ﻿using MySql.Data.MySqlClient;
-using NmsDotNet.Database;
-using NmsDotNet.Database.vo;
-using NmsDotNet.Utils;
+using NmsDotnet.Database;
+using NmsDotnet.Database.vo;
+using NmsDotnet.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -11,7 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
-namespace NmsDotNet.vo
+namespace NmsDotnet.vo
 {
     public class LogList : INotifyPropertyChanged
     {

@@ -4,21 +4,25 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
+using NmsDotnet.Database.vo;
 
-namespace NmsDotNet.Database.vo
+using NmsDotnet.Database.vo;
+
+namespace NmsDotnet.Database.vo
 {
     public class Group
     {
-        private ObservableCollection<Server> DataSource = new ObservableCollection<Server>();
+        //private ObservableCollection<Server> DataSource = new ObservableCollection<Server>();
 
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public string Id { get; set; }
         public string Name { get; set; }
 
-        public List<Server> Servers { get; set; }
+        // List를 ObservableCollection 으로 만들어주기때문에 List로 할당해도 될듯?(내생각)
+        public ObservableCollection<Server> Servers { get; set; }
 
-        //public static Group group;
+        //public ObservableCollection<Server> Servers { get; set; }
 
         public static int AddGroup(Group grp)
         {
@@ -66,7 +70,7 @@ namespace NmsDotNet.Database.vo
             return ret;
         }
 
-        public static IEnumerable<Group> GetGroupList()
+        public static List<Group> GetGroupList()
         {
             DataTable dt = new DataTable();
             string query = "SELECT G.* FROM grp G ORDER BY G.create_time";
@@ -87,9 +91,20 @@ namespace NmsDotNet.Database.vo
                 Name = row.Field<string>("name")
             }).ToList();
 
-            foreach (Group g in groups)
+            //g.Servers = Server.GetServerListByGroup(g.Id);
+            foreach (Server s in NmsInfo.GetInstance().serverList)
             {
-                g.Servers = Server.GetServerListByGroup(g.Id);
+                foreach (Group g in groups)
+                {
+                    if (g.Servers == null)
+                    {
+                        g.Servers = new ObservableCollection<Server>();
+                    }
+                    if (s.Gid == g.Id)
+                    {
+                        g.Servers.Add(s);
+                    }
+                }
             }
 
             return groups;

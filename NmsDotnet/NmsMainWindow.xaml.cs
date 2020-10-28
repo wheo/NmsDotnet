@@ -1,10 +1,13 @@
 ﻿using log4net;
 using MaterialDesignThemes.Wpf;
 using Microsoft.Win32;
+using NmsDotnet.Database.vo;
 using NmsDotnet.lib;
-using NmsDotNet.Database.vo;
-using NmsDotNet.Service;
-using NmsDotNet.vo;
+
+using NmsDotnet.Database.vo;
+
+using NmsDotnet.Service;
+using NmsDotnet.vo;
 using SnmpSharpNet;
 using System;
 using System.Collections.Generic;
@@ -20,8 +23,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using WPF.JoshSmith.ServiceProviders.UI;
 
-namespace NmsDotNet
+namespace NmsDotnet
 {
     /// <summary>
     /// NmsMainWindow.xaml에 대한 상호 작용 논리
@@ -31,9 +35,9 @@ namespace NmsDotNet
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
         public static bool _shouldStop = false;
-        private ObservableCollection<Server> _serverList;
 
-        private ObservableCollection<LogItem> _dialogLogList;
+        //private ObservableCollection<Server> _serverList;
+        //private ObservableCollection<Group> _groupList;
 
         private SoundPlayer _simpleSound = null;
 
@@ -45,6 +49,8 @@ namespace NmsDotNet
 
         private int _logCount;
 
+        private ListViewDragDropManager<Server> dragMgr;
+
         //CancellationTokenSource source;
         public NmsMainWindow()
         {
@@ -55,16 +61,52 @@ namespace NmsDotNet
         {
             LoadMibFiles();
             //SetServerIdle();
-            GetGroupList();
+
+            ServerDispatcherTimer();
+
+            DragNDropSetting();
 
             SnmpSetServiceTest();
 
-            ServerDispatcherTimer();
             _logCount = 0;
             _logs = new LogList();
             GetLog();
 
             Task.Run(() => TrapListener());
+        }
+
+        private void DragNDropSetting()
+        {
+            this.dragMgr = new ListViewDragDropManager<Server>(ServerListItem);
+            this.dragMgr.ListView = ServerListItem;
+            this.dragMgr.ShowDragAdorner = true;
+            this.dragMgr.DragAdornerOpacity = 0.5;
+            this.ServerListItem.DragEnter += OnListViewDragEnter;
+            this.ServerListItem.Drop += OnListViewDrop;
+        }
+
+        // Handles the DragEnter event for both ListViews.
+        private void OnListViewDragEnter(object sender, DragEventArgs e)
+        {
+            e.Effects = DragDropEffects.Move;
+        }
+
+        // Handles the Drop event for both ListViews.
+        private void OnListViewDrop(object sender, DragEventArgs e)
+        {
+            if (e.Effects == DragDropEffects.None)
+                return;
+
+            Server server = e.Data.GetData(typeof(Server)) as Server;
+            if (sender == this.ServerListItem)
+            {
+                if (this.dragMgr.IsDragInProgress)
+                    return;
+
+                // An item was dragged from the bottom ListView into the top ListView
+                // so remove that item from the bottom ListView.
+                // (this.listView2.ItemsSource as ObservableCollection<Task>).Remove(task);
+            }
         }
 
         private void LoadMibFiles()
@@ -76,11 +118,6 @@ namespace NmsDotNet
         private void SetServerIdle()
         {
             Server.GetServerLastStatus();
-        }
-
-        private void GetGroupList()
-        {
-            TreeGroup.ItemsSource = Group.GetGroupList();
         }
 
         private int GetLog()
@@ -96,19 +133,28 @@ namespace NmsDotNet
             DispatcherTimer SnmpGetTimer = new DispatcherTimer(DispatcherPriority.Render);
             SnmpGetTimer.Interval = TimeSpan.FromSeconds(5);
             SnmpGetTimer.Tick += new EventHandler(SnmpGetService);
-            _serverList = new ObservableCollection<Server>(Server.GetServerList());
-            ServerListItem.ItemsSource = _serverList;
+
+            NmsInfo.GetInstance().serverList = new ObservableCollection<Server>(Server.GetServerList());
+            NmsInfo.GetInstance().groupList = new ObservableCollection<Group>(Group.GetGroupList());
+            foreach (Server s in NmsInfo.GetInstance().serverList)
+            {
+                s.Groups = NmsInfo.GetInstance().groupList;
+            }
+
+            ServerListItem.ItemsSource = NmsInfo.GetInstance().serverList;
+            TreeGroup.ItemsSource = NmsInfo.GetInstance().groupList;
             SnmpGetTimer.Start();
         }
 
         private void SnmpSetServiceTest()
         {
+            //example snmp set
             SnmpService.Set();
         }
 
         private void SnmpGetService(object sender, EventArgs e)
         {
-            var Servers = _serverList;
+            var Servers = NmsInfo.GetInstance().serverList;
             bool drawItem = false;
             foreach (Server server in Servers)
             {
@@ -128,7 +174,7 @@ namespace NmsDotNet
                         {
                             serviceOID = SnmpService._DR5000UnitName_oid;
                         }
-                        if (!string.IsNullOrEmpty(unitName) && server.Status != "normal")
+                        if (!string.IsNullOrEmpty(unitName))
                         {
                             server.Type = unitName;
 
@@ -184,16 +230,16 @@ namespace NmsDotNet
             {
                 if (ServerListItem.Dispatcher.CheckAccess())
                 {
-                    ServerListItem.ItemsSource = null;
-                    ServerListItem.ItemsSource = Server.GetServerList();
+                    //ServerListItem.ItemsSource = null;
+                    //ServerListItem.ItemsSource = Server.GetServerList();
                     //ServerListItem.ItemsSource = _serverList;
                 }
                 else
                 {
                     ServerListItem.Dispatcher.Invoke(() =>
                     {
-                        ServerListItem.ItemsSource = null;
-                        ServerListItem.ItemsSource = Server.GetServerList();
+                        //ServerListItem.ItemsSource = null;
+                        //ServerListItem.ItemsSource = Server.GetServerList();
                         //ServerListItem.ItemsSource = _serverList;
                     });
                 }
@@ -276,8 +322,12 @@ namespace NmsDotNet
                 Debug.WriteLine(group.Id);
                 if (string.IsNullOrEmpty(group.Id))
                 {
+                    NmsInfo.GetInstance().groupList.Add(group);
                     Group.AddGroup(group);
-                    TreeGroup.ItemsSource = Group.GetGroupList();
+
+                    //deprecated 2020-10-28 by wheo
+                    //TreeGroup.ItemsSource = Group.GetGroupList();
+                    //TreeGroup.ItemsSource = _groupList; // 필요없을것 같다 확인할것 // _grouplist가 observation Collection 이라서 변화 반영됨
                 }
                 else
                 {
@@ -300,8 +350,9 @@ namespace NmsDotNet
                 var group = (Group)tv.SelectedItem;
                 if (Group.DeleteGroup(group.Id) > 0)
                 {
-                    TreeGroup.ItemsSource = Group.GetGroupList();
-                    ServerListItem.ItemsSource = Server.GetServerList();
+                    //TreeGroup.ItemsSource = Group.GetGroupList();
+                    NmsInfo.GetInstance().groupList.Remove(group);
+                    //ServerListItem.ItemsSource = Server.GetServerList();
                     //서비스 스레드 종료 꼭 해야함 (서비스 스레드는 1개로 운영)
                 }
             }
@@ -315,7 +366,7 @@ namespace NmsDotNet
             this.IsEnabled = false;
 
             Server server = new Server();
-            server.Groups = (List<Group>)Group.GetGroupList();
+            server.Groups = NmsInfo.GetInstance().groupList;
             var result = await DialogHost.Show(server, "DialogServer");
         }
 
@@ -356,9 +407,18 @@ namespace NmsDotNet
                 {
                     if (!string.IsNullOrEmpty(server.Gid))
                     {
-                        server.AddServer();
-                        ServerListItem.ItemsSource = Server.GetServerList();
-                        TreeGroup.ItemsSource = Group.GetGroupList();
+                        server.Id = server.AddServer();
+                        NmsInfo.GetInstance().serverList.Add(server);
+                        foreach (Group g in NmsInfo.GetInstance().groupList)
+                        {
+                            if (g.Id == server.Gid)
+                            {
+                                g.Servers.Add(server);
+                                break;
+                            }
+                        }
+                        //ServerListItem.ItemsSource = Server.GetServerList();
+                        //TreeGroup.ItemsSource = Group.GetGroupList();
                     }
                     else
                     {
@@ -368,9 +428,25 @@ namespace NmsDotNet
                 else
                 {
                     server.EditServer();
+                    foreach (Group g in NmsInfo.GetInstance().groupList)
+                    {
+                        foreach (Server s in g.Servers)
+                        {
+                            if (s.Id == server.Id)
+                            {
+                                g.Servers.Remove(s);
+                                break;
+                            }
+                        }
+                        if (g.Id == server.Gid)
+                        {
+                            g.Servers.Add(server);
+                        }
+                    }
+
                     //바인딩이 지저분해짐 한번에 할 수 있는것을 연구해야함
-                    TreeGroup.ItemsSource = Group.GetGroupList();
-                    ServerListItem.ItemsSource = Server.GetServerList();
+                    //TreeGroup.ItemsSource = _groupList;
+                    //ServerListItem.ItemsSource = Server.GetServerList();
                 }
             }
         }
@@ -392,8 +468,9 @@ namespace NmsDotNet
                 {
                     logger.Debug(String.Format("[{0}/{1} deleted]", server.Ip, server.Status));
 
-                    TreeGroup.ItemsSource = Group.GetGroupList();
-                    ServerListItem.ItemsSource = Server.GetServerList();
+                    //TreeGroup.ItemsSource = Group.GetGroupList();
+                    //ServerListItem.ItemsSource = Server.GetServerList();
+                    NmsInfo.GetInstance().serverList.Remove(server);
                 }
             }
         }
@@ -461,7 +538,7 @@ namespace NmsDotNet
                 }
                 catch (Exception ex)
                 {
-                    //Debug.WriteLine("Exception {0}", ex.Message);
+                    logger.Error(string.Format("Exception {0}", ex.Message));
                     inlen = -1;
                 }
                 if (inlen > 0)
@@ -554,7 +631,7 @@ namespace NmsDotNet
                                     snmp.TrapString = snmp.MakeTrapLogString();
                                     LogItem.GetInstance().LoggingDatabase(snmp);
                                     Server s = null;
-                                    foreach (var server in _serverList)
+                                    foreach (var server in NmsInfo.GetInstance().serverList)
                                     {
                                         if (server.Ip == snmp.IP)
                                         {
@@ -588,20 +665,20 @@ namespace NmsDotNet
 
                                         if (ServerListItem.Dispatcher.CheckAccess())
                                         {
-                                            ServerListItem.ItemsSource = null;
-                                            ServerListItem.ItemsSource = Server.GetServerList();
+                                            //ServerListItem.ItemsSource = null;
+                                            //ServerListItem.ItemsSource = Server.GetServerList();
                                             //TreeGroup.ItemsSource = null;
-                                            TreeGroup.ItemsSource = Group.GetGroupList();
+                                            //TreeGroup.ItemsSource = Group.GetGroupList();
                                             //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
                                         }
                                         else
                                         {
                                             ServerListItem.Dispatcher.Invoke(() =>
                                             {
-                                                ServerListItem.ItemsSource = null;
-                                                ServerListItem.ItemsSource = Server.GetServerList();
+                                                //ServerListItem.ItemsSource = null;
+                                                //ServerListItem.ItemsSource = Server.GetServerList();
                                                 //TreeGroup.ItemsSource = null;
-                                                TreeGroup.ItemsSource = Group.GetGroupList();
+                                                //TreeGroup.ItemsSource = Group.GetGroupList();
                                                 //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
                                             });
                                         }
@@ -677,6 +754,8 @@ namespace NmsDotNet
             System.Diagnostics.Process.Start(String.Format($"{uri}{server.Ip}"));
         }
 
+        //deprecated
+        /*
         private void add_testserver_Click(object sender, RoutedEventArgs e)
         {
             string group_id = "3140e0fd-b752-11ea-a91a-0242ac160002"; //고정
@@ -688,8 +767,10 @@ namespace NmsDotNet
             //Task.Run(() => ServerService(server)); // 스레드 돌리지 않음
             logger.Info(String.Format("{0} New Service is created", server.Ip));
         }
+        */
 
         //deprecated
+        /*
         private void lvBtnConfirm_Click(object sender, RoutedEventArgs e)
         {
             LogItem logItem = (LogItem)GetLvItem(e);
@@ -697,6 +778,7 @@ namespace NmsDotNet
             logger.Info(String.Format($"{logItem.Ip}, {logItem.Value}, {logItem.idx}"));
             GetLog();
         }
+        */
 
         private object GetLvItem(RoutedEventArgs e)
         {
@@ -769,8 +851,8 @@ namespace NmsDotNet
                 GlobalSettings settings = (GlobalSettings)eventArgs.Session.Content;
                 Snmp.UpdateSnmpMessgeUseage(settings);
 
-                TreeGroup.ItemsSource = Group.GetGroupList();
-                ServerListItem.ItemsSource = Server.GetServerList();
+                //TreeGroup.ItemsSource = Group.GetGroupList();
+                //ServerListItem.ItemsSource = Server.GetServerList();
             }
         }
 
@@ -873,7 +955,8 @@ namespace NmsDotNet
             if (_currentSelectedItem != null)
             {
                 LogItem.HideLogAlarm(_currentSelectedItem.idx);
-                GetLog();
+                //GetLog();
+                LvLog.Items.Remove(_currentSelectedItem);
             }
         }
 
