@@ -24,6 +24,11 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using WPF.JoshSmith.ServiceProviders.UI;
+using System.Text.Json;
+using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using NAudio.Wave;
 
 namespace NmsDotnet
 {
@@ -36,43 +41,54 @@ namespace NmsDotnet
 
         public static bool _shouldStop = false;
 
-        //private ObservableCollection<Server> _serverList;
-        //private ObservableCollection<Group> _groupList;
+        private SoundPlayer _soundPlayer = null;
 
-        private SoundPlayer _simpleSound = null;
-
-        private LogList _logs;
+        private MediaPlayer _mediaPlayer = null;
 
         private LogItem _currentSelectedItem = null;
 
-        private ObservableCollection<LogItem> _logItem;
-
-        private int _logCount;
+        private DispatcherTimer _snmpGetTimer = null;
 
         private ListViewDragDropManager<Server> dragMgr;
 
-        //CancellationTokenSource source;
-        public NmsMainWindow()
+        private const int MAX_SERVER = 570;
+
+        public NmsMainWindow(string userid)
         {
             InitializeComponent();
+            ToolTipGlobalOption();
+            logger.Info("NMS Main is Starting");
+            logger.Info(string.Format($"({userid}) logged in"));
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            DragNDropSetting();
+            GetAlarmInfo();
             LoadMibFiles();
-            //SetServerIdle();
-
             ServerDispatcherTimer();
 
-            DragNDropSetting();
-
-            SnmpSetServiceTest();
-
-            _logCount = 0;
-            _logs = new LogList();
-            GetLog();
+            //SnmpSetServiceTest(); //test 완료
+            LogInit();
 
             Task.Run(() => TrapListener());
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            logger.Info("NMS Main windows is closing");
+            _shouldStop = true;
+        }
+
+        private void ToolTipGlobalOption()
+        {
+            // tooltip이 사라지지않게 하는 설정
+            //ToolTipService.ShowDurationProperty.OverrideMetadata(typeof(DependencyObject), new FrameworkPropertyMetadata(Int32.MaxValue));
+        }
+
+        private void GetAlarmInfo()
+        {
+            NmsInfo.GetInstance().alarmInfo = Alarm.GetAlarmInfo();
         }
 
         private void DragNDropSetting()
@@ -115,27 +131,47 @@ namespace NmsDotnet
             String[] files = Directory.GetFiles(path);
         }
 
-        private void SetServerIdle()
+        private void LogInit()
         {
-            Server.GetServerLastStatus();
-        }
-
-        private int GetLog()
-        {
-            _logItem = new ObservableCollection<LogItem>(LogItem.GetInstance().GetLog());
-            LvLog.ItemsSource = null;
-            LvLog.ItemsSource = _logItem;
-            return LogItem.GetInstance().LogItemCount;
+            // 최초 실행시에 최근로그를 한번만 가져옴
+            NmsInfo.GetInstance().activeLog = new ObservableCollection<LogItem>(LogItem.GetLog());
+            //LvLog.ItemsSource = null;
+            LvActiveLog.ItemsSource = NmsInfo.GetInstance().activeLog;
         }
 
         private void ServerDispatcherTimer()
         {
-            DispatcherTimer SnmpGetTimer = new DispatcherTimer(DispatcherPriority.Render);
-            SnmpGetTimer.Interval = TimeSpan.FromSeconds(5);
-            SnmpGetTimer.Tick += new EventHandler(SnmpGetService);
+            _snmpGetTimer = new DispatcherTimer(DispatcherPriority.DataBind);
+            _snmpGetTimer.Tick += new EventHandler(SnmpGetService);
+            _snmpGetTimer.Interval = TimeSpan.FromSeconds(5);
+            //SnmpGetTimer.Interval = new TimeSpan(0, 0, 5);
 
-            NmsInfo.GetInstance().serverList = new ObservableCollection<Server>(Server.GetServerList());
+            ObservableCollection<Server> ocs = new ObservableCollection<Server>(Server.GetServerList());
+            NmsInfo.GetInstance().serverList = new ObservableCollection<Server>();
+
+            int currentIdx = 0;
+
+            for (int i = 0; i < MAX_SERVER; i++)
+            {
+                Server s;
+                int currentLocation = ocs[currentIdx].Location;
+                if (i == currentLocation)
+                {
+                    s = ocs[currentIdx];
+                    if (ocs.Count - 1 > currentIdx)
+                    {
+                        currentIdx++;
+                    }
+                }
+                else
+                {
+                    s = new Server();
+                }
+                NmsInfo.GetInstance().serverList.Add(s);
+            }
+
             NmsInfo.GetInstance().groupList = new ObservableCollection<Group>(Group.GetGroupList());
+
             foreach (Server s in NmsInfo.GetInstance().serverList)
             {
                 s.Groups = NmsInfo.GetInstance().groupList;
@@ -143,87 +179,148 @@ namespace NmsDotnet
 
             ServerListItem.ItemsSource = NmsInfo.GetInstance().serverList;
             TreeGroup.ItemsSource = NmsInfo.GetInstance().groupList;
-            SnmpGetTimer.Start();
-        }
 
-        private void SnmpSetServiceTest()
-        {
-            //example snmp set
-            SnmpService.Set();
+            _snmpGetTimer.Start();
         }
 
         private void SnmpGetService(object sender, EventArgs e)
         {
-            var Servers = NmsInfo.GetInstance().serverList;
-            bool drawItem = false;
-            foreach (Server server in Servers)
+            if (PbMainLoading.Visibility == Visibility.Visible)
             {
-                string unitName = null;
+                PbMainLoading.Visibility = Visibility.Collapsed;
+                ServerListItem.Visibility = Visibility.Visible;
+                BtnServerInfo.IsEnabled = true;
+            }
+            foreach (Server server in NmsInfo.GetInstance().serverList)
+            {
                 string serviceOID = null;
+
                 try
                 {
-                    if (SnmpService.Get(server.Ip, out unitName))
+                    if (SnmpService.Get(server))
                     {
                         //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
 
-                        if ("CM5000".Equals(unitName))
+                        if (!string.IsNullOrEmpty(server.ModelName))
                         {
-                            serviceOID = SnmpService._CM5000UnitName_oid;
-                        }
-                        else
-                        {
-                            serviceOID = SnmpService._DR5000UnitName_oid;
-                        }
-                        if (!string.IsNullOrEmpty(unitName))
-                        {
-                            server.Type = unitName;
-
-                            if (server.ErrorCount == 0)
+                            if ("CM5000".Equals(server.ModelName))
                             {
-                                //server.Status = "normal";
-                            }
-                            if (!server.IsConnect)
-                            {
-                                Snmp snmp = new Snmp { IP = server.Ip, Port = "65535", Community = "public", TypeOid = serviceOID, LevelString = "Critical", TypeValue = "end", TranslateValue = "Failed to connection" };
-                                LogItem.GetInstance().LoggingDatabase(snmp);
-                                //server.IsChange = true; INotify 인터페이스로 대체
-                                //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
-                                drawItem = true;
-                            }
-                        }
-                        server.IsConnect = true;
-                    }
-                    else
-                    {
-                        if (server.IsConnect)
-                        {
-                            //server.Type = unitName;
-                            //server.Status = "critical";
-                            //server.IsChange = true;
-                            //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
-                            Debug.WriteLine(server.Type);
-
-                            if (server.Type.Equals(unitName))
-                            {
-                                serviceOID = SnmpService._CM5000UnitName_oid;
+                                serviceOID = SnmpService._CM5000ModelName_oid;
                             }
                             else
                             {
-                                serviceOID = SnmpService._DR5000UnitName_oid;
+                                serviceOID = SnmpService._DR5000ModelName_oid;
                             }
+                            if (server.IsConnect != Server.EnumIsConnect.Connect)
+                            {
+                                if (server.IsConnect != Server.EnumIsConnect.Init)
+                                {
+                                    Snmp snmp = new Snmp
+                                    {
+                                        IP = server.Ip,
+                                        Port = "65535",
+                                        Community = "public",
+                                        Oid = SnmpService._MyConnectionOid,
+                                        LevelString = Server.EnumStatus.Critical.ToString(),
+                                        TypeValue = "end",
+                                        TranslateValue = "Failed to connection"
+                                    };
+                                    LogItem.LoggingDatabase(snmp);
 
-                            Snmp snmp = new Snmp { IP = server.Ip, Port = "65535", Community = "public", TypeOid = serviceOID, LevelString = "Critical", TypeValue = "begin", TranslateValue = "Failed to connection" };
-                            LogItem.GetInstance().LoggingDatabase(snmp);
+                                    LogItem item = FindConnectionFailItem(NmsInfo.GetInstance().activeLog, server.Ip);
+                                    if (item != null)
+                                    {
+                                        NmsInfo.GetInstance().activeLog.Remove(item);
+                                    }
+                                }
 
-                            drawItem = true;
+                                LogItem curruntStatusItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, server.Ip);
+                                if (curruntStatusItem != null)
+                                {
+                                    server.Status = curruntStatusItem.Level;
+                                    server.Message = curruntStatusItem.Value;
+                                }
+                                else
+                                {
+                                    server.Status = Server.EnumStatus.Normal.ToString();
+                                }
+
+                                server.ConnectionErrorCount = 0;
+
+                                server.IsConnect = Server.EnumIsConnect.Connect;
+
+                                //LogItem log = new LogItem { }
+                                //NmsInfo.GetInstance().logItem.Add();
+
+                                // server.IsChange = true; INotify 인터페이스로 대체
+                                // logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
+                                // drawItem은 INotifyPropertyChanged 로 대체됨
+                                // drawItem = true;
+                            }
                         }
-                        server.IsConnect = false;
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(server.Ip))
+                        {
+                            if (server.IsConnect != Server.EnumIsConnect.Disconnect)
+                            {
+                                //server.IsChange = true;
+                                //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
+
+                                server.ConnectionErrorCount++;
+
+                                if (server.IsConnect != (int)Server.EnumIsConnect.Init && server.ConnectionErrorCount > 1)
+                                {
+                                    Snmp snmp = new Snmp
+                                    {
+                                        IP = server.Ip,
+                                        Port = "65535",
+                                        Community = "public",
+                                        Oid = SnmpService._MyConnectionOid,
+                                        LevelString = Server.EnumStatus.Critical.ToString(),
+                                        TypeValue = "begin",
+                                        TranslateValue = "Failed to connection"
+                                    };
+                                    LogItem.LoggingDatabase(snmp);
+
+                                    if (server.IsConnect != Server.EnumIsConnect.Disconnect)
+                                    {
+                                        LogItem log = new LogItem
+                                        {
+                                            Ip = server.Ip,
+                                            Level = Server.EnumStatus.Critical.ToString(),
+                                            Oid = SnmpService._MyConnectionOid,
+                                            Name = server.UnitName,
+                                            IsConnection = false,
+                                            TypeValue = "begin",
+                                            Value = "Failed to connection"
+                                        };
+                                        NmsInfo.GetInstance().activeLog.Insert(0, log);
+                                        server.Message = "Failed to connection";
+                                        server.Status = Server.EnumStatus.Critical.ToString();
+                                    }
+                                    server.IsConnect = Server.EnumIsConnect.Disconnect;
+                                }
+
+                                // drawItem은 INotifyPropertyChanged 로 대체됨
+                                // drawItem = true;
+                            }
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     logger.Error(ex.ToString());
                 }
+            }
+            /*
+             *
+
+            if (drawItem)
+            {
+                //ServerListItem.Items.Refresh();
+                //TreeGroup.Items.Refresh();
             }
 
             if (drawItem)
@@ -248,15 +345,65 @@ namespace NmsDotnet
                 {
                     _logCount = GetLog();
                 }
+                // UI스레드와 동일 스레드라서 AccessCheck를 할 필요가 없다
                 else
                 {
                     LvLog.Dispatcher.Invoke(() => { _logCount = GetLog(); });
                 }
             }
+            */
+        }
+
+        private LogItem FindConnectionFailItem(ObservableCollection<LogItem> ocl, string Ip)
+        {
+            foreach (LogItem item in ocl)
+            {
+                if (item.Ip == Ip && item.IsConnection == false)
+                {
+                    return item;
+                }
+            }
+            return null;
+        }
+
+        private LogItem FindCurrentStatusItem(ObservableCollection<LogItem> ocl, string Ip)
+        {
+            IEnumerable<LogItem> items =
+                from x in ocl
+                where x.Ip == Ip
+                select x;
+            IEnumerable<LogItem> item = items.OrderByDescending(x => x.LevelPriority).Take(1);
+            if (item.Count() > 0)
+            {
+                return (LogItem)item.ElementAt(0);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        private List<LogItem> FindItemFromOid(ObservableCollection<LogItem> ocl, Server s, string oid)
+        {
+            IEnumerable<LogItem> items =
+                from x in ocl
+                where x.Oid == oid && x.Ip == s.Ip
+                select x;
+            return items.ToList();
+        }
+
+        private List<LogItem> FindItemDuplicateTrap(ObservableCollection<LogItem> ocl, Server s, string oid)
+        {
+            IEnumerable<LogItem> items =
+                from x in ocl
+                where x.Oid == oid && x.Ip == s.Ip && x.TypeValue == "begin"
+                select x;
+            return items.ToList();
         }
 
         private void ServerList_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
+            /*
             //MessageBox.Show("Get");
             //Service.SnmpService.GetNext();
             logger.Info(sender);
@@ -264,6 +411,7 @@ namespace NmsDotnet
             ContextMenu menu = (ContextMenu)menuItem.Parent;
             ListView lv = (ListView)menu.PlacementTarget;
             lv.Focus();
+            */
         }
 
         private void ServerList_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -274,12 +422,6 @@ namespace NmsDotnet
             /*
             Service.Snmp.GetBulk();
             */
-        }
-
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
-        {
-            logger.Info("NMS main windows is closing");
-            _shouldStop = true;
         }
 
         private async void MenuGroupAdd_Click(object sender, RoutedEventArgs e)
@@ -295,17 +437,20 @@ namespace NmsDotnet
         {
             MenuItem menuItem = (MenuItem)e.Source;
             ContextMenu menu = (ContextMenu)menuItem.Parent;
-            TreeView tv = (TreeView)menu.PlacementTarget;
-            TreeViewItem item = (TreeViewItem)(tv.ItemContainerGenerator.ContainerFromItem(tv.SelectedItem));
 
-            if (item == null)
+            var selectedObject = menu.PlacementTarget;
+            TreeView tv = GetParentTreeview(selectedObject as DependencyObject);
+
+            //TreeViewItem item = (TreeViewItem)(tv.ItemContainerGenerator.ContainerFromItem(tv.SelectedItem));
+
+            if (tv.SelectedItem == null)
             {
                 MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
                 this.IsEnabled = false;
-                var group = (Group)item.Header;
+                var group = (Group)tv.SelectedItem;
                 var result = await DialogHost.Show(group, "DialogGroup");
             }
         }
@@ -322,8 +467,9 @@ namespace NmsDotnet
                 Debug.WriteLine(group.Id);
                 if (string.IsNullOrEmpty(group.Id))
                 {
-                    NmsInfo.GetInstance().groupList.Add(group);
                     Group.AddGroup(group);
+                    group.Servers = new ObservableCollection<Server>();
+                    NmsInfo.GetInstance().groupList.Add(group);
 
                     //deprecated 2020-10-28 by wheo
                     //TreeGroup.ItemsSource = Group.GetGroupList();
@@ -338,22 +484,36 @@ namespace NmsDotnet
 
         private void MenuGroupDel_Click(object sender, RoutedEventArgs e)
         {
-            MenuItem menuItem = (MenuItem)e.Source;
-            ContextMenu menu = (ContextMenu)menuItem.Parent;
-            TreeView tv = (TreeView)menu.PlacementTarget;
-            if ((Group)tv.SelectedItem == null)
+            MessageBoxResult result = MessageBox.Show("삭제 하시겠습니까?", "알림", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (result == MessageBoxResult.Yes)
             {
-                MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else
-            {
-                var group = (Group)tv.SelectedItem;
-                if (Group.DeleteGroup(group.Id) > 0)
+                MenuItem menuItem = (MenuItem)e.Source;
+                ContextMenu menu = (ContextMenu)menuItem.Parent;
+
+                var selectedObject = menu.PlacementTarget;
+
+                TreeView tv = GetParentTreeview(selectedObject as DependencyObject);
+
+                if ((Group)tv.SelectedItem == null)
                 {
-                    //TreeGroup.ItemsSource = Group.GetGroupList();
-                    NmsInfo.GetInstance().groupList.Remove(group);
-                    //ServerListItem.ItemsSource = Server.GetServerList();
-                    //서비스 스레드 종료 꼭 해야함 (서비스 스레드는 1개로 운영)
+                    MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    var group = (Group)tv.SelectedItem;
+                    if (Group.DeleteGroup(group.Id) > 0) // 데이터베이스에 서버는 gid cascade 라서 그룹이 지워지면 서버도 지워짐
+                    {
+                        if (group.Servers != null)
+                        {
+                            foreach (Server s in group.Servers)
+                            {
+                                NmsInfo.GetInstance().serverList.Remove(s);
+                            }
+                        }
+                        NmsInfo.GetInstance().groupList.Remove(group);
+                        //ServerListItem.ItemsSource = Server.GetServerList();
+                        //서비스 스레드 종료 꼭 해야함 (서비스 스레드는 1개로 운영)
+                    }
                 }
             }
         }
@@ -373,15 +533,14 @@ namespace NmsDotnet
         private async void MenuServerEdit_Click(object sender, RoutedEventArgs e)
         {
             MenuItem menuItem = (MenuItem)e.Source;
-            ContextMenu menu = (ContextMenu)menuItem.Parent;
-            ListView lv = (ListView)menu.PlacementTarget;
-            Server server = (Server)lv.SelectedItem;
+            Server server = (Server)menuItem.DataContext;
+
             if (server == null)
             {
                 MessageBox.Show("서버를 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            logger.Debug(server.GroupName);
-            logger.Debug(server.Gid);
+            //logger.Debug(server.GroupName);
+            //logger.Debug(server.Gid);
             /*
             TbServerIp.Text = info.Ip;
             TbServerName.Text = info.Name;
@@ -391,6 +550,44 @@ namespace NmsDotnet
 
             this.IsEnabled = false;
             var result = await DialogHost.Show(server, "DialogServer");
+        }
+
+        private void MenuServerDel_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBoxResult result = MessageBox.Show("삭제 하시겠습니까?", "알림", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (result == MessageBoxResult.Yes)
+            {
+                MenuItem menuItem = (MenuItem)e.Source;
+                Server server = (Server)menuItem.DataContext;
+
+                if (server == null)
+                {
+                    MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    //logger.Debug(server.Id);
+                    if (Server.DeleteServer(server) > 0)
+                    {
+                        logger.Info(String.Format("[{0}/{1} deleted]", server.Ip, server.Status));
+                        foreach (Group g in NmsInfo.GetInstance().groupList)
+                        {
+                            foreach (Server s in g.Servers)
+                            {
+                                if (s.Id == server.Id)
+                                {
+                                    g.Servers.Remove(s);
+                                    break;
+                                }
+                            }
+                        }
+
+                        //TreeGroup.ItemsSource = Group.GetGroupList();
+                        //ServerListItem.ItemsSource = Server.GetServerList();
+                        NmsInfo.GetInstance().serverList.Remove(server);
+                    }
+                }
+            }
         }
 
         private void ClosingServerDialog(object sender, MaterialDesignThemes.Wpf.DialogClosingEventArgs eventArgs)
@@ -407,22 +604,25 @@ namespace NmsDotnet
                 {
                     if (!string.IsNullOrEmpty(server.Gid))
                     {
-                        server.Id = server.AddServer();
-                        NmsInfo.GetInstance().serverList.Add(server);
                         foreach (Group g in NmsInfo.GetInstance().groupList)
                         {
                             if (g.Id == server.Gid)
                             {
+                                server.GroupName = g.Name;
                                 g.Servers.Add(server);
                                 break;
                             }
                         }
+                        server.Id = server.AddServer();
+                        NmsInfo.GetInstance().serverList.Add(server);
+
                         //ServerListItem.ItemsSource = Server.GetServerList();
                         //TreeGroup.ItemsSource = Group.GetGroupList();
                     }
                     else
                     {
-                        MessageBox.Show("그룹을 설정해야 합니다");
+                        MessageBox.Show("그룹을 선택해 주세요");
+                        eventArgs.Cancel();
                     }
                 }
                 else
@@ -448,67 +648,10 @@ namespace NmsDotnet
                     //TreeGroup.ItemsSource = _groupList;
                     //ServerListItem.ItemsSource = Server.GetServerList();
                 }
+                SnmpService.GetModelName(server);
+                SnmpService.Set(server);
             }
         }
-
-        private void MenuServerDel_Click(object sender, RoutedEventArgs e)
-        {
-            MenuItem menuItem = (MenuItem)e.Source;
-            ContextMenu menu = (ContextMenu)menuItem.Parent;
-            ListView lv = (ListView)menu.PlacementTarget;
-            if ((Server)lv.SelectedItem == null)
-            {
-                MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
-            else
-            {
-                var server = (Server)lv.SelectedItem;
-                logger.Debug(server.Id);
-                if (Server.DeleteServer(server) > 0)
-                {
-                    logger.Debug(String.Format("[{0}/{1} deleted]", server.Ip, server.Status));
-
-                    //TreeGroup.ItemsSource = Group.GetGroupList();
-                    //ServerListItem.ItemsSource = Server.GetServerList();
-                    NmsInfo.GetInstance().serverList.Remove(server);
-                }
-            }
-        }
-
-        private void BtnServerAdd_Click(object sender, RoutedEventArgs e)
-        {
-            /*
-            // 검증
-            if (CbGroup.SelectedItem == null)
-            {
-                MessageBox.Show("그룹을 선택해 주세요");
-            }
-            else if (Server.ValidServerIP(TbServerIp.Text))
-            {
-                MessageBox.Show("중복된 IP는 등록할 수 없습니다");
-            }
-            else
-            {
-                var group = (Group)CbGroup.SelectedItem;
-                Server server = new Server();
-                server.SetServerInfo(TbServerName.Text, TbServerIp.Text, group.Id);
-                server.Id = server.AddServer();
-                server.Status = "idle";
-                ServerListItem.ItemsSource = Server.GetServerList();
-                TreeGroup.ItemsSource = Group.GetInstance().GetGroupList();
-
-                //Task.Run(() => ServerService(server));
-                logger.Info(String.Format("{0} New Service is created", server.Ip, server.Status, server.Name));
-            }
-            */
-        }
-
-        /*
-        private void DialogServer_DialogOpened(object sender, MaterialDesignThemes.Wpf.DialogOpenedEventArgs eventArgs)
-        {
-            //CbGroup.ItemsSource = Group.GetInstance().GetGroupList();
-        }
-        */
 
         private void TrapListener()
         {
@@ -516,13 +659,16 @@ namespace NmsDotnet
 
             // Construct a socket and bind it to the trap manager port 162
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-            socket.ReceiveTimeout = 100;
-            socket.SendTimeout = 100;
+            socket.ReceiveTimeout = 1000;
+            socket.SendTimeout = 1000;
             IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 162);
             EndPoint ep = (EndPoint)ipep;
+
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 100);
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+
             socket.Bind(ep);
             // Disable timeout processing. Just block until packet is received
-            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 100);
 
             int inlen = -1;
             Debug.WriteLine(string.Format($"Waiting for snmp trap"));
@@ -536,9 +682,9 @@ namespace NmsDotnet
                 {
                     inlen = socket.ReceiveFrom(indata, ref inep);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
-                    logger.Error(string.Format("Exception {0}", ex.Message));
+                    //logger.Error(string.Format("Exception {0}", ex.Message));
                     inlen = -1;
                 }
                 if (inlen > 0)
@@ -565,6 +711,7 @@ namespace NmsDotnet
                     }
                     else
                     {
+                        Snmp snmp = new Snmp();
                         // Parse SNMP Version 2 TRAP packet
                         SnmpV2Packet pkt = new SnmpV2Packet();
                         pkt.decode(indata, inlen);
@@ -575,11 +722,9 @@ namespace NmsDotnet
                         }
                         else
                         {
-                            Debug.WriteLine("*** Community: {0}", pkt.Community.ToString());
-                            Debug.WriteLine("*** VarBind count: {0}", pkt.Pdu.VbList.Count);
-                            Debug.WriteLine("*** VarBind content:");
-
-                            Snmp snmp = new Snmp();
+                            logger.Info(string.Format("*** Community: {0}", pkt.Community.ToString()));
+                            logger.Info(string.Format("*** VarBind count: {0}", pkt.Pdu.VbList.Count));
+                            logger.Info(string.Format("*** VarBind content:"));
 
                             foreach (Vb v in pkt.Pdu.VbList)
                             {
@@ -598,14 +743,14 @@ namespace NmsDotnet
 
                                 if (value.LastIndexOf("Level") > 0)
                                 {
-                                    snmp.LevelString = Snmp.GetLevelString(Convert.ToInt32(v.Value.ToString()));
+                                    snmp.LevelString = Snmp.GetLevelString(Convert.ToInt32(v.Value.ToString()), v.Oid.ToString());
                                     logger.Info("LevelString : " + snmp.LevelString);
                                 }
                                 else if (value.LastIndexOf("Type") > 0)
                                 {
                                     snmp.TranslateValue = Snmp.GetTranslateValue(value);
                                     snmp.TypeValue = Enum.GetName(typeof(Snmp.TrapType), Convert.ToInt32(v.Value.ToString()));
-                                    snmp.TypeOid = v.Oid.ToString();
+                                    snmp.Oid = v.Oid.ToString();
                                 }
                                 else if (value.LastIndexOf("Channel") > 0)
                                 {
@@ -616,20 +761,20 @@ namespace NmsDotnet
                                     snmp.Main = Enum.GetName(typeof(Snmp.EnumMain), Convert.ToInt32(v.Value.ToString()));
                                 }
 
-                                //logger.Info("TranslateValue : " + snmp.TranslateValue);
-
                                 //데이터베이스 테이블을 만들기 위해 등록함(로그는 translate 테이블을 이용하자)
                                 Snmp.RegisterSnmpInfo(snmp);
 
                                 logger.Info(String.Format("[{0}] Trap : {1} {2}: {3}", inep.ToString().Split(':')[0], v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString()));
                             }
 
-                            if (Snmp.IsEnableTrap(snmp.TypeOid))
+                            // trap이 활성화 되어있을 경우만 기록
+                            if (Snmp.IsEnableTrap(snmp.Oid))
                             {
                                 if (!String.IsNullOrEmpty(snmp.LevelString))
                                 {
-                                    snmp.TrapString = snmp.MakeTrapLogString();
-                                    LogItem.GetInstance().LoggingDatabase(snmp);
+                                    //snmp.TrapString = snmp.MakeTrapLogString();
+                                    LogItem.LoggingDatabase(snmp);
+
                                     Server s = null;
                                     foreach (var server in NmsInfo.GetInstance().serverList)
                                     {
@@ -640,15 +785,66 @@ namespace NmsDotnet
                                         }
                                     }
 
+                                    //var s = (Server)NmsInfo.GetInstance().serverList.Where(x => x.Ip == snmp.IP); not work casting error
+
                                     if (string.Equals(snmp.TypeValue, "begin"))
                                     {
-                                        s.ErrorCount++;
+                                        if (FindItemDuplicateTrap(NmsInfo.GetInstance().activeLog, s, snmp.Oid).Count == 0)
+                                        {
+                                            s.ErrorCount++;
+                                            s.Message = snmp.TranslateValue;
+
+                                            LogItem log = new LogItem
+                                            {
+                                                Ip = s.Ip,
+                                                Level = snmp.LevelString,
+                                                Name = s.UnitName,
+                                                Oid = snmp.Oid,
+                                                IsConnection = true,
+                                                Value = snmp.TranslateValue,
+                                                TypeValue = "begin"
+                                            };
+
+                                            if (LvActiveLog.Dispatcher.CheckAccess())
+                                            {
+                                                NmsInfo.GetInstance().activeLog.Insert(0, log);
+                                            }
+                                            else
+                                            {
+                                                LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, log); });
+                                            }
+                                        }
                                     }
                                     else if (string.Equals(snmp.TypeValue, "end"))
                                     {
-                                        if (s.ErrorCount > 0)
+                                        List<LogItem> items = FindItemFromOid(NmsInfo.GetInstance().activeLog, s, snmp.Oid);
+                                        if (items.Count > 0)
                                         {
-                                            s.ErrorCount--;
+                                            foreach (var item in items)
+                                            {
+                                                if (LvActiveLog.Dispatcher.CheckAccess())
+                                                {
+                                                    NmsInfo.GetInstance().activeLog.Remove(item);
+                                                }
+                                                else
+                                                {
+                                                    LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
+                                                }
+                                                if (s.ErrorCount > 0)
+                                                {
+                                                    s.ErrorCount--;
+                                                }
+                                                LogItem restoreItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, s.Ip);
+                                                if (restoreItem != null)
+                                                {
+                                                    s.Status = restoreItem.Level;
+                                                    s.Message = restoreItem.Value;
+                                                }
+                                                else
+                                                {
+                                                    s.Status = Server.EnumStatus.Normal.ToString();
+                                                }
+                                            }
                                         }
                                     }
 
@@ -656,61 +852,44 @@ namespace NmsDotnet
                                     {
                                         if (s.ErrorCount > 0)
                                         {
-                                            s.Status = Server.CompareState(s.Status, snmp.LevelString.ToLower());
+                                            s.Status = Server.CompareState(s.Status, snmp.LevelString);
                                         }
                                         else
                                         {
-                                            s.Status = "normal";
+                                            s.Status = Server.EnumStatus.Normal.ToString();
                                         }
 
-                                        if (ServerListItem.Dispatcher.CheckAccess())
+                                        if (LvActiveLog.Items.Count > 0)
                                         {
-                                            //ServerListItem.ItemsSource = null;
-                                            //ServerListItem.ItemsSource = Server.GetServerList();
-                                            //TreeGroup.ItemsSource = null;
-                                            //TreeGroup.ItemsSource = Group.GetGroupList();
-                                            //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
-                                        }
-                                        else
-                                        {
-                                            ServerListItem.Dispatcher.Invoke(() =>
+                                            if (NmsInfo.GetInstance().alarmInfo != null)
                                             {
-                                                //ServerListItem.ItemsSource = null;
-                                                //ServerListItem.ItemsSource = Server.GetServerList();
-                                                //TreeGroup.ItemsSource = null;
-                                                //TreeGroup.ItemsSource = Group.GetGroupList();
-                                                //ServerListItem.ItemsSource = _serverList; //최적화시 _serverList만 관리하고 데이터베이스 Select 는 지양해야함
-                                            });
+                                                foreach (Alarm alarm in NmsInfo.GetInstance().alarmInfo)
+                                                {
+                                                    if (alarm.Level.Equals(snmp.LevelString))
+                                                    {
+                                                        if (File.Exists(alarm.Path))
+                                                        {
+                                                            Task.Run(() => SoundPlayAsync(alarm.Path));
+                                                        }
+                                                        else
+                                                        {
+                                                            Task.Run(() => SoundPlayAsync());
+                                                        }
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                            else
+                                            {
+                                                Task.Run(() => SoundPlayAsync());
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SoundStop();
                                         }
                                     }
-
-                                    if (LvLog.Dispatcher.CheckAccess())
-                                    {
-                                        _logCount = GetLog();
-                                    }
-                                    else
-                                    {
-                                        LvLog.Dispatcher.Invoke(() => { _logCount = GetLog(); });
-                                    }
-
-                                    /*
-                                    if (DialogNotification.Dispatcher.CheckAccess())
-                                    {
-                                        DialogNotification.IsOpen = true;
-                                    }
-                                    else
-                                    {
-                                        DialogNotification.Dispatcher.Invoke(() => { DialogNotification.IsOpen = true; });
-                                    }*/
                                 }
-                            }
-                            if (_logCount > 0)
-                            {
-                                Task.Run(() => SoundPlayAsync());
-                            }
-                            else
-                            {
-                                SoundStop();
                             }
 
                             logger.Info("** End of SNMP Version 2 TRAP data.");
@@ -721,28 +900,38 @@ namespace NmsDotnet
                 {
                     if (inlen == 0)
                     {
-                        Debug.WriteLine("Zero length packet received.");
+                        logger.Info("Zero length packet received.");
                     }
                 }
             }
-            logger.Info("TrapListener is done");
+
+            logger.Info(" *** TrapListener exit ***");
         }
 
         private async Task SoundPlayAsync()
         {
-            if (_simpleSound == null)
+            if (_soundPlayer == null)
             {
-                _simpleSound = new SoundPlayer(@"Sound\alarm.wav");
-                _simpleSound.PlayLooping();
+                _soundPlayer = new SoundPlayer(@"Sound\alarm.wav");
+                _soundPlayer.PlayLooping();
+            }
+        }
+
+        private async Task SoundPlayAsync(string path)
+        {
+            if (_soundPlayer == null)
+            {
+                _soundPlayer = new SoundPlayer(path);
+                _soundPlayer.PlayLooping();
             }
         }
 
         private void SoundStop()
         {
-            if (_simpleSound != null)
+            if (_soundPlayer != null)
             {
-                _simpleSound.Stop();
-                _simpleSound = null;
+                _soundPlayer.Stop();
+                _soundPlayer = null;
             }
         }
 
@@ -751,34 +940,13 @@ namespace NmsDotnet
             string uri = "http://";
             ListView lv = sender as ListView;
             Server server = (Server)lv.SelectedItem;
-            System.Diagnostics.Process.Start(String.Format($"{uri}{server.Ip}"));
+            if (!string.IsNullOrEmpty(server.Ip))
+            {
+                System.Diagnostics.Process.Start(String.Format($"{uri}{server.Ip}"));
+            }
         }
 
-        //deprecated
-        /*
-        private void add_testserver_Click(object sender, RoutedEventArgs e)
-        {
-            string group_id = "3140e0fd-b752-11ea-a91a-0242ac160002"; //고정
-            Server server = new Server();
-            server.SetServerInfo("테스트서버", "192.168.2.189", group_id);
-            server.AddServer();
-            ServerListItem.ItemsSource = Server.GetServerList();
-            TreeGroup.ItemsSource = Group.GetGroupList();
-            //Task.Run(() => ServerService(server)); // 스레드 돌리지 않음
-            logger.Info(String.Format("{0} New Service is created", server.Ip));
-        }
-        */
-
-        //deprecated
-        /*
-        private void lvBtnConfirm_Click(object sender, RoutedEventArgs e)
-        {
-            LogItem logItem = (LogItem)GetLvItem(e);
-            LogItem.ChangeConfirmStatus(logItem.idx);
-            logger.Info(String.Format($"{logItem.Ip}, {logItem.Value}, {logItem.idx}"));
-            GetLog();
-        }
-        */
+        #region ItemAccess Method
 
         private object GetLvItem(RoutedEventArgs e)
         {
@@ -829,6 +997,18 @@ namespace NmsDotnet
             return source as TreeViewItem;
         }
 
+        private TreeView GetParentTreeview(DependencyObject source)
+        {
+            while (source != null && !(source is TreeView))
+            {
+                source = VisualTreeHelper.GetParent(source);
+            }
+
+            return source as TreeView;
+        }
+
+        #endregion ItemAccess Method
+
         private async void BtnMenuSetting_Click(object sender, RoutedEventArgs e)
         {
             this.IsEnabled = false;
@@ -836,7 +1016,6 @@ namespace NmsDotnet
             GlobalSettings settings = new GlobalSettings();
             settings.SnmpCM5000Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList("CM5000");
             settings.SnmpDR5000Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList("DR5000");
-            settings.ServerSettings = (List<Server>)Server.GetServerList();
             var result = await DialogHost.Show(settings, "DialogSettingInfo");
         }
 
@@ -870,8 +1049,8 @@ namespace NmsDotnet
         {
             this.IsEnabled = false;
 
-            _logs.Logs = new ObservableCollection<LogItem>(LogItem.GetInstance().GetLog("dialog"));
-            var result = await DialogHost.Show(_logs, "DialogLogViewInfo");
+            NmsInfo.GetInstance().logHistory = new ObservableCollection<LogItem>(LogItem.GetLog());
+            var result = await DialogHost.Show(NmsInfo.GetInstance().logHistory, "DialogLogViewInfo");
         }
 
         private void BtnDialogLogSumit_Click(object sender, RoutedEventArgs e)
@@ -893,9 +1072,9 @@ namespace NmsDotnet
                 DpDayTo.Text = Convert.ToDateTime(DpDayTo.Text).AddDays(1).ToString("yyyy-MM-dd");
             }
 
-            _logs.Logs = new ObservableCollection<LogItem>(LogItem.GetInstance().GetLog("dialog", DpDayFrom.Text, DpDayTo.Text));
+            NmsInfo.GetInstance().logHistory = new ObservableCollection<LogItem>(LogItem.GetLog(DpDayFrom.Text, DpDayTo.Text));
             ListView lvDialog = (ListView)FindElemetByName(e, "DialogLvLog");
-            lvDialog.ItemsSource = _logs.Logs;
+            lvDialog.ItemsSource = NmsInfo.GetInstance().logHistory;
         }
 
         private void ClosingLogViewDialogEventHandler(object sender, DialogClosingEventArgs eventArgs)
@@ -931,7 +1110,7 @@ namespace NmsDotnet
             string csvString = "";
 
             saveFileDialog.FileName = DateTime.Now.ToString("yyyy-MM-dd");
-            csvString = LogItem.MakeCsvFile(LogItem.GetInstance().GetLog("dialog"));
+            csvString = LogItem.MakeCsvFile(LogItem.GetLog());
 
             try
             {
@@ -954,9 +1133,8 @@ namespace NmsDotnet
         {
             if (_currentSelectedItem != null)
             {
-                LogItem.HideLogAlarm(_currentSelectedItem.idx);
-                //GetLog();
-                LvLog.Items.Remove(_currentSelectedItem);
+                //LogItem.HideLogAlarm(_currentSelectedItem.idx);
+                NmsInfo.GetInstance().activeLog.Remove(_currentSelectedItem);
             }
         }
 
@@ -1028,6 +1206,173 @@ namespace NmsDotnet
             }
 
             return foundChild;
+        }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            /*
+            if (TabLogHistory.IsSelected)
+            {
+                // bug
+                BtnDialogLogSumit_Click(sender, e);
+            }
+            */
+        }
+
+        private void BtnAlarmFileUpload_Click(object sender, RoutedEventArgs e)
+        {
+            int index = int.Parse(((Button)e.Source).Uid);
+            Server.EnumStatus level;
+            level = (Server.EnumStatus)index;
+            string levelString = level.ToString();
+
+            OpenFileDialog dlg = new OpenFileDialog();
+            dlg.Filter = "Sound (*.WAV;*.MP3)|*.WAV;*.MP3";
+            //dlg.Filter = "Sound (*.WAV, *.MP3)|*.WAV; *.Mp3";
+            Nullable<bool> result = dlg.ShowDialog();
+            if (result == true)
+            {
+                string filename = dlg.FileName;
+                string subpath = "alarmSound";
+
+                logger.Info(string.Format($"Upload Alarm File Ready ({filename})"));
+                if (File.Exists(filename))
+                {
+                    if (!Directory.Exists(Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, subpath)))
+                    {
+                        Directory.CreateDirectory(Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, subpath));
+                    }
+                    string destfilepath = Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, subpath, Path.GetFileName(filename));
+                    File.Copy(filename, destfilepath, true);
+                    if (Path.GetExtension(destfilepath).ToLower() == ".mp3")
+                    {
+                        Utils.Util.ConvertMp3ToWav(destfilepath);
+                    }
+                    Alarm alarmInfo = new Alarm { Level = levelString, Path = Path.Combine(subpath, Path.ChangeExtension(Path.GetFileName(filename), "WAV")) };
+                    alarmInfo.UpdateAlarmInfo();
+
+                    MessageBox.Show("업로드 완료", "정보", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+        }
+
+        private void ListViewItem_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            string uri = "http://";
+            var obj = sender as ListViewItem;
+            LogItem item = (LogItem)obj.DataContext;
+            if (!string.IsNullOrEmpty(item.Ip))
+            {
+                System.Diagnostics.Process.Start(String.Format($"{uri}{item.Ip}"));
+            }
+        }
+
+        private async void ServerInfo_Button_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (Server s in NmsInfo.GetInstance().serverList)
+            {
+                if (SnmpService.GetInfomation(s))
+                {
+                    Server.UpdateServerInformation(s);
+                }
+            }
+            //open dialog
+            this.IsEnabled = false;
+
+            ObservableCollection<Server> servers = NmsInfo.GetInstance().RealServerList();
+            var result = await DialogHost.Show(servers, "DialogServerInfo");
+        }
+
+        private void ClosingServerInfoDialogEventHandler(object sender, DialogClosingEventArgs eventArgs)
+        {
+            if (this.IsEnabled == false)
+            {
+                this.IsEnabled = true;
+            }
+            /*
+            if ((bool)eventArgs.Parameter == true)
+            {
+                //GlobalSettings settings = (GlobalSettings)eventArgs.Session.Content;
+                //Snmp.UpdateSnmpMessgeUseage(settings);
+
+                //TreeGroup.ItemsSource = Group.GetGroupList();
+                //ServerListItem.ItemsSource = Server.GetServerList();
+            }
+            */
+        }
+
+        private void ServerInfoSetting_Button_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = (Button)sender;
+            Server s = (Server)btn.DataContext;
+            if (SnmpService.Set(s))
+            {
+                MessageBox.Show("성공", "정보", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show("실패", "정보", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void BtnInformationImport_Click(object sender, RoutedEventArgs e)
+        {
+            //MessageBox.Show("import");
+            try
+            {
+                OpenFileDialog ofd = new OpenFileDialog();
+                ofd.Filter = "json files (*.json)|*.json";
+                if (ofd.ShowDialog() == true)
+                {
+                    string importJson = File.ReadAllText(ofd.FileName);
+                    var jObj = JObject.Parse(importJson);
+
+                    ObservableCollection<Server> servers = jObj["serverList"].ToObject<ObservableCollection<Server>>();
+                    ObservableCollection<Group> groups = jObj["groupList"].ToObject<ObservableCollection<Group>>();
+                    Group.ImportGroup(groups);
+                    Server.ImportServer(servers);
+
+                    _snmpGetTimer.Stop();
+                    MessageBox.Show("새로운 장비 정보를 등록했습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+                    ServerDispatcherTimer();
+                    DialogHost.Close("DialogServerInfo");
+
+                    if (PbMainLoading.Visibility == Visibility.Collapsed)
+                    {
+                        PbMainLoading.Visibility = Visibility.Visible;
+                        ServerListItem.Visibility = Visibility.Collapsed;
+                        BtnServerInfo.IsEnabled = false;
+                    }
+                }
+                /*
+                ObservableCollection<Server> servers = new ObservableCollection<Server>();
+                servers = JsonConvert.DeserializeObject<ObservableCollection<Server>>()
+                NmsInfo.GetInstance().serverList
+                */
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private void BtnInformationExport_Click(object sender, RoutedEventArgs e)
+        {
+            string jsonExport = JsonConvert.SerializeObject(NmsInfo.GetInstance(), Formatting.Indented);
+
+            SaveFileDialog saveFileDialog = new SaveFileDialog();
+            saveFileDialog.Filter = "json file (*.json)|*.json";
+            string downloadsPath = KnownFolders.GetPath(KnownFolder.Downloads);
+            saveFileDialog.InitialDirectory = downloadsPath;
+            saveFileDialog.FileName = "export";
+            if (String.IsNullOrEmpty(jsonExport))
+            {
+                MessageBox.Show("저장할 항목이 없습니다", "정보", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            else if (saveFileDialog.ShowDialog() == true)
+            {
+                File.WriteAllText(saveFileDialog.FileName, jsonExport);
+                MessageBox.Show("저장 되었습니다", "정보", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
         }
     }
 }

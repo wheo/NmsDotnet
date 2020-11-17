@@ -29,7 +29,8 @@ namespace NmsDotnet
     public partial class LoginWindow : Window
     {
         private readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-        JsonConfig jsonConfig;
+        private JsonConfig jsonConfig;
+
         public LoginWindow()
         {
             InitializeComponent();
@@ -56,10 +57,10 @@ namespace NmsDotnet
                     jsonString = JsonSerializer.Serialize(jsonConfig);
                     File.WriteAllText(jsonConfig.configFileName, jsonString);
                 }
-                
+
                 jsonString = File.ReadAllText(jsonConfig.configFileName);
                 jsonConfig = JsonSerializer.Deserialize<JsonConfig>(jsonString);
-                
+
                 DatabaseManager.getInstance().SetConnectionString(jsonConfig.ip, jsonConfig.port, jsonConfig.id, jsonConfig.pw, jsonConfig.DatabaseName);
             }
             catch (FileLoadException e)
@@ -76,16 +77,17 @@ namespace NmsDotnet
         }
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
-        {            
-            if ( Login.GetInstance().LoginCheck(LoginID.Text, LoginPW.Password))
+        {
+            if (Login.GetInstance().LoginCheck(LoginID.Text, LoginPW.Password))
             {
-                NmsMainWindow nmsMainWindow = new NmsMainWindow();
+                NmsMainWindow nmsMainWindow = new NmsMainWindow(LoginID.Text);
                 nmsMainWindow.Show();
                 this.Close();
-            } else
+            }
+            else
             {
                 MessageBox.Show("아이디와 비밀번호를 확인해주세요");
-                logger.Info(String.Format("login failed, ({0})", LoginID.Text));
+                logger.Info(String.Format("login failed, ({0}, |{1}|)", LoginID.Text, LoginPW.Password));
             }
         }
 
@@ -110,7 +112,7 @@ namespace NmsDotnet
 
         private void LoginPW_KeyDown(object sender, KeyEventArgs e)
         {
-            if ( e.Key == Key.Enter)
+            if (e.Key == Key.Enter)
             {
                 BtnLogin_Click(sender, e);
             }

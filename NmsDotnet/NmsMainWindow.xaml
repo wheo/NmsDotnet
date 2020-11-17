@@ -8,9 +8,7 @@
         mc:Ignorable="d"
         WindowState="Maximized" WindowStyle="ThreeDBorderWindow"
         Title="AMS" MinHeight="480" MinWidth="600" MaxHeight="1024" MaxWidth="1280"
-
-        FontFamily="D2Coding" Background="#e0ece4"
-
+        FontFamily="NotoSans-Regular" Background="#e0ece4"
         WindowStartupLocation="CenterScreen"
         Loaded="Window_Loaded"
         Closing="Window_Closing">
@@ -34,16 +32,31 @@
         </FontFamily>
 
         <Style x:Key="ServerInfoStyle" TargetType="TextBlock">
-            <Setter Property="FontFamily" Value="{StaticResource NotoSans-Bold}" />
+            <Setter Property="FontFamily" Value="{StaticResource NotoSans-Regular}" />
             <Setter Property="FontSize" Value="14" />
-            <Setter Property="Foreground" Value="Black" />
+            <Setter Property="Foreground" Value="White" />
         </Style>
 
         <Style x:Key="AddButtonStyle" TargetType="Button">
-            <Setter Property="FontFamily" Value="{StaticResource NotoSans-Bold}" />
+            <Setter Property="FontFamily" Value="{StaticResource NotoSans-Regular}" />
             <Setter Property="FontSize" Value="14" />
             <Setter Property="Foreground" Value="White" />
             <Setter Property="Background" Value="Gray" />
+        </Style>
+
+        <Style x:Key="CountryTemplateItemContainerStyle" TargetType="{x:Type TreeViewItem}">
+            <Setter Property="ContextMenu" Value="{DynamicResource TreeViewContextMenu}" />
+        </Style>
+        <Style TargetType="ListViewItem">
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+        <ContextMenu x:Key="TreeViewContextMenu">
+            <MenuItem Header="장비 수정" Click="MenuServerEdit_Click" />
+            <MenuItem Header="장비 삭제" Click="MenuServerDel_Click" />
+        </ContextMenu>
+
+        <Style x:Key="myHeaderStyle" TargetType="{x:Type GridViewColumnHeader}">
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
         </Style>
     </Window.Resources>
 
@@ -64,10 +77,15 @@
                                 VerticalAlignment="Center" HorizontalAlignment="Center">
             <materialDesign:DialogHost.DialogContentTemplate>
                 <DataTemplate>
-                    <Grid Width="400" Height="300">
+                    <Grid Width="400" Height="250">
                         <StackPanel Orientation="Horizontal" Margin="15">
                             <materialDesign:PackIcon Kind="InfoOutline" Width="50" Height="50" />
-                            <TextBox MaxWidth="200" Text="{Binding Name}" materialDesign:HintAssist.Hint="그룹 이름" />
+                            <TextBox MaxWidth="200"
+                                     Text="{Binding Name}"
+                                     materialDesign:HintAssist.Hint="그룹 이름"
+                                     Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                                     FontSize="18"
+                                     FontFamily="{StaticResource NotoSans-Regular}" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="15">
                             <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
@@ -94,16 +112,27 @@
                                    DialogClosing="ClosingServerDialog" HorizontalAlignment="Center">
             <materialDesign:DialogHost.DialogContentTemplate>
                 <DataTemplate>
-                    <Grid Width="400" Height="300">
+                    <Grid Width="400" Height="250">
                         <StackPanel Orientation="Horizontal" Margin="15">
                             <materialDesign:PackIcon Kind="InfoOutline" Width="50" Height="50" />
                             <StackPanel>
-                                <TextBox MaxWidth="200" Text="{Binding Name }" materialDesign:HintAssist.Hint="장비 이름" Style="{StaticResource MaterialDesignFloatingHintTextBox}" />
-                                <TextBox MaxWidth="200" Text="{Binding Ip}" materialDesign:HintAssist.Hint="IP" />
-                                <ComboBox x:Name="CbGroup" materialDesign:HintAssist.Hint="그룹 선택(필수)" ItemsSource="{Binding Groups}" SelectedValuePath="Id" SelectedValue="{Binding Gid}">
+                                <TextBox MaxWidth="200" Text="{Binding UnitName }" materialDesign:HintAssist.Hint="장비 이름"
+                                         Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                                         FontSize="18"
+                                         FontFamily="{StaticResource NotoSans-Regular}" />
+                                <TextBox MaxWidth="200"
+                                         Text="{Binding Ip}"
+                                         materialDesign:HintAssist.Hint="IP"
+                                         Style="{StaticResource MaterialDesignFloatingHintTextBox}"
+                                         FontSize="18"
+                                         FontFamily="{StaticResource NotoSans-Regular}" />
+                                <ComboBox x:Name="CbGroup" materialDesign:HintAssist.Hint="그룹 선택(필수)" FontSize="18"
+                                          ItemsSource="{Binding Groups}" SelectedValuePath="Id"
+                                          SelectedValue="{Binding Gid}"
+                                          FontFamily="{StaticResource NotoSans-Regular}">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate>
-                                            <TextBlock Text="{Binding Name}" />
+                                            <TextBlock Text="{Binding Name}" FontFamily="{StaticResource NotoSans-Regular}" />
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
@@ -134,89 +163,13 @@
                                    VerticalAlignment="Center" HorizontalAlignment="Center">
             <materialDesign:DialogHost.DialogContentTemplate>
                 <DataTemplate>
-                    <Grid Width="600" Height="800">
+                    <Grid Width="800" Height="1000">
                         <TabControl>
-                            <TabItem Header="장비설정">
-                                <GroupBox Header="장비설정" FontSize="14" Margin="0,0,0,60">
-                                    <ListView x:Name="ServerSettings" ItemsSource="{Binding ServerSettings}"
-                                      ScrollViewer.CanContentScroll="True"
-                                      ScrollViewer.IsDeferredScrollingEnabled="True"
-                                      ScrollViewer.VerticalScrollBarVisibility="Visible"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
-                                        <ListView.Resources>
-                                            <Style TargetType="{x:Type ListViewItem}">
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsConfirm}" Value="N">
-                                                        <Setter Property="Background" Value="Red" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                            <Style x:Key="myHeaderStyle" TargetType="{x:Type GridViewColumnHeader}">
-                                                <Setter Property="Background" Value="LightBlue" />
-                                            </Style>
-
-                                            <DataTemplate x:Key="myHeaderTemplate">
-                                                <DockPanel>
-                                                    <CheckBox />
-                                                    <TextBlock FontSize="16" Foreground="DarkBlue" Text="{Binding}" />
-                                                </DockPanel>
-                                            </DataTemplate>
-                                            <DataTemplate x:Key="myCellTemplateLevel">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <Ellipse
-                                                        Width="10"
-                                                        Height="10"
-                                                        Fill="{Binding Color}" Margin="5,0" />
-                                                    <TextBlock Foreground="{Binding Color}" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
-                                                </StackPanel>
-                                            </DataTemplate>
-                                            <DataTemplate x:Key="myCellTemplateEdit">
-                                                <StackPanel Orientation="Horizontal">
-                                                    <Button Content="수정" Click="ServerEdit_Click" />
-                                                </StackPanel>
-                                            </DataTemplate>
-                                        </ListView.Resources>
-
-                                        <ListView.View>
-                                            <GridView AllowsColumnReorder="False" ColumnHeaderToolTip="장비설정 ">
-                                                <GridViewColumn Header="Name" Width="150">
-                                                    <GridViewColumn.CellTemplate>
-                                                        <DataTemplate>
-                                                            <TextBox Text="{Binding Path=Name}" TextWrapping="Wrap" Margin="0"></TextBox>
-                                                        </DataTemplate>
-                                                    </GridViewColumn.CellTemplate>
-                                                </GridViewColumn>
-                                                <GridViewColumn Header="IP" Width="150">
-                                                    <GridViewColumn.CellTemplate>
-                                                        <DataTemplate>
-                                                            <TextBox Text="{Binding Path=Ip}" TextWrapping="Wrap" Margin="0"></TextBox>
-                                                        </DataTemplate>
-                                                    </GridViewColumn.CellTemplate>
-                                                </GridViewColumn>
-                                                <GridViewColumn Header="GroupName" Width="150">
-                                                    <GridViewColumn.CellTemplate>
-                                                        <DataTemplate>
-                                                            <ComboBox x:Name="CbGroup" materialDesign:HintAssist.Hint="그룹 선택(필수)" ItemsSource="{Binding Groups}" SelectedValuePath="Id" SelectedValue="{Binding Gid}">
-                                                                <ComboBox.ItemTemplate>
-                                                                    <DataTemplate>
-                                                                        <TextBlock Text="{Binding Name}" />
-                                                                    </DataTemplate>
-                                                                </ComboBox.ItemTemplate>
-                                                            </ComboBox>
-                                                        </DataTemplate>
-                                                    </GridViewColumn.CellTemplate>
-                                                </GridViewColumn>
-                                                <GridViewColumn Header="Edit" Width="100" CellTemplate="{StaticResource myCellTemplateEdit}" />
-                                            </GridView>
-                                        </ListView.View>
-                                    </ListView>
-                                </GroupBox>
-                            </TabItem>
-                            <TabItem Header="알림설정">
-                                <GroupBox Header="알림설정" FontSize="14" Margin="0,0,0,60">
+                            <TabItem Header="알람 설정" FontFamily="{StaticResource NotoSans-Regular}">
+                                <GroupBox Header="알람 설정" FontSize="14" Margin="5,5,5,60" FontFamily="{StaticResource NotoSans-Regular}">
                                     <DockPanel>
-                                        <GroupBox Header="CM5000" FontSize="12">
-                                            <ScrollViewer DockPanel.Dock="Left" VerticalScrollBarVisibility="Auto">
+                                        <GroupBox Header="CM5000" DockPanel.Dock="Left" FontSize="12" FontFamily="{StaticResource NotoSans-Regular}" Margin="0,0,10,0">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
                                                 <ItemsControl ItemsSource="{Binding SnmpCM5000Settings}">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
@@ -225,16 +178,22 @@
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <StackPanel Orientation="Vertical" Margin="10,8">
-                                                                <CheckBox FontSize="12" IsChecked="{Binding IsEnable}" Content="{Binding Name}"></CheckBox>
+                                                            <StackPanel Orientation="Horizontal" Margin="5,0,35,0">
+                                                                <ComboBox FontSize="12" Width="90"
+                                                                          Margin="0,0,10,0" Padding="0"
+                                                                          ItemsSource="{Binding LevelItem}" SelectedValue="{Binding Level._Key}" SelectedValuePath="_Key" DisplayMemberPath="_Value"
+                                                                          FontFamily="{StaticResource NotoSans-Regular}"
+                                                                          materialDesign:HintAssist.Hint="알람 레벨">
+                                                                </ComboBox>
+                                                                <CheckBox FontSize="12" IsChecked="{Binding IsEnable}" Content="{Binding Name}" FontFamily="{StaticResource NotoSans-Regular}"></CheckBox>
                                                             </StackPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                                 </ItemsControl>
                                             </ScrollViewer>
                                         </GroupBox>
-                                        <GroupBox Header="DR5000" FontSize="12">
-                                            <ScrollViewer DockPanel.Dock="Right" VerticalScrollBarVisibility="Auto">
+                                        <GroupBox Header="DR5000" FontSize="12" DockPanel.Dock="Right">
+                                            <ScrollViewer VerticalScrollBarVisibility="Auto">
                                                 <ItemsControl ItemsSource="{Binding SnmpDR5000Settings}">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
@@ -243,8 +202,14 @@
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <StackPanel Orientation="Vertical" Margin="10,8">
-                                                                <CheckBox FontSize="12" IsChecked="{Binding IsEnable}" Content="{Binding Name}"></CheckBox>
+                                                            <StackPanel Orientation="Horizontal" Margin="5,0,15,0">
+                                                                <ComboBox FontSize="12" Width="90"
+                                                                          Margin="0,0,10,0" Padding="0"
+                                                                          ItemsSource="{Binding LevelItem}" SelectedValue="{Binding Level._Key}" SelectedValuePath="_Key" DisplayMemberPath="_Value"
+                                                                          FontFamily="{StaticResource NotoSans-Regular}"
+                                                                          materialDesign:HintAssist.Hint="알람 레벨">
+                                                                </ComboBox>
+                                                                <CheckBox FontSize="12" IsChecked="{Binding IsEnable}" Content="{Binding Name}" FontFamily="{StaticResource NotoSans-Regular}"></CheckBox>
                                                             </StackPanel>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
@@ -254,17 +219,40 @@
                                     </DockPanel>
                                 </GroupBox>
                             </TabItem>
+                            <TabItem Header="알람 사운드 설정" FontFamily="{StaticResource NotoSans-Regular}">
+                                <GroupBox Header="알람 사운드 설정" FontSize="14" Margin="5,5,5,60" FontFamily="{StaticResource NotoSans-Regular}">
+                                    <GroupBox Header="임시" Margin="0">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="10">
+                                                <TextBlock Text="Level : Critical" Width="150" FontFamily="{StaticResource NotoSans-Regular}" />
+                                                <TextBlock Text="" Width="250" FontFamily="{StaticResource NotoSans-Regular}" Uid="5" />
+                                                <Button Content="파일업로드" Click="BtnAlarmFileUpload_Click" Uid="5"></Button>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="10">
+                                                <TextBlock Text="Level : Warning" Width="150" FontFamily="{StaticResource NotoSans-Regular}" />
+                                                <TextBlock Text="" Width="250" FontFamily="{StaticResource NotoSans-Regular}" Uid="4" />
+                                                <Button Content="파일업로드" Click="BtnAlarmFileUpload_Click" Uid="4"></Button>
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="10">
+                                                <TextBlock Text="Level : Information" Width="150" FontFamily="{StaticResource NotoSans-Regular}" />
+                                                <TextBlock Text="" Width="250" FontFamily="{StaticResource NotoSans-Regular}" Uid="3" />
+                                                <Button Content="파일업로드" Click="BtnAlarmFileUpload_Click" Uid="3"></Button>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </GroupBox>
+                                </GroupBox>
+                            </TabItem>
                         </TabControl>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="15">
-                            <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                            <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" FontFamily="{StaticResource NotoSans-Regular}"
                                     Margin="4" VerticalAlignment="Center">
                                 <Button.CommandParameter>
                                     <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">False</system:Boolean>
                                 </Button.CommandParameter>
                                 취소
                             </Button>
-                            <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                            <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}" FontFamily="{StaticResource NotoSans-Regular}"
                                     Margin="4" VerticalAlignment="Center">
                                 <Button.CommandParameter>
                                     <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
@@ -277,18 +265,130 @@
             </materialDesign:DialogHost.DialogContentTemplate>
         </materialDesign:DialogHost>
 
+        <materialDesign:DialogHost Identifier="DialogServerInfo" BorderBrush="{DynamicResource MaterialDesignDivider}" VerticalAlignment="Center"
+                                   DialogClosing="ClosingServerInfoDialogEventHandler" HorizontalAlignment="Center">
+            <materialDesign:DialogHost.DialogContentTemplate>
+                <DataTemplate>
+                    <StackPanel>
+                        <Grid Width="800" Height="860">
+                            <GroupBox Header="장비 목록" FontSize="14" Margin="5">
+                                <ListView x:Name="ServerSettings" ItemsSource="{Binding}"
+                                    ScrollViewer.CanContentScroll="True"
+                                      ScrollViewer.IsDeferredScrollingEnabled="True"
+                                      ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                    <ListView.Resources>
+                                        <DataTemplate x:Key="myCellTemplateEdit">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Content="설정" Click="ServerInfoSetting_Button_Click"  Height="18" Padding="10,0" FontFamily="{DynamicResource NotoSans-Regular}"  FontSize="12" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListView.Resources>
+                                    <ListView.ItemContainerStyle>
+                                        <Style TargetType="{x:Type ListViewItem}">
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+                                    <ListView.View>
+                                        <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
+                                            <GridViewColumn Header="Name" Width="220">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBox Text="{Binding Path=UnitName, UpdateSourceTrigger=LostFocus}" Margin="0"></TextBox>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="IP">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding Path=Ip}" TextWrapping="Wrap" Margin="0"></TextBlock>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="Type">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Path=ModelName}" TextWrapping="Wrap" Margin="0"></TextBlock>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="Version">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                            <TextBlock Text="{Binding Path=Version}" TextWrapping="Wrap" Margin="0"></TextBlock>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn>
+                                                <GridViewColumn.HeaderTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="Service ID" />
+                                                    </DataTemplate>
+                                                </GridViewColumn.HeaderTemplate>
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBox Text="{Binding ServicePid, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Center" />
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="Video Output Pid">
+                                                <GridViewColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBox Text="{Binding VideoOutputId, UpdateSourceTrigger=PropertyChanged}" />
+                                                    </DataTemplate>
+                                                </GridViewColumn.CellTemplate>
+                                            </GridViewColumn>
+                                            <GridViewColumn Header="설정" CellTemplate="{StaticResource myCellTemplateEdit}" />
+                                        </GridView>
+                                    </ListView.View>
+                                </ListView>
+                            </GroupBox>
+                        </Grid>
+                        <StackPanel Orientation="Horizontal">
+                            <Button Margin="10" Click="BtnInformationImport_Click">
+                                <Button.Content>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="FileImport" />
+                                        <TextBlock Margin="5,0" Text="Import" />
+                                    </StackPanel>
+                                </Button.Content>
+                            </Button>
+                            <Button Margin="10" Click="BtnInformationExport_Click">
+                                <Button.Content>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="FileExport" />
+                                        <TextBlock Margin="5,0" Text="Export" />
+                                    </StackPanel>
+                                </Button.Content>
+                            </Button>
+                            <Button Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                                    Margin="500,10,10,10">
+                                <Button.CommandParameter>
+                                    <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
+                                </Button.CommandParameter>
+                                확인
+                            </Button>
+                        </StackPanel>
+                    </StackPanel>
+                </DataTemplate>
+            </materialDesign:DialogHost.DialogContentTemplate>
+        </materialDesign:DialogHost>
+
         <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
             <StackPanel Orientation="Horizontal">
                 <Menu IsMainMenu="True">
-                    <MenuItem FontSize="14"
+                    <MenuItem FontSize="14" FontFamily="{StaticResource NotoSans-Regular}"
                         Header="_메뉴">
                         <MenuItem x:Name="BtnMenuSetting"
-                            Header="설정" Click="BtnMenuSetting_Click">
+                            Header="설정" FontFamily="{StaticResource NotoSans-Regular}" Click="BtnMenuSetting_Click">
                             <MenuItem.Icon>
                                 <materialDesign:PackIcon Kind="Settings" />
                             </MenuItem.Icon>
                         </MenuItem>
-                        <MenuItem Header="가청끄기" Click="HiddenAlarm_Click">
+                        <MenuItem Header="가청끄기" FontFamily="{StaticResource NotoSans-Regular}" Click="HiddenAlarm_Click">
                             <MenuItem.Icon>
                                 <materialDesign:PackIcon Kind="Hide" />
                             </MenuItem.Icon>
@@ -302,10 +402,26 @@
                         -->
                     </MenuItem>
                 </Menu>
-                <Button HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="MenuServerAdd_Click">
+
+                <Button HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="MenuGroupAdd_Click">
                     <Button.Content>
-                        장비추가
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Group" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
+                            <TextBlock Text="그룹추가" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
+                        </StackPanel>
                     </Button.Content>
+                </Button>
+                <Button HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="MenuServerAdd_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ServerPlus" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBlock Text="장비추가" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnServerInfo" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="ServerInfo_Button_Click" IsEnabled="False">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ServerSecurity" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBlock Text="장비정보" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
+                    </StackPanel>
                 </Button>
             </StackPanel>
         </Grid>
@@ -314,27 +430,37 @@
             <TreeView x:Name="TreeGroup"
                       SelectedItemChanged="TreeGroup_SelectedItemChanged"
                       PreviewMouseRightButtonDown="TreeGroup_PreviewMouseRightButtonDown">
-                <TreeView.ContextMenu>
-                    <ContextMenu>
-                        <MenuItem x:Name="MenuGroupAdd" Header="그룹 추가" Click="MenuGroupAdd_Click" />
-                        <MenuItem x:Name="MenuGroupEdit" Header="그룹 수정" Click="MenuGroupEdit_Click" />
-                        <MenuItem x:Name="MenuGroupDel" Header="그룹 삭제"  Click="MenuGroupDel_Click" />
-                    </ContextMenu>
-                </TreeView.ContextMenu>
-
                 <TreeView.ItemTemplate>
-                    <HierarchicalDataTemplate ItemsSource="{Binding Servers}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding Name}" />
+                    <HierarchicalDataTemplate ItemsSource="{Binding Servers}" ItemContainerStyle="{StaticResource CountryTemplateItemContainerStyle}">
+                        <StackPanel Orientation="Horizontal" Margin="5,0">
+                            <StackPanel.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem x:Name="MenuGroupEdit" Header="그룹 수정" Click="MenuGroupEdit_Click" />
+                                    <MenuItem x:Name="MenuGroupDel" Header="그룹 삭제"  Click="MenuGroupDel_Click" />
+                                </ContextMenu>
+                            </StackPanel.ContextMenu>
+                            <TextBlock Text="{Binding Name}" Padding="0,5,70,5" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" />
                         </StackPanel>
                         <HierarchicalDataTemplate.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <Ellipse
-                                         Width="10"
-                                         Height="10"
-                                         Fill="{Binding Color}" Margin="5,0" />
-                                    <TextBlock Text="{Binding Name}" />
+                                <StackPanel Margin="10,5">
+                                    <!--
+                                        <Border.ContextMenu>
+                                            <ContextMenu>
+                                                <MenuItem Header="장비 수정" Click="MenuServerEdit_Click" />
+                                                <MenuItem Header="장비 삭제" Click="MenuServerDel_Click" />
+                                            </ContextMenu>
+                                        </Border.ContextMenu>
+                                        -->
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse
+                                                Width="10"
+                                                Height="10"
+                                                Fill="{Binding Color, UpdateSourceTrigger=PropertyChanged}" Margin="5,0" />
+                                        <TextBlock Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10">
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Ip}" Margin="20,0,0,0" FontSize="10" FontFamily="{StaticResource NotoSans-Regular}"></TextBlock>
                                 </StackPanel>
                             </DataTemplate>
                         </HierarchicalDataTemplate.ItemTemplate>
@@ -342,41 +468,55 @@
                 </TreeView.ItemTemplate>
             </TreeView>
         </DockPanel>
+
         <GridSplitter Grid.Row="1" Grid.Column ="1" Background="Silver" Width="2" ShowsPreview="False"
                 HorizontalAlignment="Center" VerticalAlignment="Stretch" />
 
-        <WrapPanel Grid.Row="1" Grid.Column="2">
-            <!--
-                <WrapPanel.Background>
-                    <ImageBrush ImageSource="/Asset/AtemeLogo.jpg" Stretch="Fill" Opacity="0.04" />
-                </WrapPanel.Background> -->
-            <StackPanel Margin="10">
-                <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                  MouseDoubleClick="ServerList_MouseDoubleClick"
-                                  MouseLeftButtonDown="ServerList_MouseLeftButtonDown"
-                                  MouseRightButtonDown="ServerList_MouseRightButtonDown">
-                    <ListView.ContextMenu>
-                        <ContextMenu>
-                            <!--<MenuItem x:Name="MenuServerAdd" Header="장비 추가" Click="MenuServerAdd_Click" />-->
-                            <MenuItem x:Name="MenuServerEdit" Header="장비 수정" Click="MenuServerEdit_Click" />
-                            <MenuItem x:Name="MenuServerDel" Header="장비 삭제"  Click="MenuServerDel_Click" />
-                        </ContextMenu>
-                    </ListView.ContextMenu>
-                    <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <Border Margin="0" Padding="0" Width="24" Height="24" BorderThickness="1" BorderBrush="Black" Background="{Binding Color}" AllowDrop="True">
-                                <StackPanel>
-                                    <TextBlock Text="{Binding HeaderType}" Style="{StaticResource ServerInfoStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                                    <StackPanel.ToolTip>
-                                        <StackPanel Background="{Binding Color}">
-                                            <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Ip}" FontFamily="{StaticResource NotoSans-Black}" FontSize="18" />
-                                            <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding GroupName}" FontFamily="{StaticResource NotoSans-Black}" FontSize="12" />
-                                            <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Name}" FontFamily="{StaticResource NotoSans-Black}" FontSize="14" />
-                                            <!--<TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Status}" FontSize="14" Foreground="{Binding Color}" />-->
-                                        </StackPanel>
-                                    </StackPanel.ToolTip>
+        <StackPanel Grid.Row="1" Grid.Column="2">
+            <StackPanel.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="장비 추가" Click="MenuServerAdd_Click" />
+                </ContextMenu>
+            </StackPanel.ContextMenu>
+            <ProgressBar x:Name="PbMainLoading" Visibility="Visible"
+                                 Style="{DynamicResource MaterialDesignCircularProgressBar}"
+                                 Width="80" Height="80"
+                                 Margin="16"
+                                 IsIndeterminate="True"
+                                 Value="0" />
+            <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed"
+                          MouseDoubleClick="ServerList_MouseDoubleClick"
+                          MouseLeftButtonDown="ServerList_MouseLeftButtonDown"
+                          MouseRightButtonDown="ServerList_MouseRightButtonDown">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="{x:Type ListViewItem}">
+                        <Setter Property="Background" Value="Transparent" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0" Padding="0" Width="24" Height="24" BorderThickness="0" BorderBrush="Black" AllowDrop="True">
+                            <Border.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="장비 수정" Click="MenuServerEdit_Click" />
+                                    <MenuItem Header="장비 삭제" Click="MenuServerDel_Click" />
+                                </ContextMenu>
+                            </Border.ContextMenu>
+                            <Border.ToolTip>
+                                <StackPanel Background="{Binding Color}">
+                                    <TextBlock Margin="10,5" HorizontalAlignment="Center" Text="{Binding Ip}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="16" />
+                                    <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
+                                    <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding GroupName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" />
+                                    <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="14" />
+                                    <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
+                                    <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Message}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
+                                    <!--<TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Status}" FontSize="14" Foreground="{Binding Color}" />-->
                                 </StackPanel>
-                                <!--
+                            </Border.ToolTip>
+                            <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBlock Text="{Binding HeaderType, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ServerInfoStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                            </StackPanel>
+                            <!--
                                     <StackPanel>
                                         <Border Width="14" Height="14" CornerRadius="5" Margin="0">
                                             <Border.Effect>
@@ -393,120 +533,74 @@
                                         <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Name}" FontSize="8" />
                                     </StackPanel>
                                     -->
-                            </Border>
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
 
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel />
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                </ListView>
-            </StackPanel>
-        </WrapPanel>
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Margin="0" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+            </ListView>
+        </StackPanel>
 
-        <GridSplitter Grid.Row="2" Grid.Column ="0" Background="Silver" Grid.ColumnSpan="3" ShowsPreview="False" Height="2"
-                HorizontalAlignment="Stretch" />
+        <GridSplitter Grid.Row="2" Grid.Column ="0" Background="Silver" Grid.ColumnSpan="3" ShowsPreview="False" Height="2" HorizontalAlignment="Stretch" />
         <DockPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3">
-            <TabControl>
-                <TabItem Header="최근 알람" Height="20">
-                    <ListView x:Name="LvLog"
-                          ScrollViewer.CanContentScroll="True"
-                          ScrollViewer.IsDeferredScrollingEnabled="True"
+            <TabControl SelectionChanged="TabControl_SelectionChanged">
+                <TabItem Header="액티브 알람" Height="20">
+                    <ListView x:Name="LvActiveLog"
+                          ScrollViewer.CanContentScroll="False"
+                          ScrollViewer.IsDeferredScrollingEnabled="False"
                           ScrollViewer.VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left">
                         <ListView.Resources>
-                            <Style TargetType="{x:Type ListViewItem}">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsConfirm}" Value="N">
-                                        <Setter Property="Background" Value="Red" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                            <Style x:Key="myHeaderStyle" TargetType="{x:Type GridViewColumnHeader}">
-                                <Setter Property="Background" Value="LightBlue" />
-                            </Style>
                             <ContextMenu x:Key="ItemContextMenu">
                                 <MenuItem Header="숨기기" Click="MenuItem_LogHide_Click" />
                             </ContextMenu>
-                            <DataTemplate x:Key="myHeaderTemplate">
-                                <DockPanel>
-                                    <CheckBox />
-                                    <TextBlock FontSize="16" Foreground="DarkBlue" Text="{Binding}" />
-                                </DockPanel>
-                            </DataTemplate>
                             <DataTemplate x:Key="myCellTemplateLevel">
                                 <StackPanel Orientation="Horizontal">
                                     <Ellipse
-                                Width="10"
-                                Height="10"
-                                Fill="{Binding Color}"
-                                Margin="5,0" />
-                                    <TextBlock Foreground="{Binding Color}" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
-                                </StackPanel>
-                            </DataTemplate>
-                            <DataTemplate x:Key="myCellTemplateSelect">
-                                <StackPanel Orientation="Horizontal">
-                                    <CheckBox></CheckBox>
+                                        Width="10"
+                                        Height="10"
+                                        Fill="Black"
+                                        Margin="5,0" />
+                                    <TextBlock Foreground="Black" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
                                 </StackPanel>
                             </DataTemplate>
                         </ListView.Resources>
                         <ListView.ItemContainerStyle>
                             <Style TargetType="{x:Type ListViewItem}">
                                 <EventSetter Event="PreviewMouseRightButtonDown" Handler="ListViewItem_PreviewMouseRightButtonDown" />
+                                <EventSetter Event="PreviewMouseDoubleClick" Handler="ListViewItem_PreviewMouseDoubleClick" />
                                 <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
+                                <Setter Property="Background" Value="{Binding Color}" />
                             </Style>
                         </ListView.ItemContainerStyle>
+
                         <ListView.View>
-                            <GridView AllowsColumnReorder="False" ColumnHeaderToolTip="Log">
+                            <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
                                 <GridViewColumn Header="Start at" Width="150" DisplayMemberBinding="{Binding StartAt}" />
                                 <GridViewColumn Header="End at" Width="150" DisplayMemberBinding="{Binding EndAt}" />
                                 <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}" />
                                 <GridViewColumn Header="IP address" Width="130" DisplayMemberBinding="{Binding Ip}" />
                                 <GridViewColumn Header="Level" Width="120" CellTemplate="{StaticResource myCellTemplateLevel}" />
-                                <GridViewColumn Header="Value" Width="1250" DisplayMemberBinding="{Binding Value}" />
+                                <GridViewColumn Header="Value" Width="500" DisplayMemberBinding="{Binding Value}" />
                             </GridView>
                         </ListView.View>
                     </ListView>
                 </TabItem>
-                <TabItem Header="기록">
+                <TabItem Header="히스토리 알람" x:Name="TabLogHistory">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="30" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="30" />
                         </Grid.RowDefinitions>
-                        <StackPanel Orientation="Horizontal" Grid.Row="0">
-                            <DatePicker Width="100"
-                                                x:Name="DpDayFrom" FontSize="14"
-                                                materialDesign:HintAssist.Hint="부터" FlowDirection="LeftToRight" Margin="10,0" Language="ko-KR" />
-                            <DatePicker Width="100" FontSize="14"
-                                                x:Name="DpDayTo" materialDesign:HintAssist.Hint="까지" FlowDirection="LeftToRight" Margin="10,0" Language="ko-KR" />
-                            <Button FontSize="14" Height="22"
-                                            Content="조회" Margin="10,0" Click="BtnDialogLogSumit_Click" ></Button>
-                        </StackPanel>
-                        <ListView Grid.Row="1" x:Name="DialogLvLog" ItemsSource="{Binding Logs}"
+                        <ListView Grid.Row="0" x:Name="DialogLvLog" ItemsSource="{Binding Logs}"
                                           ScrollViewer.CanContentScroll="True"
                                           ScrollViewer.IsDeferredScrollingEnabled="True"
                                           ScrollViewer.VerticalScrollBarVisibility="Visible"
                                           ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.Resources>
-                                <Style TargetType="{x:Type ListViewItem}">
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding IsConfirm}" Value="N">
-                                            <Setter Property="Background" Value="Red" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                                <Style x:Key="myHeaderStyle" TargetType="{x:Type GridViewColumnHeader}">
-                                    <Setter Property="Background" Value="LightBlue" />
-                                </Style>
-
-                                <DataTemplate x:Key="myHeaderTemplate">
-                                    <DockPanel>
-                                        <CheckBox />
-                                        <TextBlock FontSize="16" Foreground="DarkBlue" Text="{Binding}" />
-                                    </DockPanel>
-                                </DataTemplate>
                                 <DataTemplate x:Key="myCellTemplateLevel">
                                     <StackPanel Orientation="Horizontal">
                                         <Ellipse
@@ -517,26 +611,40 @@
                                     </StackPanel>
                                 </DataTemplate>
                             </ListView.Resources>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="{x:Type ListViewItem}">
+                                    <EventSetter Event="PreviewMouseDoubleClick" Handler="ListViewItem_PreviewMouseDoubleClick" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
 
                             <ListView.View>
-                                <GridView AllowsColumnReorder="False" ColumnHeaderToolTip="Log">
+                                <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
                                     <GridViewColumn Header="Start at" Width="150" DisplayMemberBinding="{Binding StartAt}" />
                                     <GridViewColumn Header="End at" Width="150" DisplayMemberBinding="{Binding EndAt}" />
                                     <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}" />
                                     <GridViewColumn Header="IP address" Width="130" DisplayMemberBinding="{Binding Ip}" />
-                                    <GridViewColumn Header="Level" Width="100" CellTemplate="{StaticResource myCellTemplateLevel}" />
-                                    <GridViewColumn Header="Value" Width="1250" DisplayMemberBinding="{Binding Value}" />
+                                    <GridViewColumn Header="Level" Width="120" CellTemplate="{StaticResource myCellTemplateLevel}" />
+                                    <GridViewColumn Header="Value" Width="500" DisplayMemberBinding="{Binding Value}" />
                                 </GridView>
                             </ListView.View>
                         </ListView>
-                        <Button Width="104" Height="22" VerticalAlignment="Center" HorizontalAlignment="Right" Background="Green" Foreground="#FEFEFE" Click="BtnExcelDownload_Click">
-                            <Button.Content>
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="FileExcel" />
-                                    <TextBlock>다운로드</TextBlock>
-                                </StackPanel>
-                            </Button.Content>
-                        </Button>
+                        <StackPanel Orientation="Horizontal" Grid.Row="1">
+                            <DatePicker Width="100"
+                                                x:Name="DpDayFrom" FontSize="14"
+                                                materialDesign:HintAssist.Hint="부터" FlowDirection="LeftToRight" Margin="10,0" Language="ko-KR" />
+                            <DatePicker Width="100" FontSize="14"
+                                                x:Name="DpDayTo" materialDesign:HintAssist.Hint="까지" FlowDirection="LeftToRight" Margin="10,0" Language="ko-KR" />
+                            <Button FontSize="14" Height="24"
+                                            Content="조회" Margin="10,0" Click="BtnDialogLogSumit_Click" ></Button>
+                            <Button Width="110" Height="24" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="20,0,0,0" Background="Green" Foreground="#FEFEFE" Click="BtnExcelDownload_Click">
+                                <Button.Content>
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="FileExcel" />
+                                        <TextBlock Margin="5,0" Text="다운로드" />
+                                    </StackPanel>
+                                </Button.Content>
+                            </Button>
+                        </StackPanel>
                     </Grid>
                 </TabItem>
             </TabControl>

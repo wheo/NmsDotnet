@@ -8,6 +8,22 @@ using System.Linq;
 
 namespace NmsDotnet.Database.vo
 {
+    public class ComboBoxPairs
+    {
+        public string _Key { get; set; }
+        public string _Value { get; set; }
+
+        public ComboBoxPairs()
+        {
+        }
+
+        public ComboBoxPairs(string _key, string _value)
+        {
+            _Key = _key;
+            _Value = _value;
+        }
+    }
+
     /// <summary>
     /// Trap을 수신할 때 정보를 데이터베이스에 기록
     /// </summary>
@@ -16,14 +32,16 @@ namespace NmsDotnet.Database.vo
     {
         public string Name { get; set; }
         public bool IsEnable { get; set; }
+
         public int Idx { get; set; }
+        public ComboBoxPairs Level { get; set; }
+        public List<ComboBoxPairs> LevelItem { get; set; }
     }
 
     public class GlobalSettings
     {
         public List<SnmpSetting> SnmpCM5000Settings { get; set; }
         public List<SnmpSetting> SnmpDR5000Settings { get; set; }
-        public List<Server> ServerSettings { get; set; }
     }
 
     public class Snmp
@@ -39,8 +57,9 @@ namespace NmsDotnet.Database.vo
         public string Community { get; set; }
         public string Value { get; set; }
         public string LevelString { get; set; }
+        public string Color { get; set; }
         public string TypeValue { get; set; }
-        public string TypeOid { get; set; }
+        public string Oid { get; set; }
         public bool Enable { get; set; }
         public string Desc { get; set; }
         public int Channel { get; set; }
@@ -84,11 +103,11 @@ namespace NmsDotnet.Database.vo
             string logString = "";
             if (Channel > 0)
             {
-                string.Format($"{TranslateValue} ({TypeValue}) (Channel : {Channel}");
+                logString = string.Format($"{TranslateValue} ({TypeValue}) (Channel : {Channel})");
             }
             else
             {
-                string.Format($"{TranslateValue} ({TypeValue})");
+                //logString = string.Format($"{TranslateValue} ({TypeValue})");
             }
             logger.Info(string.Format($"logString : {logString}"));
             return logString;
@@ -100,7 +119,8 @@ namespace NmsDotnet.Database.vo
             string value = null;
             string query = String.Format(@"SELECT S.id, T.translate FROM translate T
 INNER JOIN snmp S ON S.name = T.name
-WHERE T.is_enable = 'N' ");
+WHERE T.is_enable = 'N'
+AND T.is_visible = 'Y'");
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -123,10 +143,35 @@ WHERE T.is_enable = 'N' ");
             return true;
         }
 
-        public static string GetLevelString(int level)
+        public static string GetLevelString(int level, string oid)
         {
-            logger.Info("GetLevelString : " + level);
-            return Enum.GetName(typeof(EnumLevel), level);
+            string levelstring = GetAlternateLevelString(oid.Substring(0, oid.Length - 1));
+            if (levelstring != null)
+            {
+                return levelstring;
+            }
+            else
+            {
+                return Enum.GetName(typeof(EnumLevel), level);
+            }
+        }
+
+        public static string GetAlternateLevelString(string oid)
+        {
+            string value = null;
+            string query = String.Format($"SELECT S.id, T.name, T.level FROM snmp S INNER JOIN translate T ON T.name = S.name WHERE S.id like '{oid}%'");
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                MySqlDataReader rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                {
+                    value = rdr["level"].ToString();
+                }
+                rdr.Close();
+            }
+            return value;
         }
 
         public static string GetNameFromOid(string oid)
@@ -154,7 +199,7 @@ WHERE T.is_enable = 'N' ");
         public static IEnumerable<SnmpSetting> GetTrapAlarmList(string type)
         {
             DataTable dt = new DataTable();
-            string query = String.Format($"SELECT * FROM translate WHERE type = '{type}'");
+            string query = String.Format($"SELECT * FROM translate WHERE type = '{type}' AND is_visible = 'Y'");
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -162,11 +207,19 @@ WHERE T.is_enable = 'N' ");
                 adpt.Fill(dt);
             }
 
+            List<ComboBoxPairs> cbxLevel = new List<ComboBoxPairs>();
+            cbxLevel.Add(new ComboBoxPairs { _Key = "", _Value = "Passthrough" });
+            cbxLevel.Add(new ComboBoxPairs { _Key = "Critical", _Value = "Critical" });
+            cbxLevel.Add(new ComboBoxPairs { _Key = "Warning", _Value = "Warning" });
+            cbxLevel.Add(new ComboBoxPairs { _Key = "Information", _Value = "Information" });
+
             List<SnmpSetting> settings = dt.AsEnumerable().Select(row => new SnmpSetting
             {
                 Name = row.Field<string>("translate"),
                 Idx = row.Field<int>("idx"),
-                IsEnable = row["is_enable"].ToString() == "Y" ? true : false
+                IsEnable = row["is_enable"].ToString() == "Y" ? true : false,
+                Level = new ComboBoxPairs { _Key = row["level"].ToString(), _Value = row["level"].ToString() },
+                LevelItem = cbxLevel
             }).ToList();
 
             return settings;
@@ -189,7 +242,7 @@ WHERE T.is_enable = 'N' ");
             }
             if (value == null)
             {
-                value = "no value";
+                value = "";
             }
             return value;
         }
@@ -209,7 +262,7 @@ WHERE T.is_enable = 'N' ");
                     {
                         Id = rdr["id"].ToString(),
                         Ip = rdr["ip"].ToString(),
-                        Name = rdr["name"].ToString(),
+                        UnitName = rdr["name"].ToString(),
                         Status = rdr["status"].ToString()
                     };
                 }
@@ -223,13 +276,14 @@ WHERE T.is_enable = 'N' ");
             foreach (var item in settings.SnmpCM5000Settings)
             {
                 int ret = 0;
-                string query = "UPDATE translate set is_enable = @is_enable WHERE idx = @idx";
+                string query = "UPDATE translate set is_enable = @is_enable, level = @level WHERE idx = @idx";
                 using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
                 {
                     conn.Open();
                     MySqlCommand cmd = new MySqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@idx", item.Idx);
                     cmd.Parameters.AddWithValue("@is_enable", item.IsEnable == true ? "Y" : "N");
+                    cmd.Parameters.AddWithValue("@level", item.Level._Key);
                     cmd.Prepare();
                     ret = cmd.ExecuteNonQuery();
                 }
@@ -238,13 +292,14 @@ WHERE T.is_enable = 'N' ");
             foreach (var item in settings.SnmpDR5000Settings)
             {
                 int ret = 0;
-                string query = "UPDATE translate set is_enable = @is_enable WHERE idx = @idx";
+                string query = "UPDATE translate set is_enable = @is_enable, level = @level WHERE idx = @idx";
                 using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
                 {
                     conn.Open();
                     MySqlCommand cmd = new MySqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@idx", item.Idx);
                     cmd.Parameters.AddWithValue("@is_enable", item.IsEnable == true ? "Y" : "N");
+                    cmd.Parameters.AddWithValue("@level", item.Level._Key);
                     cmd.Prepare();
                     ret = cmd.ExecuteNonQuery();
                 }

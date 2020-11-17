@@ -1,5 +1,6 @@
 ﻿using log4net;
 using MySql.Data.MySqlClient;
+using Newtonsoft.Json;
 using NmsDotnet.Database.vo;
 using System;
 using System.Collections.Generic;
@@ -15,42 +16,135 @@ namespace NmsDotnet.Database.vo
     {
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        [JsonIgnore]
         private string _Status;
+
+        [JsonIgnore]
         private string _Type;
+
+        [JsonIgnore]
+        private string _Color;
+
         public string Id { get; set; }
         public string Ip { get; set; }
 
-        public string Name { get; set; }
+        public int Location { get; set; }
+
+        [JsonIgnore]
+        public string _UnitName { get; set; }
+
+        public string UnitName
+        {
+            get
+            {
+                return _UnitName;
+            }
+            set
+            {
+                if (_UnitName != value)
+                {
+                    _UnitName = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("UnitName"));
+                }
+            }
+        }
+
         public string Gid { get; set; }
+
+        [JsonIgnore]
         public ObservableCollection<Group> Groups { get; set; }
+
         public string GroupName { get; set; }
 
-        public string Type
+        [JsonIgnore]
+        public DateTime Uptime { get; set; }
+
+        [JsonIgnore]
+        public string Version { get; set; }
+
+        [JsonIgnore]
+        public int _ServicePid { get; set; }
+
+        [JsonIgnore]
+        public int ServicePid
+        {
+            get
+            {
+                return _ServicePid;
+            }
+            set
+            {
+                _ServicePid = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("ServicePid"));
+            }
+        }
+
+        [JsonIgnore]
+        public int _VideoOutputId { get; set; }
+
+        [JsonIgnore]
+        public int VideoOutputId
+        {
+            get
+            {
+                return _VideoOutputId;
+            }
+            set
+            {
+                _VideoOutputId = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("VideoOutputId"));
+            }
+        }
+
+        public string ModelName
         {
             get { return _Type; }
             set
             {
                 if (string.IsNullOrEmpty(value))
                 {
-                    HeaderType = 'I';
+                    HeaderType = '\0';
                 }
                 else
                 {
-                    HeaderType = value[0];
+                    if (value[0] == 'C')
+                    {
+                        HeaderType = 'E'; //CM5000 to 'E'ncoder
+                    }
+                    else
+                    {
+                        HeaderType = value[0];
+                    }
                 }
                 _Type = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("HeaderType"));
             }
         }
 
+        [JsonIgnore]
         public char HeaderType { get; set; }
+
         //public ObservableCollection<Group> Groups { get; set; }
 
         //public List<Group> Groups { get; set; }
+        [JsonIgnore]
         public int ErrorCount { get; set; }
 
-        public bool IsConnect { get; set; }
-        public string Color { get; set; }
+        [JsonIgnore]
+        public string Color
+        {
+            get { return _Color; }
+            set
+            {
+                _Color = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("Color"));
+            }
+        }
 
+        [JsonIgnore]
+        public string Message { get; set; }
+
+        [JsonIgnore]
         public string Status
         {
             get { return _Status; }
@@ -58,7 +152,29 @@ namespace NmsDotnet.Database.vo
             {
                 if (_Status != value)
                 {
-                    logger.Info(String.Format($"[{Ip}] ServerService ({_Status}) => ({value}) changed"));
+                    logger.Info(String.Format($"[{Ip}] Server ({_Status}) => ({value}) changed"));
+
+                    if (value.ToLower().Equals("normal"))
+                    {
+                        this.Color = "Green";
+                        this.Message = "Normal status";
+                    }
+                    else if (value.ToLower().Equals("critical"))
+                    {
+                        this.Color = "Red";
+                    }
+                    else if (value.ToLower().Equals("warning"))
+                    {
+                        this.Color = "Yellow";
+                    }
+                    else if (value.ToLower().Equals("information"))
+                    {
+                        this.Color = "Blue";
+                    }
+                    else
+                    {
+                        this.Color = "White";
+                    }
                     _Status = value;
                     OnPropertyChanged(new PropertyChangedEventArgs("Status"));
                 }
@@ -67,20 +183,43 @@ namespace NmsDotnet.Database.vo
 
         public enum EnumStatus
         {
-            Idle = 0,
-            Normal = 1,
+            Normal = 0,
             Disabled = 2,
             Information = 3,
             Warning = 4,
             Critical = 5
         }
 
-        public Server()
+        [JsonIgnore]
+        public EnumIsConnect _IsConnect { get; set; }
+
+        [JsonIgnore]
+        public EnumIsConnect IsConnect
         {
-            _Status = "normal";
+            get { return _IsConnect; }
+            set
+            {
+                _IsConnect = value;
+                //logger.Info(string.Format($"[{Ip}] connect status is {c.ToString()}"));
+            }
         }
 
-        public string Image { get; set; }
+        public enum EnumIsConnect
+        {
+            Init = 0,
+            Connect = 1,
+            Disconnect = 2
+        }
+
+        [JsonIgnore]
+        public int ConnectionErrorCount { get; set; }
+
+        public Server()
+        {
+            _Status = "";
+            IsConnect = (int)EnumIsConnect.Init;
+            ConnectionErrorCount = 0;
+        }
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
@@ -89,7 +228,8 @@ namespace NmsDotnet.Database.vo
             if (PropertyChanged != null)
             {
                 PropertyChanged(this, e);
-                if (e.PropertyName.Equals("Status"))
+                if (e.PropertyName.Equals("Status") ||
+                    e.PropertyName.Equals("Name"))
                 {
                     UpdateServerStatus(this);
                 }
@@ -111,12 +251,15 @@ namespace NmsDotnet.Database.vo
             return ret;
         }
 
+        // deprecated
+        /*
         public void SetServerInfo(string name, string ip, string gid)
         {
-            Name = name;
+            UnitName = name;
             Ip = ip;
             Gid = gid;
         }
+        */
 
         public static string CompareState(string a, string b)
         {
@@ -159,11 +302,10 @@ namespace NmsDotnet.Database.vo
             {
                 Id = row.Field<string>("id"),
                 Gid = row.Field<string>("gid"),
-                Name = row.Field<string>("name"),
+                UnitName = row.Field<string>("name"),
                 Ip = row.Field<string>("ip"),
                 GroupName = row.Field<string>("grp_name"),
-                Status = row.Field<string>("status"),
-                Image = row.Field<string>("path")
+                Status = row.Field<string>("status")
             }).ToList();
         }
 
@@ -171,7 +313,7 @@ namespace NmsDotnet.Database.vo
         {
             string id = null;
 
-            if (String.IsNullOrEmpty(Name))
+            if (String.IsNullOrEmpty(UnitName))
             {
             }
             else if (String.IsNullOrEmpty(Ip))
@@ -194,13 +336,13 @@ namespace NmsDotnet.Database.vo
                 rdr.Close();
             }
 
-            query = "INSERT INTO server (id, ip, name, gid) VALUES (uuid(), @ip, @name, @gid)";
+            query = "INSERT INTO server (id, ip, name, gid) VALUES (@id, @ip, @name, @gid)";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
-                //cmd.Parameters.AddWithValue("@id", id);
-                cmd.Parameters.AddWithValue("@name", this.Name);
+                cmd.Parameters.AddWithValue("@id", id);
+                cmd.Parameters.AddWithValue("@name", this.UnitName);
                 cmd.Parameters.AddWithValue("@ip", this.Ip);
                 cmd.Parameters.AddWithValue("@gid", this.Gid);
                 cmd.Prepare();
@@ -219,7 +361,7 @@ namespace NmsDotnet.Database.vo
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", this.Id);
                 cmd.Parameters.AddWithValue("@ip", this.Ip);
-                cmd.Parameters.AddWithValue("@name", this.Name);
+                cmd.Parameters.AddWithValue("@name", this.UnitName);
                 cmd.Parameters.AddWithValue("@gid", this.Gid);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
@@ -245,15 +387,33 @@ namespace NmsDotnet.Database.vo
         public static int UpdateServerStatus(Server server)
         {
             int ret = 0;
-            string query = "UPDATE server set status = @status, type = @type, error_count = @error_count WHERE id = @id";
+            string query = "UPDATE server set status = @status, type = @type, name = @name, error_count = @error_count, connection_error_count = @connection_error_count WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", server.Id);
                 cmd.Parameters.AddWithValue("@status", server.Status);
-                cmd.Parameters.AddWithValue("@type", server.Type);
+                cmd.Parameters.AddWithValue("@name", server.UnitName);
+                cmd.Parameters.AddWithValue("@type", server.ModelName);
                 cmd.Parameters.AddWithValue("@error_count", server.ErrorCount);
+                cmd.Parameters.AddWithValue("@connection_error_count", server.ConnectionErrorCount);
+                cmd.Prepare();
+                ret = cmd.ExecuteNonQuery();
+            }
+            return ret;
+        }
+
+        public static int UpdateServerInformation(Server server)
+        {
+            int ret = 0;
+            string query = "UPDATE server set version = @version WHERE id = @id";
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@id", server.Id);
+                cmd.Parameters.AddWithValue("@version", server.Version);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
@@ -278,16 +438,65 @@ namespace NmsDotnet.Database.vo
             return ret;
         }
 
+        public static bool ImportServer(ObservableCollection<Server> servers)
+        {
+            /* 1.transation
+             * 2. Delete server table
+             * 3. insert new server info
+             * 4. commit
+             */
+
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                int ret = 0;
+                conn.Open();
+                MySqlTransaction trans = conn.BeginTransaction();
+                try
+                {
+                    string query = String.Format($"DELETE FROM server");
+                    MySqlCommand cmd = conn.CreateCommand();
+                    cmd.CommandText = query;
+                    cmd.Prepare();
+                    ret = cmd.ExecuteNonQuery();
+
+                    query = "INSERT INTO server (id, ip, name, gid) VALUES (@id, @ip, @name, @gid)";
+                    cmd.CommandText = query;
+                    foreach (Server s in servers)
+                    {
+                        if (!string.IsNullOrEmpty(s.Id))
+                        {
+                            cmd.Parameters.AddWithValue("@id", s.Id);
+                            cmd.Parameters.AddWithValue("@name", s.UnitName);
+                            cmd.Parameters.AddWithValue("@ip", s.Ip);
+                            cmd.Parameters.AddWithValue("@gid", s.Gid);
+                            cmd.Prepare();
+                            cmd.ExecuteNonQuery();
+                            cmd.Parameters.Clear();
+                        }
+                    }
+                    trans.Commit();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex.ToString());
+                    trans.Rollback();
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public static List<Server> GetServerList()
         {
             DataTable dt = new DataTable();
             string query = @"SELECT S.*
-, IF(S.status = 'critical', 'Red', IF(S.status = 'warning', 'Yellow', IF(S.status = 'information', 'Blue', 'Green'))) AS color
+, IF(S.status = 'Critical', 'Red', IF(S.status = 'Warning', 'Yellow', IF(S.status = 'Information', 'Blue', 'Green'))) AS color
 , G.name as grp_name
 , A.path FROM server S
 LEFT JOIN asset A ON S.status = A.id
 LEFT JOIN grp G ON G.id = S.gid
-ORDER BY G.name, S.create_time";
+ORDER BY S.location ASC";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -301,17 +510,20 @@ ORDER BY G.name, S.create_time";
             {
                 Id = row.Field<string>("id"),
                 Gid = row.Field<string>("gid"),
-                Name = row.Field<string>("name"),
+                UnitName = row.Field<string>("name"),
                 Ip = row.Field<string>("ip"),
                 GroupName = row.Field<string>("grp_name"),
                 Status = row.Field<string>("status"),
-                Image = row.Field<string>("path"),
-                Type = row.Field<string>("type"),
+                ModelName = row.Field<string>("type"),
+                Location = row.Field<int>("location"),
                 ErrorCount = row.Field<int>("error_count"),
+                ConnectionErrorCount = row.Field<int>("connection_error_count"),
                 Color = row.Field<string>("color")
             }).ToList();
         }
 
+        //deprecated 2020-10-29
+        /*
         public static List<Server> GetServerListByGroup(string gid)
         {
             DataTable dt = new DataTable();
@@ -340,5 +552,6 @@ ORDER BY G.name, S.create_time";
                 Color = row.Field<string>("color")
             }).ToList();
         }
+        */
     }
 }

@@ -3,11 +3,25 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using NAudio.Wave;
+using System.IO;
 
 namespace NmsDotnet.Utils
 {
     public class Util
     {
+        public static void ConvertMp3ToWav(string path)
+        {
+            //string path = Directory.GetCurrentDirectory() + @"\alarmSound\music.mp3";
+            using (Mp3FileReader mp3 = new Mp3FileReader(path))
+            {
+                using (WaveStream pcm = WaveFormatConversionStream.CreatePcmStream(mp3))
+                {
+                    WaveFileWriter.CreateWaveFile(Path.ChangeExtension(path, "wav"), pcm);
+                }
+            }
+        }
+
         public static String GetLocalIpAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());

@@ -13,61 +13,68 @@ using System.Text;
 
 namespace NmsDotnet.vo
 {
-    public class LogList : INotifyPropertyChanged
-    {
-        public ObservableCollection<LogItem> _Logs;
-
-        public ObservableCollection<LogItem> Logs
-        {
-            get { return _Logs; }
-            set
-            {
-                if (_Logs != value)
-                {
-                    _Logs = value;
-                    OnPropertyChanged(new PropertyChangedEventArgs("NewDialogLog"));
-                }
-            }
-        }
-
-        public event PropertyChangedEventHandler PropertyChanged = delegate { };
-
-        public void OnPropertyChanged(PropertyChangedEventArgs e)
-        {
-            if (PropertyChanged != null)
-            {
-                PropertyChanged(this, e);
-                if (e.PropertyName.Equals("NewDialogLog"))
-                {
-                }
-            }
-        }
-    }
-
     public class LogItem
     {
-        public string StartAt { get; set; }
+        public string StartAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
         public string EndAt { get; set; }
         public string Ip { get; set; }
         public string Name { get; set; }
-        public string Level { get; set; }
+        public string Oid { get; set; }
+        public bool IsConnection { get; set; } = true;
+        public string _Level { get; set; }
+        public int LevelPriority { get; set; }
+        public string TypeValue { get; set; }
+
+        public string Level
+        {
+            get
+            {
+                return _Level;
+            }
+            set
+            {
+                _Level = value;
+                if (value.Equals("Critical"))
+                {
+                    Color = "Red";
+                    LevelPriority = (int)Server.EnumStatus.Critical;
+                }
+                else if (value.Equals("Warning"))
+                {
+                    Color = "Yellow";
+                    LevelPriority = (int)Server.EnumStatus.Warning;
+                }
+                else if (value.Equals("Information"))
+                {
+                    Color = "Blue";
+                    LevelPriority = (int)Server.EnumStatus.Information;
+                }
+                else
+                {
+                    LevelPriority = (int)Server.EnumStatus.Normal;
+                    Color = "Green";
+                }
+            }
+        }
+
         public string Color { get; set; }
         public string Value { get; set; }
-        public string TypeValue { get; set; }
-        public string IsConfirm { get; set; }
 
-        public string _LocalIp { get; set; }
+        //deprecated
+        //public string IsConfirm { get; set; }
+
+        static public string _LocalIp { get; } = Util.GetLocalIpAddress();
 
         public int idx { get; set; }
 
-        public static LogItem instance;
+        //public static LogItem instance;
 
-        public int LogItemCount = 0;
+        //public int LogItemCount = 0;
 
-        public static List<LogItem> listItem;
+        //public static DataTable dt;
 
-        public static DataTable dt;
-
+        /*
+         * //public static List<LogItem> listItem;
         public static List<LogItem> GetListItem()
         {
             if (listItem == null)
@@ -76,6 +83,9 @@ namespace NmsDotnet.vo
             }
             return listItem;
         }
+        */
+
+        /*
 
         public static LogItem GetInstance()
         {
@@ -89,48 +99,50 @@ namespace NmsDotnet.vo
             }
             return instance;
         }
+        */
 
         public LogItem()
         {
-            _LocalIp = Util.GetLocalIpAddress();
         }
 
-        public int LoggingDatabase(Snmp trap)
+        public static int LoggingDatabase(Snmp trap)
         {
             int ret = 0;
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
-                string is_display = trap.TypeValue == "begin" ? "Y" : "N";
-                string query = string.Format(@"INSERT INTO log (client_ip, ip, port, community, level, oid, value, snmp_type_value, is_display)
-VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_value, @is_display) ON DUPLICATE KEY UPDATE client_ip = @client_ip");
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@client_ip", trap._LocalIP);
-                cmd.Parameters.AddWithValue("@ip", trap.IP);
-                cmd.Parameters.AddWithValue("@port", trap.Port);
-                cmd.Parameters.AddWithValue("@community", trap.Community);
-                cmd.Parameters.AddWithValue("@level", trap.LevelString);
-                cmd.Parameters.AddWithValue("@oid", trap.TypeOid);
-                cmd.Parameters.AddWithValue("@is_display", is_display);
-                if (String.IsNullOrEmpty(trap.TrapString))
+                if (trap.TypeValue == "begin")
                 {
-                    cmd.Parameters.AddWithValue("@value", trap.TranslateValue);
-                }
-                else
-                {
-                    cmd.Parameters.AddWithValue("@value", trap.TrapString);
-                }
-                cmd.Parameters.AddWithValue("@snmp_type_value", trap.TypeValue);
+                    string query = string.Format(@"INSERT INTO log (client_ip, ip, port, community, level, oid, value, snmp_type_value)
+VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_value) ON DUPLICATE KEY UPDATE client_ip = @client_ip");
+                    conn.Open();
+                    MySqlCommand cmd = new MySqlCommand(query, conn);
+                    cmd.Parameters.AddWithValue("@client_ip", trap._LocalIP);
+                    cmd.Parameters.AddWithValue("@ip", trap.IP);
+                    cmd.Parameters.AddWithValue("@port", trap.Port);
+                    cmd.Parameters.AddWithValue("@community", trap.Community);
+                    cmd.Parameters.AddWithValue("@level", trap.LevelString);
+                    cmd.Parameters.AddWithValue("@oid", trap.Oid);
+                    if (String.IsNullOrEmpty(trap.TrapString))
+                    {
+                        cmd.Parameters.AddWithValue("@value", trap.TranslateValue);
+                    }
+                    else
+                    {
+                        cmd.Parameters.AddWithValue("@value", trap.TrapString);
+                    }
+                    cmd.Parameters.AddWithValue("@snmp_type_value", trap.TypeValue);
 
-                cmd.Prepare();
-                ret = cmd.ExecuteNonQuery();
-
-                if (trap.TypeValue == "end")
+                    cmd.Prepare();
+                    ret = cmd.ExecuteNonQuery();
+                }
+                else if (trap.TypeValue == "end")
                 {
-                    query = "UPDATE log set end_at = current_timestamp(), is_display = 'N' WHERE ip = @ip AND oid = @oid AND snmp_type_value = 'begin'";
+                    conn.Open();
+                    string query = "UPDATE log set end_at = current_timestamp() WHERE ip = @ip AND oid = @oid AND snmp_type_value = 'begin'";
+                    MySqlCommand cmd = new MySqlCommand(query, conn);
                     cmd = new MySqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@ip", trap.IP);
-                    cmd.Parameters.AddWithValue("@oid", trap.TypeOid);
+                    cmd.Parameters.AddWithValue("@oid", trap.Oid);
 
                     cmd.Prepare();
                     ret = cmd.ExecuteNonQuery();
@@ -171,30 +183,33 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
             return ret;
         }
 
-        public List<LogItem> GetLog()
+        public static List<LogItem> GetLog()
         {
             return GetLog("");
         }
 
-        public List<LogItem> GetLog(string type, string dayFrom = null, string dayTo = null)
+        public static List<LogItem> GetLog(string dayFrom = null, string dayTo = null)
         {
             string option_query = null;
             string date_query = null;
-
-            if (!type.Equals("dialog"))
-            {
-                option_query = " AND L.is_display = 'Y'";
-            }
+            string order_query = "ASC";
+            string is_active = "AND end_at is NULL";
 
             if (!string.IsNullOrEmpty(dayFrom) && !string.IsNullOrEmpty(dayTo))
             {
                 date_query = string.Format($" AND L.start_at BETWEEN '{dayFrom}' AND '{dayTo}'");
+                order_query = "DESC";
+                is_active = "";
+            }
+            else
+            {
             }
 
             DataTable dt = new DataTable();
             string query = String.Format(@"SELECT DATE_FORMAT(L.start_at, '%Y-%m-%d %H:%i:%s') as start_at
 , IFNULL(DATE_FORMAT(L.end_at, '%Y-%m-%d %H:%i:%s'), '') as end_at
 , L.ip as ip
+, L.oid as oid
 , S.name AS name
 , L.level as level
 , IF(L.level = 'Critical', 'Red', IF(L.level = 'Warning', 'Yellow', IF(L.level = 'Information', 'Blue', 'Black'))) AS color
@@ -204,11 +219,12 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
 FROM log L
 LEFT JOIN server S ON S.ip = L.ip
 WHERE 1=1
-{0}
-AND client_ip = '{1}'
+AND client_ip = '{0}'
 AND snmp_type_value = 'begin'
+{1}
 {2}
-ORDER BY L.start_at DESC", option_query, _LocalIp, date_query);
+GROUP BY L.oid
+ORDER BY L.start_at {3}", _LocalIp, is_active, date_query, order_query);
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -218,12 +234,13 @@ ORDER BY L.start_at DESC", option_query, _LocalIp, date_query);
                 dt.Clear();
                 adpt.Fill(dt);
             }
-            LogItemCount = dt.Rows.Count;
+
             return dt.AsEnumerable().Select(row => new LogItem
             {
                 idx = row.Field<int>("idx"),
                 StartAt = row.Field<string>("start_at"),
                 EndAt = row.Field<string>("end_at"),
+                Oid = row.Field<string>("oid"),
                 Ip = row.Field<string>("ip"),
                 Name = row.Field<string>("name"),
                 Level = row.Field<string>("level"),
@@ -240,7 +257,7 @@ ORDER BY L.start_at DESC", option_query, _LocalIp, date_query);
             {
                 // end_at 시간을 줘야하는지 고민해야함
                 conn.Open();
-                string query = "UPDATE log set end_at = current_timestamp(), is_display = 'N' WHERE idx = @idx AND snmp_type_value = 'begin'";
+                string query = "UPDATE log set end_at = current_timestamp() WHERE idx = @idx AND snmp_type_value = 'begin'";
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@idx", idx);
 

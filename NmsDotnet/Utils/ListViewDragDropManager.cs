@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Input;
 using WPF.JoshSmith.Adorners;
 using WPF.JoshSmith.Controls.Utilities;
+using NmsDotnet.Database.vo;
 
 namespace WPF.JoshSmith.ServiceProviders.UI
 {
@@ -379,7 +380,11 @@ namespace WPF.JoshSmith.ServiceProviders.UI
                 // new index (according to where the mouse cursor is).  If it was
                 // not previously in the ListBox, then insert the item.
                 if (oldIndex > -1)
-                    itemsSource.Move(oldIndex, newIndex);
+                {
+                    var temp = itemsSource[newIndex];
+                    itemsSource[newIndex] = itemsSource[oldIndex];
+                    itemsSource[oldIndex] = temp;
+                }
                 else
                     itemsSource.Insert(newIndex, data);
 
