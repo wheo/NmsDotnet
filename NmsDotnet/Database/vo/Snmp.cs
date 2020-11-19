@@ -3,6 +3,7 @@ using MySql.Data.MySqlClient;
 using NmsDotnet.Utils;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Linq;
 
@@ -42,6 +43,7 @@ namespace NmsDotnet.Database.vo
     {
         public List<SnmpSetting> SnmpCM5000Settings { get; set; }
         public List<SnmpSetting> SnmpDR5000Settings { get; set; }
+        public ObservableCollection<Alarm> AlarmSettings { get; set; }
     }
 
     public class Snmp

@@ -22,6 +22,58 @@ namespace NmsDotnet.Utils
             }
         }
 
+        public static bool IpValidCheck(string Ip)
+        {
+            // ip 값이 null이면 실패 반환
+            if (Ip == null)
+                return false;
+
+            // ip 길이가 15자 넘거나 7보다 작으면 실패를 반환
+            if (Ip.Length > 15 || Ip.Length < 7)
+                return false;
+
+            string[] number = Ip.Split('.');
+            foreach (string s in number)
+            {
+                int n = Convert.ToInt32(s);
+                if (n < 0x00 || n > 0xFF)
+                {
+                    return false;
+                }
+            }
+
+            // 숫자 갯수
+            int nNumCount = 0;
+
+            // '.' 갯수
+            int nDotCount = 0;
+
+            for (int i = 0; i < Ip.Length; i++)
+            {
+                if (Ip[i] < '0' || Ip[i] > '9')
+                {
+                    if ('.' == Ip[i])
+                    {
+                        ++nDotCount;
+                        nNumCount = 0;
+                    }
+                    else
+                        return false;
+                }
+                else
+                {
+                    // 4자리가 넘으면 실패 반환
+                    if (++nNumCount > 3)
+                        return false;
+                }
+            }
+            // '.' 3개 아니여도 실패 반환
+            if (nDotCount != 3 || nNumCount == 0)
+                return false;
+
+            return true;
+        }
+
         public static String GetLocalIpAddress()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());

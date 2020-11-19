@@ -43,8 +43,6 @@ namespace NmsDotnet
 
         private SoundPlayer _soundPlayer = null;
 
-        private MediaPlayer _mediaPlayer = null;
-
         private LogItem _currentSelectedItem = null;
 
         private DispatcherTimer _snmpGetTimer = null;
@@ -53,11 +51,13 @@ namespace NmsDotnet
 
         private const int MAX_SERVER = 570;
 
-        public NmsMainWindow(string userid)
+        public NmsMainWindow(string userid, int width, int height)
         {
             InitializeComponent();
             ToolTipGlobalOption();
             logger.Info("NMS Main is Starting");
+            //this.Width = width;
+            //this.Height = height;
             logger.Info(string.Format($"({userid}) logged in"));
         }
 
@@ -88,7 +88,52 @@ namespace NmsDotnet
 
         private void GetAlarmInfo()
         {
-            NmsInfo.GetInstance().alarmInfo = Alarm.GetAlarmInfo();
+            NmsInfo.GetInstance().alarmInfo = new ObservableCollection<Alarm>();
+
+            Alarm ac = new Alarm { Level = "Critical", Uid = Server.EnumStatus.Critical };
+            Alarm aw = new Alarm { Level = "Warning", Uid = Server.EnumStatus.Warning };
+            Alarm ai = new Alarm { Level = "Information", Uid = Server.EnumStatus.Information };
+
+            ObservableCollection<Alarm> remoteData = new ObservableCollection<Alarm>(Alarm.GetAlarmInfo());
+            IEnumerable<Alarm> query = remoteData.Where(alarm => alarm.Level.Equals("Critical"));
+            if (query.Count() > 0)
+            {
+                foreach (Alarm a in query)
+                {
+                    a.Uid = Server.EnumStatus.Critical;
+                    NmsInfo.GetInstance().alarmInfo.Add(a);
+                }
+            }
+            else
+            {
+                NmsInfo.GetInstance().alarmInfo.Add(ac);
+            }
+            query = remoteData.Where(alarm => alarm.Level.Equals("Warning"));
+            if (query.Count() > 0)
+            {
+                foreach (Alarm a in query)
+                {
+                    a.Uid = Server.EnumStatus.Warning;
+                    NmsInfo.GetInstance().alarmInfo.Add(a);
+                }
+            }
+            else
+            {
+                NmsInfo.GetInstance().alarmInfo.Add(aw);
+            }
+            query = remoteData.Where(alarm => alarm.Level.Equals("Information"));
+            if (query.Count() > 0)
+            {
+                foreach (Alarm a in query)
+                {
+                    a.Uid = Server.EnumStatus.Information;
+                    NmsInfo.GetInstance().alarmInfo.Add(a);
+                }
+            }
+            else
+            {
+                NmsInfo.GetInstance().alarmInfo.Add(ai);
+            }
         }
 
         private void DragNDropSetting()
@@ -301,6 +346,15 @@ namespace NmsDotnet
                                         server.Status = Server.EnumStatus.Critical.ToString();
                                     }
                                     server.IsConnect = Server.EnumIsConnect.Disconnect;
+
+                                    if (LvActiveLog.Items.Count > 0)
+                                    {
+                                        SoundPlay(snmp.LevelString);
+                                    }
+                                    else
+                                    {
+                                        SoundStop();
+                                    }
                                 }
 
                                 // drawItem은 INotifyPropertyChanged 로 대체됨
@@ -403,7 +457,6 @@ namespace NmsDotnet
 
         private void ServerList_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
         {
-            /*
             //MessageBox.Show("Get");
             //Service.SnmpService.GetNext();
             logger.Info(sender);
@@ -411,17 +464,6 @@ namespace NmsDotnet
             ContextMenu menu = (ContextMenu)menuItem.Parent;
             ListView lv = (ListView)menu.PlacementTarget;
             lv.Focus();
-            */
-        }
-
-        private void ServerList_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
-        {
-            logger.Info(sender);
-
-            MessageBox.Show("left down");
-            /*
-            Service.Snmp.GetBulk();
-            */
         }
 
         private async void MenuGroupAdd_Click(object sender, RoutedEventArgs e)
@@ -488,32 +530,23 @@ namespace NmsDotnet
             if (result == MessageBoxResult.Yes)
             {
                 MenuItem menuItem = (MenuItem)e.Source;
-                ContextMenu menu = (ContextMenu)menuItem.Parent;
+                Group group = (Group)menuItem.DataContext;
 
-                var selectedObject = menu.PlacementTarget;
-
-                TreeView tv = GetParentTreeview(selectedObject as DependencyObject);
-
-                if ((Group)tv.SelectedItem == null)
+                if (Group.DeleteGroup(group.Id) > 0) // 데이터베이스에 서버는 gid cascade 라서 그룹이 지워지면 서버도 지워짐
                 {
-                    MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    var group = (Group)tv.SelectedItem;
-                    if (Group.DeleteGroup(group.Id) > 0) // 데이터베이스에 서버는 gid cascade 라서 그룹이 지워지면 서버도 지워짐
+                    if (group.Servers != null)
                     {
-                        if (group.Servers != null)
+                        foreach (Server s in group.Servers)
                         {
-                            foreach (Server s in group.Servers)
-                            {
-                                NmsInfo.GetInstance().serverList.Remove(s);
-                            }
+                            int location = s.Location;
+                            NmsInfo.GetInstance().serverList.Remove(s);
+                            Server emptyServer = new Server();
+                            NmsInfo.GetInstance().serverList.Insert(location, emptyServer);
                         }
-                        NmsInfo.GetInstance().groupList.Remove(group);
-                        //ServerListItem.ItemsSource = Server.GetServerList();
-                        //서비스 스레드 종료 꼭 해야함 (서비스 스레드는 1개로 운영)
                     }
+                    NmsInfo.GetInstance().groupList.Remove(group);
+                    //ServerListItem.ItemsSource = Server.GetServerList();
+                    //서비스 스레드 종료 꼭 해야함 (서비스 스레드는 1개로 운영)
                 }
             }
         }
@@ -581,10 +614,12 @@ namespace NmsDotnet
                                 }
                             }
                         }
-
-                        //TreeGroup.ItemsSource = Group.GetGroupList();
-                        //ServerListItem.ItemsSource = Server.GetServerList();
+                        int location = server.Location;
                         NmsInfo.GetInstance().serverList.Remove(server);
+                        Server emptyServer = new Server();
+                        NmsInfo.GetInstance().serverList.Insert(location, emptyServer);
+                        //인스턴스를 삭제하지 않고 초기화 시킴
+                        //server.Clear();
                     }
                 }
             }
@@ -599,10 +634,15 @@ namespace NmsDotnet
             if ((bool)eventArgs.Parameter == true)
             {
                 Server server = (Server)eventArgs.Session.Content;
-                Debug.WriteLine(server.Id);
+                server.GetNewLocation();
                 if (string.IsNullOrEmpty(server.Id))
                 {
-                    if (!string.IsNullOrEmpty(server.Gid))
+                    if (string.IsNullOrEmpty(server.Ip))
+                    {
+                        MessageBox.Show("IP를 입력해주세요");
+                        eventArgs.Cancel();
+                    }
+                    else if (!string.IsNullOrEmpty(server.Gid))
                     {
                         foreach (Group g in NmsInfo.GetInstance().groupList)
                         {
@@ -614,7 +654,8 @@ namespace NmsDotnet
                             }
                         }
                         server.Id = server.AddServer();
-                        NmsInfo.GetInstance().serverList.Add(server);
+                        //NmsInfo.GetInstance().serverList.Add(server);
+                        NmsInfo.GetInstance().serverList.Insert(server.Location, server);
 
                         //ServerListItem.ItemsSource = Server.GetServerList();
                         //TreeGroup.ItemsSource = Group.GetGroupList();
@@ -647,9 +688,9 @@ namespace NmsDotnet
                     //바인딩이 지저분해짐 한번에 할 수 있는것을 연구해야함
                     //TreeGroup.ItemsSource = _groupList;
                     //ServerListItem.ItemsSource = Server.GetServerList();
+                    SnmpService.GetModelName(server);
+                    SnmpService.Set(server);
                 }
-                SnmpService.GetModelName(server);
-                SnmpService.Set(server);
             }
         }
 
@@ -861,28 +902,7 @@ namespace NmsDotnet
 
                                         if (LvActiveLog.Items.Count > 0)
                                         {
-                                            if (NmsInfo.GetInstance().alarmInfo != null)
-                                            {
-                                                foreach (Alarm alarm in NmsInfo.GetInstance().alarmInfo)
-                                                {
-                                                    if (alarm.Level.Equals(snmp.LevelString))
-                                                    {
-                                                        if (File.Exists(alarm.Path))
-                                                        {
-                                                            Task.Run(() => SoundPlayAsync(alarm.Path));
-                                                        }
-                                                        else
-                                                        {
-                                                            Task.Run(() => SoundPlayAsync());
-                                                        }
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            else
-                                            {
-                                                Task.Run(() => SoundPlayAsync());
-                                            }
+                                            SoundPlay(snmp.LevelString);
                                         }
                                         else
                                         {
@@ -906,6 +926,32 @@ namespace NmsDotnet
             }
 
             logger.Info(" *** TrapListener exit ***");
+        }
+
+        private void SoundPlay(string levelString)
+        {
+            if (NmsInfo.GetInstance().alarmInfo != null)
+            {
+                foreach (Alarm alarm in NmsInfo.GetInstance().alarmInfo)
+                {
+                    if (alarm.Level.Equals(levelString))
+                    {
+                        if (File.Exists(alarm.Path))
+                        {
+                            Task.Run(() => SoundPlayAsync(alarm.Path));
+                        }
+                        else
+                        {
+                            Task.Run(() => SoundPlayAsync());
+                        }
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                Task.Run(() => SoundPlayAsync());
+            }
         }
 
         private async Task SoundPlayAsync()
@@ -1016,6 +1062,7 @@ namespace NmsDotnet
             GlobalSettings settings = new GlobalSettings();
             settings.SnmpCM5000Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList("CM5000");
             settings.SnmpDR5000Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList("DR5000");
+            settings.AlarmSettings = NmsInfo.GetInstance().alarmInfo;
             var result = await DialogHost.Show(settings, "DialogSettingInfo");
         }
 
@@ -1221,14 +1268,10 @@ namespace NmsDotnet
 
         private void BtnAlarmFileUpload_Click(object sender, RoutedEventArgs e)
         {
-            int index = int.Parse(((Button)e.Source).Uid);
-            Server.EnumStatus level;
-            level = (Server.EnumStatus)index;
-            string levelString = level.ToString();
+            string levelString = ((Button)e.Source).Uid;
 
             OpenFileDialog dlg = new OpenFileDialog();
             dlg.Filter = "Sound (*.WAV;*.MP3)|*.WAV;*.MP3";
-            //dlg.Filter = "Sound (*.WAV, *.MP3)|*.WAV; *.Mp3";
             Nullable<bool> result = dlg.ShowDialog();
             if (result == true)
             {
@@ -1248,9 +1291,9 @@ namespace NmsDotnet
                     {
                         Utils.Util.ConvertMp3ToWav(destfilepath);
                     }
-                    Alarm alarmInfo = new Alarm { Level = levelString, Path = Path.Combine(subpath, Path.ChangeExtension(Path.GetFileName(filename), "WAV")) };
-                    alarmInfo.UpdateAlarmInfo();
-
+                    var query = NmsInfo.GetInstance().alarmInfo.Where<Alarm>(a => a.Level.Equals(levelString)).Take(1);
+                    Alarm alarm = (Alarm)query.ElementAt(0);
+                    alarm.Path = Path.Combine(subpath, Path.ChangeExtension(Path.GetFileName(filename), "WAV"));
                     MessageBox.Show("업로드 완료", "정보", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
@@ -1372,6 +1415,41 @@ namespace NmsDotnet
             {
                 File.WriteAllText(saveFileDialog.FileName, jsonExport);
                 MessageBox.Show("저장 되었습니다", "정보", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void TreeItem_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount >= 2)
+            {
+                string uri = "http://";
+
+                var obj = sender as StackPanel;
+                string Ip = obj.Uid;
+
+                if (!string.IsNullOrEmpty(Ip))
+                {
+                    System.Diagnostics.Process.Start(String.Format($"{uri}{Ip}"));
+                }
+            }
+        }
+
+        private void TbIp_LostFocus(object sender, RoutedEventArgs e)
+        {
+            var tb = sender as TextBox;
+            if (Utils.Util.IpValidCheck(tb.Text))
+            {
+                IEnumerable<Server> results = NmsInfo.GetInstance().serverList.Where(s => s.Ip == tb.Text);
+                if (results.Count() > 0)
+                {
+                    MessageBox.Show(string.Format($"{tb.Text}는 이미 등록 되었습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
+                    tb.Text = null;
+                }
+            }
+            else if (!string.IsNullOrEmpty(tb.Text))
+            {
+                MessageBox.Show(string.Format($"{tb.Text}는 IP 형식에 맞지 않습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
+                tb.Text = null;
             }
         }
     }

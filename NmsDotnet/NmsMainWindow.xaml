@@ -116,12 +116,13 @@
                         <StackPanel Orientation="Horizontal" Margin="15">
                             <materialDesign:PackIcon Kind="InfoOutline" Width="50" Height="50" />
                             <StackPanel>
-                                <TextBox MaxWidth="200" Text="{Binding UnitName }" materialDesign:HintAssist.Hint="장비 이름"
+                                <TextBox MaxWidth="200" Text="{Binding UnitName, UpdateSourceTrigger=LostFocus}" materialDesign:HintAssist.Hint="장비 이름"
                                          Style="{StaticResource MaterialDesignFloatingHintTextBox}"
                                          FontSize="18"
                                          FontFamily="{StaticResource NotoSans-Regular}" />
                                 <TextBox MaxWidth="200"
                                          Text="{Binding Ip}"
+                                         LostFocus="TbIp_LostFocus"
                                          materialDesign:HintAssist.Hint="IP"
                                          Style="{StaticResource MaterialDesignFloatingHintTextBox}"
                                          FontSize="18"
@@ -219,12 +220,52 @@
                                     </DockPanel>
                                 </GroupBox>
                             </TabItem>
-                            <TabItem Header="알람 사운드 설정" FontFamily="{StaticResource NotoSans-Regular}">
-                                <GroupBox Header="알람 사운드 설정" FontSize="14" Margin="5,5,5,60" FontFamily="{StaticResource NotoSans-Regular}">
-                                    <GroupBox Header="임시" Margin="0">
-                                        <StackPanel>
+                            <TabItem Header="기타 설정" FontFamily="{StaticResource NotoSans-Regular}">
+                                <GroupBox Header="기타 설정" FontSize="14" Margin="5,5,5,60" FontFamily="{StaticResource NotoSans-Regular}">
+                                    <GroupBox Header="알람 사운드 설정" Margin="0">
+
+                                        <ListView x:Name="AlarmSettings" ItemsSource="{Binding AlarmSettings}"
+                                                  ScrollViewer.IsDeferredScrollingEnabled="True"
+                                                  ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                            <ListView.Resources>
+                                                <DataTemplate x:Key="myCellTemplateEdit">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button Content="파일업로드" Click="BtnAlarmFileUpload_Click"  Height="18" Padding="10,0" FontFamily="{DynamicResource NotoSans-Regular}" Uid="{Binding Uid}"  FontSize="12" />
+                                                    </StackPanel>
+                                                </DataTemplate>
+                                            </ListView.Resources>
+                                            <ListView.ItemContainerStyle>
+                                                <Style TargetType="{x:Type ListViewItem}">
+                                                </Style>
+                                            </ListView.ItemContainerStyle>
+                                            <ListView.View>
+                                                <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
+                                                    <GridViewColumn Header="Level" Width="220">
+                                                        <GridViewColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding Path=Level}" Margin="0"></TextBlock>
+                                                            </DataTemplate>
+                                                        </GridViewColumn.CellTemplate>
+                                                    </GridViewColumn>
+                                                    <GridViewColumn Header="Path">
+                                                        <GridViewColumn.CellTemplate>
+                                                            <DataTemplate>
+                                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                                    <TextBlock Text="{Binding Path=Path, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap" Margin="0"></TextBlock>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </GridViewColumn.CellTemplate>
+                                                    </GridViewColumn>
+                                                    <GridViewColumn Header="설정" CellTemplate="{StaticResource myCellTemplateEdit}" />
+                                                </GridView>
+                                            </ListView.View>
+                                        </ListView>
+
+                                        <!--
                                             <StackPanel Orientation="Horizontal" Margin="10">
                                                 <TextBlock Text="Level : Critical" Width="150" FontFamily="{StaticResource NotoSans-Regular}" />
+                                                <TextBlock Text=""
                                                 <TextBlock Text="" Width="250" FontFamily="{StaticResource NotoSans-Regular}" Uid="5" />
                                                 <Button Content="파일업로드" Click="BtnAlarmFileUpload_Click" Uid="5"></Button>
                                             </StackPanel>
@@ -238,7 +279,7 @@
                                                 <TextBlock Text="" Width="250" FontFamily="{StaticResource NotoSans-Regular}" Uid="3" />
                                                 <Button Content="파일업로드" Click="BtnAlarmFileUpload_Click" Uid="3"></Button>
                                             </StackPanel>
-                                        </StackPanel>
+                                            -->
                                     </GroupBox>
                                 </GroupBox>
                             </TabItem>
@@ -435,32 +476,26 @@
                         <StackPanel Orientation="Horizontal" Margin="5,0">
                             <StackPanel.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem x:Name="MenuGroupEdit" Header="그룹 수정" Click="MenuGroupEdit_Click" />
-                                    <MenuItem x:Name="MenuGroupDel" Header="그룹 삭제"  Click="MenuGroupDel_Click" />
+                                    <MenuItem x:Name="MenuGroupEdit" Header="그룹 수정" Click="MenuGroupEdit_Click" Uid="{Binding Gid}" />
+                                    <MenuItem x:Name="MenuGroupDel" Header="그룹 삭제"  Click="MenuGroupDel_Click" Uid="{Binding Gid}" />
                                 </ContextMenu>
                             </StackPanel.ContextMenu>
                             <TextBlock Text="{Binding Name}" Padding="0,5,70,5" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" />
                         </StackPanel>
                         <HierarchicalDataTemplate.ItemTemplate>
                             <DataTemplate>
-                                <StackPanel Margin="10,5">
-                                    <!--
-                                        <Border.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="장비 수정" Click="MenuServerEdit_Click" />
-                                                <MenuItem Header="장비 삭제" Click="MenuServerDel_Click" />
-                                            </ContextMenu>
-                                        </Border.ContextMenu>
-                                        -->
-                                    <StackPanel Orientation="Horizontal">
-                                        <Ellipse
+                                <StackPanel Margin="10,5" MouseLeftButtonDown="TreeItem_MouseLeftButtonDown" Uid="{Binding Ip}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Ellipse
                                                 Width="10"
                                                 Height="10"
                                                 Fill="{Binding Color, UpdateSourceTrigger=PropertyChanged}" Margin="5,0" />
-                                        <TextBlock Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10">
-                                        </TextBlock>
+                                            <TextBlock Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10">
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Ip}" Margin="20,0,0,0" FontSize="10" FontFamily="{StaticResource NotoSans-Regular}" ></TextBlock>
                                     </StackPanel>
-                                    <TextBlock Text="{Binding Ip}" Margin="20,0,0,0" FontSize="10" FontFamily="{StaticResource NotoSans-Regular}"></TextBlock>
                                 </StackPanel>
                             </DataTemplate>
                         </HierarchicalDataTemplate.ItemTemplate>
@@ -486,7 +521,6 @@
                                  Value="0" />
             <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed"
                           MouseDoubleClick="ServerList_MouseDoubleClick"
-                          MouseLeftButtonDown="ServerList_MouseLeftButtonDown"
                           MouseRightButtonDown="ServerList_MouseRightButtonDown">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="{x:Type ListViewItem}">
@@ -495,7 +529,7 @@
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
                     <DataTemplate>
-                        <Border Margin="0" Padding="0" Width="24" Height="24" BorderThickness="0" BorderBrush="Black" AllowDrop="True">
+                        <Border Margin="0" Padding="0" Width="24" Height="24" BorderThickness="0" BorderBrush="Transparent" AllowDrop="True">
                             <Border.ContextMenu>
                                 <ContextMenu>
                                     <MenuItem Header="장비 수정" Click="MenuServerEdit_Click" />

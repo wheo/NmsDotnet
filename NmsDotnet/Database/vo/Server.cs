@@ -28,7 +28,21 @@ namespace NmsDotnet.Database.vo
         public string Id { get; set; }
         public string Ip { get; set; }
 
-        public int Location { get; set; }
+        [JsonIgnore]
+        public int _Location { get; set; }
+
+        public int Location
+        {
+            get { return _Location; }
+            set
+            {
+                if (_Location != value)
+                {
+                    _Location = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("Location"));
+                }
+            }
+        }
 
         [JsonIgnore]
         public string _UnitName { get; set; }
@@ -36,9 +50,7 @@ namespace NmsDotnet.Database.vo
         public string UnitName
         {
             get
-            {
-                return _UnitName;
-            }
+            { return _UnitName; }
             set
             {
                 if (_UnitName != value)
@@ -150,33 +162,40 @@ namespace NmsDotnet.Database.vo
             get { return _Status; }
             set
             {
-                if (_Status != value)
+                if (!string.IsNullOrEmpty(value))
                 {
-                    logger.Info(String.Format($"[{Ip}] Server ({_Status}) => ({value}) changed"));
+                    if (_Status != value)
+                    {
+                        logger.Info(String.Format($"[{Ip}] Server ({_Status}) => ({value}) changed"));
 
-                    if (value.ToLower().Equals("normal"))
-                    {
-                        this.Color = "Green";
-                        this.Message = "Normal status";
+                        if (value.ToLower().Equals("normal"))
+                        {
+                            this.Color = "Green";
+                            this.Message = "Normal status";
+                        }
+                        else if (value.ToLower().Equals("critical"))
+                        {
+                            this.Color = "Red";
+                        }
+                        else if (value.ToLower().Equals("warning"))
+                        {
+                            this.Color = "#FF8000";
+                        }
+                        else if (value.ToLower().Equals("information"))
+                        {
+                            this.Color = "Blue";
+                        }
+                        else
+                        {
+                            this.Color = "White";
+                        }
+                        _Status = value;
+                        OnPropertyChanged(new PropertyChangedEventArgs("Status"));
                     }
-                    else if (value.ToLower().Equals("critical"))
-                    {
-                        this.Color = "Red";
-                    }
-                    else if (value.ToLower().Equals("warning"))
-                    {
-                        this.Color = "Yellow";
-                    }
-                    else if (value.ToLower().Equals("information"))
-                    {
-                        this.Color = "Blue";
-                    }
-                    else
-                    {
-                        this.Color = "White";
-                    }
-                    _Status = value;
-                    OnPropertyChanged(new PropertyChangedEventArgs("Status"));
+                }
+                else
+                {
+                    _Status = null;
                 }
             }
         }
@@ -221,6 +240,34 @@ namespace NmsDotnet.Database.vo
             ConnectionErrorCount = 0;
         }
 
+        public int GetNewLocation()
+        {
+            Location = NmsInfo.GetInstance().serverList.Max(x => x.Location) + 1;
+            return Location;
+        }
+
+        public void Clear()
+        {
+            this.Ip = null;
+            this.Ip = null;
+            this.Location = 0;
+            this.Color = null;
+            this.Gid = null;
+            this.GroupName = null;
+            this.Groups = null;
+            this.VideoOutputId = 0;
+            this.ServicePid = 0;
+            this.ModelName = null;
+            this.Message = null;
+            this.IsConnect = EnumIsConnect.Init;
+            this.HeaderType = '\0';
+            this.Status = null;
+            this.UnitName = null;
+            this.Version = null;
+            this.ErrorCount = 0;
+            this.ConnectionErrorCount = 0;
+        }
+
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
 
         public void OnPropertyChanged(PropertyChangedEventArgs e)
@@ -229,7 +276,8 @@ namespace NmsDotnet.Database.vo
             {
                 PropertyChanged(this, e);
                 if (e.PropertyName.Equals("Status") ||
-                    e.PropertyName.Equals("Name"))
+                    e.PropertyName.Equals("Name") ||
+                        e.PropertyName.Equals("Location"))
                 {
                     UpdateServerStatus(this);
                 }
@@ -305,7 +353,6 @@ namespace NmsDotnet.Database.vo
                 UnitName = row.Field<string>("name"),
                 Ip = row.Field<string>("ip"),
                 GroupName = row.Field<string>("grp_name"),
-                Status = row.Field<string>("status")
             }).ToList();
         }
 
@@ -387,7 +434,7 @@ namespace NmsDotnet.Database.vo
         public static int UpdateServerStatus(Server server)
         {
             int ret = 0;
-            string query = "UPDATE server set status = @status, type = @type, name = @name, error_count = @error_count, connection_error_count = @connection_error_count WHERE id = @id";
+            string query = "UPDATE server set status = @status, type = @type, name = @name, location = @location, error_count = @error_count, connection_error_count = @connection_error_count WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
@@ -395,6 +442,7 @@ namespace NmsDotnet.Database.vo
                 cmd.Parameters.AddWithValue("@id", server.Id);
                 cmd.Parameters.AddWithValue("@status", server.Status);
                 cmd.Parameters.AddWithValue("@name", server.UnitName);
+                cmd.Parameters.AddWithValue("@location", server.Location);
                 cmd.Parameters.AddWithValue("@type", server.ModelName);
                 cmd.Parameters.AddWithValue("@error_count", server.ErrorCount);
                 cmd.Parameters.AddWithValue("@connection_error_count", server.ConnectionErrorCount);
@@ -459,7 +507,7 @@ namespace NmsDotnet.Database.vo
                     cmd.Prepare();
                     ret = cmd.ExecuteNonQuery();
 
-                    query = "INSERT INTO server (id, ip, name, gid) VALUES (@id, @ip, @name, @gid)";
+                    query = "INSERT INTO server (id, ip, name, gid, location) VALUES (@id, @ip, @name, @gid, @location)";
                     cmd.CommandText = query;
                     foreach (Server s in servers)
                     {
@@ -469,6 +517,7 @@ namespace NmsDotnet.Database.vo
                             cmd.Parameters.AddWithValue("@name", s.UnitName);
                             cmd.Parameters.AddWithValue("@ip", s.Ip);
                             cmd.Parameters.AddWithValue("@gid", s.Gid);
+                            cmd.Parameters.AddWithValue("@location", s.Location);
                             cmd.Prepare();
                             cmd.ExecuteNonQuery();
                             cmd.Parameters.Clear();
@@ -491,7 +540,7 @@ namespace NmsDotnet.Database.vo
         {
             DataTable dt = new DataTable();
             string query = @"SELECT S.*
-, IF(S.status = 'Critical', 'Red', IF(S.status = 'Warning', 'Yellow', IF(S.status = 'Information', 'Blue', 'Green'))) AS color
+, IF(S.status = 'Critical', 'Red', IF(S.status = '#FF8000', 'Yellow', IF(S.status = 'Information', 'Blue', 'Green'))) AS color
 , G.name as grp_name
 , A.path FROM server S
 LEFT JOIN asset A ON S.status = A.id
@@ -513,12 +562,12 @@ ORDER BY S.location ASC";
                 UnitName = row.Field<string>("name"),
                 Ip = row.Field<string>("ip"),
                 GroupName = row.Field<string>("grp_name"),
-                Status = row.Field<string>("status"),
                 ModelName = row.Field<string>("type"),
                 Location = row.Field<int>("location"),
                 ErrorCount = row.Field<int>("error_count"),
                 ConnectionErrorCount = row.Field<int>("connection_error_count"),
-                Color = row.Field<string>("color")
+                Color = row.Field<string>("color"),
+                Status = row.Field<string>("status")
             }).ToList();
         }
 
@@ -528,7 +577,7 @@ ORDER BY S.location ASC";
         {
             DataTable dt = new DataTable();
             string query = String.Format($"SELECT S.*" +
-                $", IF(S.status = 'critical', 'Red', IF(S.status = 'warning', 'Yellow', IF(S.status = 'information', 'Blue', 'Green'))) AS color" +
+                $", IF(S.status = 'critical', 'Red', IF(S.status = 'warning', '#FF8000', IF(S.status = 'information', 'Blue', 'Green'))) AS color" +
                 $", G.name as grp_name" +
                 $", A.path FROM server S" +
                 $" LEFT JOIN asset A ON S.status = A.id" +

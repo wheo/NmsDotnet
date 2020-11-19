@@ -42,6 +42,8 @@ namespace NmsDotnet.Service
         public static bool Set(Server s)
         {
             // Prepare target
+            if (string.IsNullOrEmpty(s.Ip))
+                return false;
             UdpTarget target = new UdpTarget((IPAddress)new IpAddress(s.Ip));
             // Create a SET PDU
             Pdu pdu = new Pdu(PduType.Set);

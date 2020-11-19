@@ -212,7 +212,7 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
 , L.oid as oid
 , S.name AS name
 , L.level as level
-, IF(L.level = 'Critical', 'Red', IF(L.level = 'Warning', 'Yellow', IF(L.level = 'Information', 'Blue', 'Black'))) AS color
+, IF(L.level = 'Critical', 'Red', IF(L.level = 'Warning', '#FF8000', IF(L.level = 'Information', 'Blue', 'Black'))) AS color
 , L.value as value
 , L.snmp_type_value as type_value
 , L.idx as idx

@@ -26,7 +26,7 @@ namespace NmsDotnet.Database.vo
         public ObservableCollection<LogItem> logHistory;
 
         [JsonIgnore]
-        public List<Alarm> alarmInfo;
+        public ObservableCollection<Alarm> alarmInfo;
 
         public ObservableCollection<Server> RealServerList()
         {

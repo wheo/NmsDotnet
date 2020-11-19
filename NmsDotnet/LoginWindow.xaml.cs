@@ -80,7 +80,7 @@ namespace NmsDotnet
         {
             if (Login.GetInstance().LoginCheck(LoginID.Text, LoginPW.Password))
             {
-                NmsMainWindow nmsMainWindow = new NmsMainWindow(LoginID.Text);
+                NmsMainWindow nmsMainWindow = new NmsMainWindow(LoginID.Text, 1280, 1024);
                 nmsMainWindow.Show();
                 this.Close();
             }

@@ -383,7 +383,16 @@ namespace WPF.JoshSmith.ServiceProviders.UI
                 {
                     var temp = itemsSource[newIndex];
                     itemsSource[newIndex] = itemsSource[oldIndex];
+                    object o = itemsSource[newIndex];
+                    Server s = (Server)o;
+                    if (!string.IsNullOrEmpty(s.Id))
+                        s.Location = newIndex;
+
                     itemsSource[oldIndex] = temp;
+                    o = itemsSource[oldIndex];
+                    s = (Server)o;
+                    if (!string.IsNullOrEmpty(s.Id))
+                        s.Location = oldIndex;
                 }
                 else
                     itemsSource.Insert(newIndex, data);
