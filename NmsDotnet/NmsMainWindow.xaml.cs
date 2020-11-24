@@ -203,6 +203,19 @@ namespace NmsDotnet
                 if (i == currentLocation)
                 {
                     s = ocs[currentIdx];
+
+                    MenuItem miEdit = new MenuItem();
+                    miEdit.Header = "장비 수정";
+                    MenuItem miDelete = new MenuItem();
+                    miDelete.Header = "장비 삭제";
+                    List<MenuItem> menus = new List<MenuItem>();
+                    menus.Add(miEdit);
+                    menus.Add(miDelete);
+                    miEdit.Click += new System.Windows.RoutedEventHandler(this.MenuServerEdit_Click);
+                    miDelete.Click += new System.Windows.RoutedEventHandler(this.MenuServerDel_Click);
+
+                    s.MenuItems = menus;
+
                     if (ocs.Count - 1 > currentIdx)
                     {
                         currentIdx++;
@@ -226,6 +239,11 @@ namespace NmsDotnet
             TreeGroup.ItemsSource = NmsInfo.GetInstance().groupList;
 
             _snmpGetTimer.Start();
+        }
+
+        private void MiEdit_Click(object sender, RoutedEventArgs e)
+        {
+            throw new NotImplementedException();
         }
 
         private void SnmpGetService(object sender, EventArgs e)

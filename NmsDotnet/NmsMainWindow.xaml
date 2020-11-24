@@ -531,9 +531,11 @@
                     <DataTemplate>
                         <Border Margin="0" Padding="0" Width="24" Height="24" BorderThickness="0" BorderBrush="Transparent" AllowDrop="True">
                             <Border.ContextMenu>
-                                <ContextMenu>
+                                <ContextMenu ItemsSource="{Binding MenuItems, UpdateSourceTrigger=PropertyChanged}">
+                                    <!--
                                     <MenuItem Header="장비 수정" Click="MenuServerEdit_Click" />
                                     <MenuItem Header="장비 삭제" Click="MenuServerDel_Click" />
+                                    -->
                                 </ContextMenu>
                             </Border.ContextMenu>
                             <Border.ToolTip>

@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows.Controls;
 
 namespace NmsDotnet.Database.vo
 {
@@ -199,6 +200,9 @@ namespace NmsDotnet.Database.vo
                 }
             }
         }
+
+        [JsonIgnore]
+        public List<MenuItem> MenuItems { get; set; }
 
         public enum EnumStatus
         {
