@@ -122,7 +122,6 @@
                                          FontFamily="{StaticResource NotoSans-Regular}" />
                                 <TextBox MaxWidth="200"
                                          Text="{Binding Ip}"
-                                         LostFocus="TbIp_LostFocus"
                                          materialDesign:HintAssist.Hint="IP"
                                          Style="{StaticResource MaterialDesignFloatingHintTextBox}"
                                          FontSize="18"

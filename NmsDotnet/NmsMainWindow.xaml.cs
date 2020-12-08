@@ -333,7 +333,8 @@ namespace NmsDotnet
 
                                 server.ConnectionErrorCount++;
 
-                                if (server.IsConnect != (int)Server.EnumIsConnect.Init && server.ConnectionErrorCount > 1)
+                                //if (server.IsConnect != (int)Server.EnumIsConnect.Init && server.ConnectionErrorCount > 1)
+                                if (server.ConnectionErrorCount > 1)
                                 {
                                     Snmp snmp = new Snmp
                                     {
@@ -347,23 +348,25 @@ namespace NmsDotnet
                                     };
                                     LogItem.LoggingDatabase(snmp);
 
-                                    if (server.IsConnect != Server.EnumIsConnect.Disconnect)
+                                    LogItem log = new LogItem
                                     {
-                                        LogItem log = new LogItem
-                                        {
-                                            Ip = server.Ip,
-                                            Level = Server.EnumStatus.Critical.ToString(),
-                                            Oid = SnmpService._MyConnectionOid,
-                                            Name = server.UnitName,
-                                            IsConnection = false,
-                                            TypeValue = "begin",
-                                            Value = "Failed to connection"
-                                        };
+                                        Ip = server.Ip,
+                                        Level = Server.EnumStatus.Critical.ToString(),
+                                        Oid = SnmpService._MyConnectionOid,
+                                        Name = server.UnitName,
+                                        IsConnection = false,
+                                        TypeValue = "begin",
+                                        Value = "Failed to connection"
+                                    };
+
+                                    IEnumerable<LogItem> results = NmsInfo.GetInstance().activeLog.Where(l => l.Ip == log.Ip && l.Oid == log.Oid);
+
+                                    if (results.Count() == 0)
+                                    {
                                         NmsInfo.GetInstance().activeLog.Insert(0, log);
-                                        server.Message = "Failed to connection";
-                                        server.Status = Server.EnumStatus.Critical.ToString();
                                     }
-                                    server.IsConnect = Server.EnumIsConnect.Disconnect;
+                                    server.Message = "Failed to connection";
+                                    server.Status = Server.EnumStatus.Critical.ToString();
 
                                     if (LvActiveLog.Items.Count > 0)
                                     {
@@ -373,6 +376,8 @@ namespace NmsDotnet
                                     {
                                         SoundStop();
                                     }
+
+                                    server.IsConnect = Server.EnumIsConnect.Disconnect;
                                 }
 
                                 // drawItem은 INotifyPropertyChanged 로 대체됨
@@ -590,14 +595,9 @@ namespace NmsDotnet
             {
                 MessageBox.Show("서버를 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             }
-            //logger.Debug(server.GroupName);
-            //logger.Debug(server.Gid);
-            /*
-            TbServerIp.Text = info.Ip;
-            TbServerName.Text = info.Name;
-            CbGroup.Text = info.GroupName;
-            */
-            //DialogServer.IsOpen = true;
+
+            server.Undo = server.ShallowCopy();
+            _snmpGetTimer.Stop();
 
             this.IsEnabled = false;
             var result = await DialogHost.Show(server, "DialogServer");
@@ -649,15 +649,46 @@ namespace NmsDotnet
             {
                 this.IsEnabled = true;
             }
-            if ((bool)eventArgs.Parameter == true)
+
+            Server server = (Server)eventArgs.Session.Content;
+
+            if ((bool)eventArgs.Parameter == false)
             {
-                Server server = (Server)eventArgs.Session.Content;
+                //cancel button
+                server.UnitName = server.Undo.UnitName;
+                server.Ip = server.Undo.Ip;
+                server.GroupName = server.Undo.GroupName;
+                server.Gid = server.Undo.Gid;
+            }
+            else if ((bool)eventArgs.Parameter == true)
+            {
+                if (Utils.Util.IpValidCheck(server.Ip))
+                {
+                    //IEnumerable<Server> results = NmsInfo.GetInstance().serverList.Where(s => s.Ip == server.Ip);
+                    //IEnumerable<Server> results = Server.GetServerList().Where(s => s.Ip == server.Ip);
+                    IEnumerable<Server> results = Server.GetServerList();
+                    results = results.Where(s => s.Ip == server.Ip);
+
+                    if (results.Count() > 0)
+                    {
+                        MessageBox.Show(string.Format($"{server.Ip}는 이미 등록 되었습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
+                        eventArgs.Cancel();
+                        return;
+                    }
+                }
+                else if (!string.IsNullOrEmpty(server.Ip))
+                {
+                    MessageBox.Show(string.Format($"{server.Ip}는 IP 형식에 맞지 않습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
+                    eventArgs.Cancel();
+                    return;
+                }
+
                 server.GetNewLocation();
                 if (string.IsNullOrEmpty(server.Id))
                 {
                     if (string.IsNullOrEmpty(server.Ip))
                     {
-                        MessageBox.Show("IP를 입력해주세요");
+                        MessageBox.Show(string.Format($"IP를 입력해 주세요", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
                         eventArgs.Cancel();
                     }
                     else if (!string.IsNullOrEmpty(server.Gid))
@@ -710,6 +741,7 @@ namespace NmsDotnet
                     SnmpService.Set(server);
                 }
             }
+            _snmpGetTimer.Start();
         }
 
         private void TrapListener()
@@ -1198,7 +1230,7 @@ namespace NmsDotnet
         {
             if (_currentSelectedItem != null)
             {
-                //LogItem.HideLogAlarm(_currentSelectedItem.idx);
+                LogItem.HideLogAlarm(_currentSelectedItem.idx);
                 NmsInfo.GetInstance().activeLog.Remove(_currentSelectedItem);
             }
         }
@@ -1449,25 +1481,6 @@ namespace NmsDotnet
                 {
                     System.Diagnostics.Process.Start(String.Format($"{uri}{Ip}"));
                 }
-            }
-        }
-
-        private void TbIp_LostFocus(object sender, RoutedEventArgs e)
-        {
-            var tb = sender as TextBox;
-            if (Utils.Util.IpValidCheck(tb.Text))
-            {
-                IEnumerable<Server> results = NmsInfo.GetInstance().serverList.Where(s => s.Ip == tb.Text);
-                if (results.Count() > 0)
-                {
-                    MessageBox.Show(string.Format($"{tb.Text}는 이미 등록 되었습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
-                    tb.Text = null;
-                }
-            }
-            else if (!string.IsNullOrEmpty(tb.Text))
-            {
-                MessageBox.Show(string.Format($"{tb.Text}는 IP 형식에 맞지 않습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
-                tb.Text = null;
             }
         }
     }

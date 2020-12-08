@@ -17,6 +17,14 @@ namespace NmsDotnet.Database.vo
     {
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        public Server ShallowCopy()
+        {
+            return (Server)this.MemberwiseClone();
+        }
+
+        [JsonIgnore]
+        public Server Undo { get; set; }
+
         [JsonIgnore]
         private string _Status;
 
@@ -544,7 +552,7 @@ namespace NmsDotnet.Database.vo
         {
             DataTable dt = new DataTable();
             string query = @"SELECT S.*
-, IF(S.status = 'Critical', 'Red', IF(S.status = '#FF8000', 'Yellow', IF(S.status = 'Information', 'Blue', 'Green'))) AS color
+, IF(S.status = 'Critical', 'Red', IF(S.status = 'Warning', '#FF8000', IF(S.status = 'Information', 'Blue', 'Green'))) AS color
 , G.name as grp_name
 , A.path FROM server S
 LEFT JOIN asset A ON S.status = A.id

@@ -41,7 +41,7 @@ namespace NmsDotnet.vo
                 }
                 else if (value.Equals("Warning"))
                 {
-                    Color = "Yellow";
+                    Color = "#FF8000";
                     LevelPriority = (int)Server.EnumStatus.Warning;
                 }
                 else if (value.Equals("Information"))
@@ -201,9 +201,6 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
                 order_query = "DESC";
                 is_active = "";
             }
-            else
-            {
-            }
 
             DataTable dt = new DataTable();
             string query = String.Format(@"SELECT DATE_FORMAT(L.start_at, '%Y-%m-%d %H:%i:%s') as start_at
@@ -223,7 +220,6 @@ AND client_ip = '{0}'
 AND snmp_type_value = 'begin'
 {1}
 {2}
-GROUP BY L.oid
 ORDER BY L.start_at {3}", _LocalIp, is_active, date_query, order_query);
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
