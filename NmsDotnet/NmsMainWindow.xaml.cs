@@ -786,7 +786,7 @@ namespace NmsDotnet
             // Disable timeout processing. Just block until packet is received
 
             int inlen = -1;
-            Debug.WriteLine(string.Format($"Waiting for snmp trap"));
+            logger.Info(string.Format($"Waiting for snmp trap"));
             while (!_shouldStop)
             {
                 byte[] indata = new byte[16 * 1024];
