@@ -264,7 +264,7 @@ ORDER BY L.start_at {3}", _LocalIp, is_active, date_query, order_query);
             return ret;
         }
 
-        public static string MakeCsvFile(List<LogItem> asc)
+        public static string MakeCsvFile(ObservableCollection<LogItem> asc)
         {
             String csvBuff = "";
 

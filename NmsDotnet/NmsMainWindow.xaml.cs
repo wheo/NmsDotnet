@@ -1223,7 +1223,8 @@ namespace NmsDotnet
             string csvString = "";
 
             saveFileDialog.FileName = DateTime.Now.ToString("yyyy-MM-dd");
-            csvString = LogItem.MakeCsvFile(LogItem.GetLog());
+            //csvString = LogItem.MakeCsvFile(LogItem.GetLog());
+            csvString = LogItem.MakeCsvFile(NmsInfo.GetInstance().logHistory);
 
             try
             {
