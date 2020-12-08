@@ -148,7 +148,7 @@ AND T.is_visible = 'Y'");
         public static string GetLevelString(int level, string oid)
         {
             string levelstring = GetAlternateLevelString(oid.Substring(0, oid.Length - 1));
-            if (levelstring != null)
+            if (!string.IsNullOrEmpty(levelstring))
             {
                 return levelstring;
             }
