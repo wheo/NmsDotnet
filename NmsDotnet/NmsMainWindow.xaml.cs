@@ -51,6 +51,8 @@ namespace NmsDotnet
 
         private const int MAX_SERVER = 570;
 
+        private int _SnmpPort = 162;
+
         public NmsMainWindow(string userid, int width, int height)
         {
             InitializeComponent();
@@ -63,6 +65,7 @@ namespace NmsDotnet
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            GetInitSetting();
             DragNDropSetting();
             GetAlarmInfo();
             LoadMibFiles();
@@ -84,6 +87,11 @@ namespace NmsDotnet
         {
             // tooltip이 사라지지않게 하는 설정
             //ToolTipService.ShowDurationProperty.OverrideMetadata(typeof(DependencyObject), new FrameworkPropertyMetadata(Int32.MaxValue));
+        }
+
+        private void GetInitSetting()
+        {
+            _SnmpPort = Snmp.GetSnmpPort();
         }
 
         private void GetAlarmInfo()
@@ -768,7 +776,7 @@ namespace NmsDotnet
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.ReceiveTimeout = 1000;
             socket.SendTimeout = 1000;
-            IPEndPoint ipep = new IPEndPoint(IPAddress.Any, 162);
+            IPEndPoint ipep = new IPEndPoint(IPAddress.Any, _SnmpPort);
             EndPoint ep = (EndPoint)ipep;
 
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReceiveTimeout, 100);

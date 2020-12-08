@@ -44,6 +44,7 @@ namespace NmsDotnet.Database.vo
         public List<SnmpSetting> SnmpCM5000Settings { get; set; }
         public List<SnmpSetting> SnmpDR5000Settings { get; set; }
         public ObservableCollection<Alarm> AlarmSettings { get; set; }
+        public int SnmpPort { get; set; }
     }
 
     public class Snmp
@@ -113,6 +114,24 @@ namespace NmsDotnet.Database.vo
             }
             logger.Info(string.Format($"logString : {logString}"));
             return logString;
+        }
+
+        public static int GetSnmpPort()
+        {
+            int value = 0;
+            string query = String.Format($"SELECT v FROM setting WHERE k = 'snmp_port'");
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand(query, conn);
+                MySqlDataReader rdr = cmd.ExecuteReader();
+                while (rdr.Read())
+                {
+                    value = Convert.ToInt32(rdr["v"].ToString());
+                }
+                rdr.Close();
+            }
+            return value;
         }
 
         public static bool IsEnableTrap(string compareID)
