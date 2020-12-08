@@ -655,10 +655,13 @@ namespace NmsDotnet
             if ((bool)eventArgs.Parameter == false)
             {
                 //cancel button
-                server.UnitName = server.Undo.UnitName;
-                server.Ip = server.Undo.Ip;
-                server.GroupName = server.Undo.GroupName;
-                server.Gid = server.Undo.Gid;
+                if (server.Undo != null)
+                {
+                    server.UnitName = server.Undo.UnitName;
+                    server.Ip = server.Undo.Ip;
+                    server.GroupName = server.Undo.GroupName;
+                    server.Gid = server.Undo.Gid;
+                }
             }
             else if ((bool)eventArgs.Parameter == true)
             {
@@ -704,6 +707,19 @@ namespace NmsDotnet
                         }
                         server.Id = server.AddServer();
                         //NmsInfo.GetInstance().serverList.Add(server);
+
+                        // 하나의 함수로 변경해야 함
+                        MenuItem miEdit = new MenuItem();
+                        miEdit.Header = "장비 수정";
+                        MenuItem miDelete = new MenuItem();
+                        miDelete.Header = "장비 삭제";
+                        List<MenuItem> menus = new List<MenuItem>();
+                        menus.Add(miEdit);
+                        menus.Add(miDelete);
+                        miEdit.Click += new System.Windows.RoutedEventHandler(this.MenuServerEdit_Click);
+                        miDelete.Click += new System.Windows.RoutedEventHandler(this.MenuServerDel_Click);
+                        server.MenuItems = menus;
+
                         NmsInfo.GetInstance().serverList.Insert(server.Location, server);
 
                         //ServerListItem.ItemsSource = Server.GetServerList();
