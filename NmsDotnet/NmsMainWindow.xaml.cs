@@ -621,7 +621,7 @@ namespace NmsDotnet
 
                 if (server == null)
                 {
-                    MessageBox.Show("그룹을 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("장비를 선택해 주세요", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
@@ -680,7 +680,7 @@ namespace NmsDotnet
                     IEnumerable<Server> results = Server.GetServerList();
                     results = results.Where(s => s.Ip == server.Ip);
 
-                    if (results.Count() > 0)
+                    if (results.Count() > 0 && (server.Ip != server.Undo.Ip))
                     {
                         MessageBox.Show(string.Format($"{server.Ip}는 이미 등록 되었습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
                         eventArgs.Cancel();
@@ -694,77 +694,85 @@ namespace NmsDotnet
                     return;
                 }
 
-                server.GetNewLocation();
-                if (string.IsNullOrEmpty(server.Id))
+                try
                 {
-                    if (string.IsNullOrEmpty(server.Ip))
+                    server.GetNewLocation();
+                    if (string.IsNullOrEmpty(server.Id))
                     {
-                        MessageBox.Show(string.Format($"IP를 입력해 주세요", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
-                        eventArgs.Cancel();
-                    }
-                    else if (!string.IsNullOrEmpty(server.Gid))
-                    {
-                        foreach (Group g in NmsInfo.GetInstance().groupList)
+                        if (string.IsNullOrEmpty(server.Ip))
                         {
-                            if (g.Id == server.Gid)
-                            {
-                                server.GroupName = g.Name;
-                                g.Servers.Add(server);
-                                break;
-                            }
+                            MessageBox.Show(string.Format($"IP를 입력해 주세요", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
+                            eventArgs.Cancel();
                         }
-                        server.Id = server.AddServer();
-                        //NmsInfo.GetInstance().serverList.Add(server);
+                        else if (!string.IsNullOrEmpty(server.Gid))
+                        {
+                            foreach (Group g in NmsInfo.GetInstance().groupList)
+                            {
+                                if (g.Id == server.Gid)
+                                {
+                                    server.GroupName = g.Name;
+                                    g.Servers.Add(server);
+                                    break;
+                                }
+                            }
+                            server.Id = server.AddServer();
+                            //NmsInfo.GetInstance().serverList.Add(server);
 
-                        // 하나의 함수로 변경해야 함
-                        MenuItem miEdit = new MenuItem();
-                        miEdit.Header = "장비 수정";
-                        MenuItem miDelete = new MenuItem();
-                        miDelete.Header = "장비 삭제";
-                        List<MenuItem> menus = new List<MenuItem>();
-                        menus.Add(miEdit);
-                        menus.Add(miDelete);
-                        miEdit.Click += new System.Windows.RoutedEventHandler(this.MenuServerEdit_Click);
-                        miDelete.Click += new System.Windows.RoutedEventHandler(this.MenuServerDel_Click);
-                        server.MenuItems = menus;
+                            // 하나의 함수로 변경해야 함
+                            MenuItem miEdit = new MenuItem();
+                            miEdit.Header = "장비 수정";
+                            MenuItem miDelete = new MenuItem();
+                            miDelete.Header = "장비 삭제";
+                            List<MenuItem> menus = new List<MenuItem>();
+                            menus.Add(miEdit);
+                            menus.Add(miDelete);
+                            miEdit.Click += new System.Windows.RoutedEventHandler(this.MenuServerEdit_Click);
+                            miDelete.Click += new System.Windows.RoutedEventHandler(this.MenuServerDel_Click);
+                            server.MenuItems = menus;
 
-                        NmsInfo.GetInstance().serverList.Insert(server.Location, server);
+                            NmsInfo.GetInstance().serverList.Insert(server.Location, server);
 
-                        //ServerListItem.ItemsSource = Server.GetServerList();
-                        //TreeGroup.ItemsSource = Group.GetGroupList();
+                            //ServerListItem.ItemsSource = Server.GetServerList();
+                            //TreeGroup.ItemsSource = Group.GetGroupList();
+                        }
+                        else
+                        {
+                            MessageBox.Show("그룹을 선택해 주세요");
+                            eventArgs.Cancel();
+                        }
                     }
                     else
                     {
-                        MessageBox.Show("그룹을 선택해 주세요");
-                        eventArgs.Cancel();
-                    }
-                }
-                else
-                {
-                    server.EditServer();
-                    foreach (Group g in NmsInfo.GetInstance().groupList)
-                    {
-                        foreach (Server s in g.Servers)
+                        server.EditServer();
+                        foreach (Group g in NmsInfo.GetInstance().groupList)
                         {
-                            if (s.Id == server.Id)
+                            foreach (Server s in g.Servers)
                             {
-                                g.Servers.Remove(s);
-                                break;
+                                if (s.Id == server.Id)
+                                {
+                                    g.Servers.Remove(s);
+                                    break;
+                                }
+                            }
+                            if (g.Id == server.Gid)
+                            {
+                                g.Servers.Add(server);
                             }
                         }
-                        if (g.Id == server.Gid)
-                        {
-                            g.Servers.Add(server);
-                        }
-                    }
 
-                    //바인딩이 지저분해짐 한번에 할 수 있는것을 연구해야함
-                    //TreeGroup.ItemsSource = _groupList;
-                    //ServerListItem.ItemsSource = Server.GetServerList();
-                    SnmpService.GetModelName(server);
-                    SnmpService.Set(server);
+                        //바인딩이 지저분해짐 한번에 할 수 있는것을 연구해야함
+                        //TreeGroup.ItemsSource = _groupList;
+                        //ServerListItem.ItemsSource = Server.GetServerList();
+                        SnmpService.GetModelName(server);
+                        SnmpService.Set(server);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex.ToString());
                 }
             }
+
             _snmpGetTimer.Start();
         }
 

@@ -59,6 +59,11 @@ namespace NmsDotnet.Service
             pdu.VbList.Add(new Oid("1.3.6.1.4.1.27338.5.3.2.3.3.1.0"), new Integer32(5005)); // video output pid
             */
 
+            if (string.IsNullOrEmpty(s.ModelName))
+            {
+                return false;
+            }
+
             if ("cm5000".Equals(s.ModelName.ToLower()))
             {
                 pdu.VbList.Add(new Oid(_CM5000UnitName_oid), new OctetString(s.UnitName));
@@ -134,6 +139,10 @@ namespace NmsDotnet.Service
             pdu.VbList.Add("1.3.6.1.2.1.1.4.0"); //sysContact
             pdu.VbList.Add("1.3.6.1.2.1.1.5.0"); //sysName
             */
+            if (string.IsNullOrEmpty(s.ModelName))
+            {
+                return false;
+            }
             // _oid : 장비 이름
             if (s.ModelName.ToLower() == "cm5000")
             {
