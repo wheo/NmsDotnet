@@ -1,6 +1,7 @@
 // Copyright (C) Josh Smith - January 2007
 using System;
 using System.Collections.ObjectModel;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
@@ -11,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Input;
 using WPF.JoshSmith.Adorners;
 using WPF.JoshSmith.Controls.Utilities;
+
 using NmsDotnet.Database.vo;
 
 namespace WPF.JoshSmith.ServiceProviders.UI
@@ -337,6 +339,7 @@ namespace WPF.JoshSmith.ServiceProviders.UI
 
             // Get the ObservableCollection<ItemType> which contains the dropped data object.
             ObservableCollection<ItemType> itemsSource = this.listView.ItemsSource as ObservableCollection<ItemType>;
+
             if (itemsSource == null)
                 throw new Exception(
                     "A ListView managed by ListViewDragManager must have its ItemsSource set to an ObservableCollection<ItemType>.");
@@ -379,6 +382,10 @@ namespace WPF.JoshSmith.ServiceProviders.UI
                 // Move the dragged data object from it's original index to the
                 // new index (according to where the mouse cursor is).  If it was
                 // not previously in the ListBox, then insert the item.
+
+                ObservableCollection<Server> obs = new ObservableCollection<Server>((IEnumerable<Server>)itemsSource);
+                NmsInfo.GetInstance().serverListStack.Push(obs);
+
                 if (oldIndex > -1)
                 {
                     var temp = itemsSource[newIndex];

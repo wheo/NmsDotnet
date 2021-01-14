@@ -78,16 +78,23 @@ namespace NmsDotnet
 
         private void BtnLogin_Click(object sender, RoutedEventArgs e)
         {
-            if (Login.GetInstance().LoginCheck(LoginID.Text, LoginPW.Password))
+            try
             {
-                NmsMainWindow nmsMainWindow = new NmsMainWindow(LoginID.Text, 1280, 1024);
-                nmsMainWindow.Show();
-                this.Close();
+                if (Login.GetInstance().LoginCheck(LoginID.Text, LoginPW.Password))
+                {
+                    NmsMainWindow nmsMainWindow = new NmsMainWindow(LoginID.Text, 1280, 1024);
+                    nmsMainWindow.Show();
+                    this.Close();
+                }
+                else
+                {
+                    MessageBox.Show("아이디와 비밀번호를 확인해주세요");
+                    logger.Info(String.Format("login failed, ({0}, |{1}|)", LoginID.Text, LoginPW.Password));
+                }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("아이디와 비밀번호를 확인해주세요");
-                logger.Info(String.Format("login failed, ({0}, |{1}|)", LoginID.Text, LoginPW.Password));
+                MessageBox.Show(ex.Message);
             }
         }
 

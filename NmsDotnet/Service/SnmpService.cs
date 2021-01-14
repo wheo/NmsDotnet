@@ -20,11 +20,14 @@ namespace NmsDotnet.Service
 
         public static string _MyConnectionOid = "1.3.6.1.4.1.27338";
 
+        public static string _SysUptime = "1.3.6.1.2.1.1.3.0";
+
         public static string _CM5000UnitName_oid = "1.3.6.1.4.1.27338.4.2.1.0";
         public static string _DR5000UnitName_oid = "1.3.6.1.4.1.27338.5.2.1.0";
 
         public static string _DR5000ModelName_oid = "1.3.6.1.4.1.27338.5.2.2.0";
         public static string _CM5000ModelName_oid = "1.3.6.1.4.1.27338.4.2.2.0";
+        public static string _TITANLiveModelName_oid = "1.3.6.1.2.1.1.5.0";
 
         public static string _DR5000ServicePid_oid = "1.3.6.1.4.1.27338.5.3.2.3.2.1.0";
         public static string _DR5000VideoOutputId_oid = "1.3.6.1.4.1.27338.5.3.2.3.3.1.0";
@@ -139,6 +142,9 @@ namespace NmsDotnet.Service
             pdu.VbList.Add("1.3.6.1.2.1.1.4.0"); //sysContact
             pdu.VbList.Add("1.3.6.1.2.1.1.5.0"); //sysName
             */
+
+            pdu.VbList.Add(_SysUptime);
+
             if (string.IsNullOrEmpty(s.ModelName))
             {
                 return false;
@@ -187,6 +193,10 @@ namespace NmsDotnet.Service
                             if (result.Pdu.VbList[i].Value.ToString().Equals("SNMP No-Such-Object"))
                             {
                                 continue;
+                            }
+                            else if (result.Pdu.VbList[i].Oid.Equals(_SysUptime))
+                            {
+                                s.Uptime = result.Pdu.VbList[i].Value.ToString();
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_DR5000UnitName_oid))
                             {
@@ -283,8 +293,10 @@ namespace NmsDotnet.Service
             */
             // _oid : 장비 이름
 
+            pdu.VbList.Add(_SysUptime);
             pdu.VbList.Add(_DR5000ModelName_oid);
             pdu.VbList.Add(_CM5000ModelName_oid);
+            pdu.VbList.Add(_TITANLiveModelName_oid);
 
             if (type == 1)
             {
@@ -317,12 +329,18 @@ namespace NmsDotnet.Service
                                 SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type),
                                 result.Pdu.VbList[i].Value.ToString(), s.Ip);
 
-                            if (result.Pdu.VbList[i].Value.ToString().Equals("SNMP No-Such-Object"))
+                            if (result.Pdu.VbList[i].Value.ToString().Equals("SNMP No-Such-Object") ||
+                                string.IsNullOrEmpty(result.Pdu.VbList[i].Value.ToString()))
                             {
                                 continue;
                             }
+                            else if (result.Pdu.VbList[i].Oid.Equals(_SysUptime))
+                            {
+                                s.Uptime = result.Pdu.VbList[i].Value.ToString();
+                            }
                             else if (result.Pdu.VbList[i].Oid.Equals(_CM5000ModelName_oid) ||
-                                result.Pdu.VbList[i].Oid.Equals(_DR5000ModelName_oid))
+                                result.Pdu.VbList[i].Oid.Equals(_DR5000ModelName_oid) ||
+                                result.Pdu.VbList[i].Oid.Equals(_TITANLiveModelName_oid))
                             {
                                 s.ModelName = result.Pdu.VbList[i].Value.ToString();
                             }
@@ -351,6 +369,7 @@ namespace NmsDotnet.Service
                 logger.Error(String.Format("Ip : {0}", s.Ip));
                 //Debug.WriteLine(e.ToString());
             }
+
             return false;
         }
     }

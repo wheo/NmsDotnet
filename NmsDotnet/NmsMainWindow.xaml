@@ -316,7 +316,8 @@
                                     ScrollViewer.CanContentScroll="True"
                                       ScrollViewer.IsDeferredScrollingEnabled="True"
                                       ScrollViewer.VerticalScrollBarVisibility="Visible"
-                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                          MouseDoubleClick="ServerSettings_MouseDoubleClick">
                                     <ListView.Resources>
                                         <DataTemplate x:Key="myCellTemplateEdit">
                                             <StackPanel Orientation="Horizontal">
@@ -463,6 +464,18 @@
                         <TextBlock Text="장비정보" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
                     </StackPanel>
                 </Button>
+                <Button x:Name="BtnScreenLock" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="BtnScreenLock_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="Lock" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBlock Text="화면잠금" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
+                    </StackPanel>
+                </Button>
+                <Button x:Name="BtnRevert" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="BtnRevert_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="StepBackward" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBlock Text="위치되돌리기" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Grid>
 
@@ -512,6 +525,7 @@
                     <MenuItem Header="장비 추가" Click="MenuServerAdd_Click" />
                 </ContextMenu>
             </StackPanel.ContextMenu>
+
             <ProgressBar x:Name="PbMainLoading" Visibility="Visible"
                                  Style="{DynamicResource MaterialDesignCircularProgressBar}"
                                  Width="80" Height="80"
@@ -545,7 +559,8 @@
                                     <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="14" />
                                     <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
                                     <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Message}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
-                                    <!--<TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Status}" FontSize="14" Foreground="{Binding Color}" />-->
+                                    <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
+                                    <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Uptime}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
                                 </StackPanel>
                             </Border.ToolTip>
                             <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">
@@ -597,9 +612,29 @@
                                     <Ellipse
                                         Width="10"
                                         Height="10"
-                                        Fill="Black"
+                                        Fill="White"
                                         Margin="5,0" />
-                                    <TextBlock Foreground="Black" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
+                                    <TextBlock Foreground="White" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                            <DataTemplate x:Key="myCellTemplateStartAt">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Foreground="White" HorizontalAlignment="Center" Text="{Binding StartAt}"></TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                            <DataTemplate x:Key="myCellTemplateName">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Foreground="White" HorizontalAlignment="Center" Text="{Binding Name}"></TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                            <DataTemplate x:Key="myCellTemplateIp">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Foreground="White" HorizontalAlignment="Center" Text="{Binding Ip}"></TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                            <DataTemplate x:Key="myCellTemplateValue">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Foreground="White" HorizontalAlignment="Center" Text="{Binding Value}"></TextBlock>
                                 </StackPanel>
                             </DataTemplate>
                         </ListView.Resources>
@@ -614,17 +649,62 @@
 
                         <ListView.View>
                             <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
-                                <GridViewColumn Header="Start at" Width="150" DisplayMemberBinding="{Binding StartAt}" />
+                                <GridViewColumn Header="Start at" Width="150" CellTemplate="{StaticResource myCellTemplateStartAt}" />
                                 <GridViewColumn Header="End at" Width="150" DisplayMemberBinding="{Binding EndAt}" />
-                                <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}" />
-                                <GridViewColumn Header="IP address" Width="130" DisplayMemberBinding="{Binding Ip}" />
+                                <GridViewColumn Header="Name" Width="150" CellTemplate="{StaticResource myCellTemplateName}" />
+                                <GridViewColumn Header="IP address" Width="130" CellTemplate="{StaticResource myCellTemplateIp}" />
                                 <GridViewColumn Header="Level" Width="120" CellTemplate="{StaticResource myCellTemplateLevel}" />
-                                <GridViewColumn Header="Value" Width="500" DisplayMemberBinding="{Binding Value}" />
+                                <GridViewColumn Header="Value" Width="500" CellTemplate="{StaticResource myCellTemplateValue}" />
                             </GridView>
                         </ListView.View>
                     </ListView>
                 </TabItem>
                 <TabItem Header="히스토리 알람" x:Name="TabLogHistory">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="30" />
+                        </Grid.RowDefinitions>
+                        <ListView Grid.Row="0" x:Name="LvHistory" ItemsSource="{Binding Logs}"
+                                          ScrollViewer.CanContentScroll="True"
+                                          ScrollViewer.IsDeferredScrollingEnabled="True"
+                                          ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListView.Resources>
+                                <ContextMenu x:Key="ItemContextMenu">
+                                    <MenuItem Header="숨기기" Click="MenuItem_LogHide_Click" />
+                                </ContextMenu>
+                                <DataTemplate x:Key="myCellTemplateLevel">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Ellipse
+                                                Width="10"
+                                                Height="10"
+                                                Fill="{Binding Color}" Margin="5,0" />
+                                        <TextBlock Foreground="{Binding Color}" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListView.Resources>
+                            <ListView.ItemContainerStyle>
+                                <Style TargetType="{x:Type ListViewItem}">
+                                    <EventSetter Event="PreviewMouseRightButtonDown" Handler="ListViewItem_PreviewMouseRightButtonDown" />
+                                    <EventSetter Event="PreviewMouseDoubleClick" Handler="ListViewItem_PreviewMouseDoubleClick" />
+                                </Style>
+                            </ListView.ItemContainerStyle>
+
+                            <ListView.View>
+                                <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
+                                    <GridViewColumn Header="Start at" Width="150" DisplayMemberBinding="{Binding StartAt}" />
+                                    <GridViewColumn Header="End at" Width="150" DisplayMemberBinding="{Binding EndAt}" />
+                                    <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}" />
+                                    <GridViewColumn Header="IP address" Width="130" DisplayMemberBinding="{Binding Ip}" />
+                                    <GridViewColumn Header="Level" Width="120" CellTemplate="{StaticResource myCellTemplateLevel}" />
+                                    <GridViewColumn Header="Value" Width="500" DisplayMemberBinding="{Binding Value}" />
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="알람 조회" x:Name="TabLogSearch">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*" />
@@ -641,8 +721,8 @@
                                         <Ellipse
                                                 Width="10"
                                                 Height="10"
-                                                Fill="{Binding Color}" Margin="5,0" />
-                                        <TextBlock Foreground="{Binding Color}" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
+                                                Fill="White" Margin="5,0" />
+                                        <TextBlock Foreground="White" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListView.Resources>

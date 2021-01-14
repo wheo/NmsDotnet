@@ -4,8 +4,6 @@ using Microsoft.Win32;
 using NmsDotnet.Database.vo;
 using NmsDotnet.lib;
 
-using NmsDotnet.Database.vo;
-
 using NmsDotnet.Service;
 using NmsDotnet.vo;
 using SnmpSharpNet;
@@ -29,6 +27,9 @@ using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NAudio.Wave;
+using System.Windows.Media.Imaging;
+using System.Drawing;
+using Image = System.Windows.Controls.Image;
 
 namespace NmsDotnet
 {
@@ -81,6 +82,34 @@ namespace NmsDotnet
         {
             logger.Info("NMS Main windows is closing");
             _shouldStop = true;
+        }
+
+        public static BitmapSource CreateImage(string text, double width, double heigth)
+        {
+            // create WPF control
+            var size = new System.Windows.Size(width, heigth);
+
+            var stackPanel = new StackPanel();
+
+            var header = new TextBlock();
+            header.Text = "Header";
+            header.FontWeight = FontWeights.Bold;
+
+            var content = new TextBlock();
+            content.TextWrapping = TextWrapping.Wrap;
+            content.Text = text;
+
+            stackPanel.Children.Add(header);
+            stackPanel.Children.Add(content);
+
+            // process layouting
+            stackPanel.Measure(size);
+            stackPanel.Arrange(new Rect(size));
+
+            // Render control to an image
+            RenderTargetBitmap rtb = new RenderTargetBitmap((int)stackPanel.ActualWidth, (int)stackPanel.ActualHeight, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(stackPanel);
+            return rtb;
         }
 
         private void ToolTipGlobalOption()
@@ -187,9 +216,16 @@ namespace NmsDotnet
         private void LogInit()
         {
             // 최초 실행시에 최근로그를 한번만 가져옴
-            NmsInfo.GetInstance().activeLog = new ObservableCollection<LogItem>(LogItem.GetLog());
+            List<LogItem> currentLog = LogItem.GetLog();
+            NmsInfo.GetInstance().activeLog = new ObservableCollection<LogItem>(currentLog);
             //LvLog.ItemsSource = null;
             LvActiveLog.ItemsSource = NmsInfo.GetInstance().activeLog;
+
+            List<LogItem> historyLog = LogItem.GetLog(true);
+
+            NmsInfo.GetInstance().historyLog = new NmsInfo.LimitedSizeObservableCollection<LogItem>(historyLog, 1000);
+
+            LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
         }
 
         private void ServerDispatcherTimer()
@@ -201,6 +237,7 @@ namespace NmsDotnet
 
             ObservableCollection<Server> ocs = new ObservableCollection<Server>(Server.GetServerList());
             NmsInfo.GetInstance().serverList = new ObservableCollection<Server>();
+            NmsInfo.GetInstance().serverListStack = new Stack<ObservableCollection<Server>>(10);
 
             int currentIdx = 0;
 
@@ -264,7 +301,7 @@ namespace NmsDotnet
             }
             foreach (Server server in NmsInfo.GetInstance().serverList)
             {
-                string serviceOID = null;
+                //string serviceOID = null;
 
                 try
                 {
@@ -274,6 +311,7 @@ namespace NmsDotnet
 
                         if (!string.IsNullOrEmpty(server.ModelName))
                         {
+                            /*
                             if ("CM5000".Equals(server.ModelName))
                             {
                                 serviceOID = SnmpService._CM5000ModelName_oid;
@@ -282,6 +320,7 @@ namespace NmsDotnet
                             {
                                 serviceOID = SnmpService._DR5000ModelName_oid;
                             }
+                            */
                             if (server.IsConnect != Server.EnumIsConnect.Connect)
                             {
                                 if (server.IsConnect != Server.EnumIsConnect.Init)
@@ -399,44 +438,6 @@ namespace NmsDotnet
                     logger.Error(ex.ToString());
                 }
             }
-            /*
-             *
-
-            if (drawItem)
-            {
-                //ServerListItem.Items.Refresh();
-                //TreeGroup.Items.Refresh();
-            }
-
-            if (drawItem)
-            {
-                if (ServerListItem.Dispatcher.CheckAccess())
-                {
-                    //ServerListItem.ItemsSource = null;
-                    //ServerListItem.ItemsSource = Server.GetServerList();
-                    //ServerListItem.ItemsSource = _serverList;
-                }
-                else
-                {
-                    ServerListItem.Dispatcher.Invoke(() =>
-                    {
-                        //ServerListItem.ItemsSource = null;
-                        //ServerListItem.ItemsSource = Server.GetServerList();
-                        //ServerListItem.ItemsSource = _serverList;
-                    });
-                }
-
-                if (LvLog.Dispatcher.CheckAccess())
-                {
-                    _logCount = GetLog();
-                }
-                // UI스레드와 동일 스레드라서 AccessCheck를 할 필요가 없다
-                else
-                {
-                    LvLog.Dispatcher.Invoke(() => { _logCount = GetLog(); });
-                }
-            }
-            */
         }
 
         private LogItem FindConnectionFailItem(ObservableCollection<LogItem> ocl, string Ip)
@@ -477,11 +478,29 @@ namespace NmsDotnet
             return items.ToList();
         }
 
+        private List<LogItem> FindItemFromValue(ObservableCollection<LogItem> ocl, Server s, string value)
+        {
+            IEnumerable<LogItem> items =
+                from x in ocl
+                where x.Value == value && x.Ip == s.Ip
+                select x;
+            return items.ToList();
+        }
+
         private List<LogItem> FindItemDuplicateTrap(ObservableCollection<LogItem> ocl, Server s, string oid)
         {
             IEnumerable<LogItem> items =
                 from x in ocl
                 where x.Oid == oid && x.Ip == s.Ip && x.TypeValue == "begin"
+                select x;
+            return items.ToList();
+        }
+
+        private List<LogItem> FindItemDuplicateTitanTrap(ObservableCollection<LogItem> ocl, Server s, string value)
+        {
+            IEnumerable<LogItem> items =
+                from x in ocl
+                where x.Value == value && x.Ip == s.Ip && x.TypeValue == "begin"
                 select x;
             return items.ToList();
         }
@@ -776,9 +795,38 @@ namespace NmsDotnet
             _snmpGetTimer.Start();
         }
 
+        private void LoggingDisplay(LogItem log, string type)
+        {
+            if (type.Equals("begin"))
+            {
+                if (LvActiveLog.Dispatcher.CheckAccess())
+                {
+                    NmsInfo.GetInstance().activeLog.Insert(0, log);
+                }
+                else
+                {
+                    LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, log); });
+                }
+            }
+            else if (type.Equals("end"))
+            {
+                if (LvActiveLog.Dispatcher.CheckAccess())
+                {
+                    NmsInfo.GetInstance().activeLog.Remove(log);
+                }
+                else
+                {
+                    LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(log); });
+                }
+            }
+        }
+
         private void TrapListener()
         {
             logger.Info("TrapListener is created");
+
+            //Titan Live alarm Oid is only one
+            const string TitanLiveAlarmOid = "1.3.6.1.4.1.27338.40.5";
 
             // Construct a socket and bind it to the trap manager port 162
             Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
@@ -828,9 +876,9 @@ namespace NmsDotnet
                         logger.Info("*** VarBind content:");
                         foreach (Vb v in pkt.Pdu.VbList)
                         {
-                            Debug.WriteLine("**** {0} {1}: {2}", v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString());
+                            logger.Info(string.Format("**** {0} {1}: {2}", v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString()));
                         }
-                        Debug.WriteLine("** End of SNMP Version 1 TRAP data.");
+                        logger.Info("** End of SNMP Version 1 TRAP data.");
                     }
                     else
                     {
@@ -841,7 +889,7 @@ namespace NmsDotnet
                         logger.Info(string.Format("** SNMP Version 2 TRAP received from {0}:", inep.ToString()));
                         if ((SnmpSharpNet.PduType)pkt.Pdu.Type != PduType.V2Trap)
                         {
-                            Debug.WriteLine("*** NOT an SNMPv2 trap ****");
+                            logger.Info("*** NOT an SNMPv2 trap ****");
                         }
                         else
                         {
@@ -860,38 +908,79 @@ namespace NmsDotnet
                                 snmp.type = "trap";
 
                                 logger.Info("Oid : " + v.Oid.ToString());
+                                logger.Info("value : " + v.Value.ToString());
 
-                                string value = Snmp.GetNameFromOid(v.Oid.ToString());
-                                logger.Info("value : " + value);
+                                if (snmp.Id.Contains(TitanLiveAlarmOid))
+                                {
+                                    string TitanLiveTrapType = snmp.Id.Split('.').Last();
 
-                                if (value.LastIndexOf("Level") > 0)
-                                {
-                                    snmp.LevelString = Snmp.GetLevelString(Convert.ToInt32(v.Value.ToString()), v.Oid.ToString());
-                                    logger.Info("LevelString : " + snmp.LevelString);
-                                }
-                                else if (value.LastIndexOf("Type") > 0)
-                                {
-                                    snmp.TranslateValue = Snmp.GetTranslateValue(value);
-                                    snmp.TypeValue = Enum.GetName(typeof(Snmp.TrapType), Convert.ToInt32(v.Value.ToString()));
-                                    snmp.Oid = v.Oid.ToString();
-                                }
-                                else if (value.LastIndexOf("Channel") > 0)
-                                {
-                                    snmp.Channel = Convert.ToInt32(v.Value.ToString()) + 1; //0받으면 채널 1로
-                                }
-                                else if (value.LastIndexOf("Main") > 0)
-                                {
-                                    snmp.Main = Enum.GetName(typeof(Snmp.EnumMain), Convert.ToInt32(v.Value.ToString()));
-                                }
+                                    if (TitanLiveTrapType == "9")
+                                    {
+                                        string levelString = v.Value.ToString();
+                                        if (levelString.Equals("major"))
+                                        {
+                                            levelString = "warning";
+                                        }
+                                        else if (levelString.Equals("minor"))
+                                        {
+                                            levelString = "warning";
+                                        }
 
-                                //데이터베이스 테이블을 만들기 위해 등록함(로그는 translate 테이블을 이용하자)
-                                Snmp.RegisterSnmpInfo(snmp);
+                                        snmp.LevelString = levelString.First().ToString().ToUpper() + levelString.ToString().Substring(1);
+                                        logger.Info("TitanLevelString : " + snmp.LevelString);
+                                    }
+                                    else if (TitanLiveTrapType == "7")
+                                    {
+                                        if (v.Value.ToString() == "start")
+                                        {
+                                            snmp.TypeValue = "begin";
+                                        }
+                                        else
+                                        {
+                                            snmp.TypeValue = v.Value.ToString();
+                                        }
+                                        //일부러 oid 넣지 않고 oid가 null일 경우를 titan으로 간주함
+                                        //snmp.Oid = v.Oid.ToString();
+                                    }
+                                    else if (TitanLiveTrapType == "4")
+                                    {
+                                        snmp.TranslateValue = v.Value.ToString();
+                                    }
+                                }
+                                else
+                                {
+                                    string value = Snmp.GetNameFromOid(v.Oid.ToString());
+                                    logger.Info("value : " + value);
 
-                                logger.Info(String.Format("[{0}] Trap : {1} {2}: {3}", inep.ToString().Split(':')[0], v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString()));
+                                    if (value.LastIndexOf("Level") > 0)
+                                    {
+                                        snmp.LevelString = Snmp.GetLevelString(Convert.ToInt32(v.Value.ToString()), v.Oid.ToString());
+                                        logger.Info("LevelString : " + snmp.LevelString);
+                                    }
+                                    else if (value.LastIndexOf("Type") > 0)
+                                    {
+                                        snmp.TranslateValue = Snmp.GetTranslateValue(value);
+                                        snmp.TypeValue = Enum.GetName(typeof(Snmp.TrapType), Convert.ToInt32(v.Value.ToString()));
+                                        snmp.Oid = v.Oid.ToString();
+                                    }
+                                    else if (value.LastIndexOf("Channel") > 0)
+                                    {
+                                        snmp.Channel = Convert.ToInt32(v.Value.ToString()) + 1; //0받으면 채널 1로
+                                    }
+                                    else if (value.LastIndexOf("Main") > 0)
+                                    {
+                                        snmp.Main = Enum.GetName(typeof(Snmp.EnumMain), Convert.ToInt32(v.Value.ToString()));
+                                    }
+
+                                    //데이터베이스 테이블을 만들기 위해 등록함(로그는 translate 테이블을 이용하자)
+                                    Snmp.RegisterSnmpInfo(snmp);
+
+                                    logger.Info(String.Format("[{0}] Trap : {1} {2}: {3}", inep.ToString().Split(':')[0], v.Oid.ToString(), SnmpConstants.GetTypeName(v.Value.Type), v.Value.ToString()));
+                                }
                             }
 
                             // trap이 활성화 되어있을 경우만 기록
-                            if (Snmp.IsEnableTrap(snmp.Oid))
+                            if (Snmp.IsEnableTrap(snmp.Oid) || snmp.Id.Contains(TitanLiveAlarmOid))
                             {
                                 if (!String.IsNullOrEmpty(snmp.LevelString))
                                 {
@@ -912,7 +1001,8 @@ namespace NmsDotnet
 
                                     if (string.Equals(snmp.TypeValue, "begin"))
                                     {
-                                        if (FindItemDuplicateTrap(NmsInfo.GetInstance().activeLog, s, snmp.Oid).Count == 0)
+                                        if (FindItemDuplicateTrap(NmsInfo.GetInstance().activeLog, s, snmp.Oid).Count == 0 ||
+                                            FindItemDuplicateTitanTrap(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue).Count == 0)
                                         {
                                             s.ErrorCount++;
                                             s.Message = snmp.TranslateValue;
@@ -928,31 +1018,25 @@ namespace NmsDotnet
                                                 TypeValue = "begin"
                                             };
 
-                                            if (LvActiveLog.Dispatcher.CheckAccess())
-                                            {
-                                                NmsInfo.GetInstance().activeLog.Insert(0, log);
-                                            }
-                                            else
-                                            {
-                                                LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, log); });
-                                            }
+                                            LoggingDisplay(log, snmp.TypeValue);
                                         }
                                     }
                                     else if (string.Equals(snmp.TypeValue, "end"))
                                     {
-                                        List<LogItem> items = FindItemFromOid(NmsInfo.GetInstance().activeLog, s, snmp.Oid);
+                                        List<LogItem> items;
+                                        if (!string.IsNullOrEmpty(snmp.Oid))
+                                        {
+                                            items = FindItemFromOid(NmsInfo.GetInstance().activeLog, s, snmp.Oid);
+                                        }
+                                        else
+                                        {
+                                            items = FindItemFromValue(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue);
+                                        }
                                         if (items.Count > 0)
                                         {
                                             foreach (var item in items)
                                             {
-                                                if (LvActiveLog.Dispatcher.CheckAccess())
-                                                {
-                                                    NmsInfo.GetInstance().activeLog.Remove(item);
-                                                }
-                                                else
-                                                {
-                                                    LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
-                                                }
+                                                LoggingDisplay(item, snmp.TypeValue);
                                                 if (s.ErrorCount > 0)
                                                 {
                                                     s.ErrorCount--;
@@ -1178,8 +1262,8 @@ namespace NmsDotnet
         {
             this.IsEnabled = false;
 
-            NmsInfo.GetInstance().logHistory = new ObservableCollection<LogItem>(LogItem.GetLog());
-            var result = await DialogHost.Show(NmsInfo.GetInstance().logHistory, "DialogLogViewInfo");
+            NmsInfo.GetInstance().logSearch = new ObservableCollection<LogItem>(LogItem.GetLog());
+            var result = await DialogHost.Show(NmsInfo.GetInstance().logSearch, "DialogLogViewInfo");
         }
 
         private void BtnDialogLogSumit_Click(object sender, RoutedEventArgs e)
@@ -1201,9 +1285,9 @@ namespace NmsDotnet
                 DpDayTo.Text = Convert.ToDateTime(DpDayTo.Text).AddDays(1).ToString("yyyy-MM-dd");
             }
 
-            NmsInfo.GetInstance().logHistory = new ObservableCollection<LogItem>(LogItem.GetLog(DpDayFrom.Text, DpDayTo.Text));
+            NmsInfo.GetInstance().logSearch = new ObservableCollection<LogItem>(LogItem.GetLog(DpDayFrom.Text, DpDayTo.Text));
             ListView lvDialog = (ListView)FindElemetByName(e, "DialogLvLog");
-            lvDialog.ItemsSource = NmsInfo.GetInstance().logHistory;
+            lvDialog.ItemsSource = NmsInfo.GetInstance().logSearch;
         }
 
         private void ClosingLogViewDialogEventHandler(object sender, DialogClosingEventArgs eventArgs)
@@ -1240,7 +1324,7 @@ namespace NmsDotnet
 
             saveFileDialog.FileName = DateTime.Now.ToString("yyyy-MM-dd");
             //csvString = LogItem.MakeCsvFile(LogItem.GetLog());
-            csvString = LogItem.MakeCsvFile(NmsInfo.GetInstance().logHistory);
+            csvString = LogItem.MakeCsvFile(NmsInfo.GetInstance().logSearch);
 
             try
             {
@@ -1265,6 +1349,9 @@ namespace NmsDotnet
             {
                 LogItem.HideLogAlarm(_currentSelectedItem.idx);
                 NmsInfo.GetInstance().activeLog.Remove(_currentSelectedItem);
+
+                //일단 뺌
+                //NmsInfo.GetInstance().historyLog.Remove(_currentSelectedItem);
             }
         }
 
@@ -1514,6 +1601,44 @@ namespace NmsDotnet
                 {
                     System.Diagnostics.Process.Start(String.Format($"{uri}{Ip}"));
                 }
+            }
+        }
+
+        private void ServerSettings_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            string uri = "http://";
+            ListView lv = sender as ListView;
+            Server server = (Server)lv.SelectedItem;
+            if (!string.IsNullOrEmpty(server.Ip))
+            {
+                System.Diagnostics.Process.Start(String.Format($"{uri}{server.Ip}"));
+            }
+        }
+
+        private void BtnScreenLock_Click(object sender, RoutedEventArgs e)
+        {
+            if (ServerListItem.IsEnabled)
+            {
+                MessageBox.Show("잠금 되었습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show("활성화 되었습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            ServerListItem.IsEnabled = !ServerListItem.IsEnabled;
+        }
+
+        private void BtnRevert_Click(object sender, RoutedEventArgs e)
+        {
+            if (NmsInfo.GetInstance().serverListStack.Count > 0)
+            {
+                NmsInfo.GetInstance().serverList = NmsInfo.GetInstance().serverListStack.Pop();
+                ServerListItem.ItemsSource = null;
+                ServerListItem.ItemsSource = NmsInfo.GetInstance().serverList;
+            }
+            else
+            {
+                MessageBox.Show("더 이상 되돌릴 수 없습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
     }

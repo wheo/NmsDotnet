@@ -34,6 +34,9 @@ namespace NmsDotnet.Database.vo
         [JsonIgnore]
         private string _Color;
 
+        [JsonIgnore]
+        public string Uptime { get; set; }
+
         public string Id { get; set; }
         public string Ip { get; set; }
 
@@ -76,9 +79,6 @@ namespace NmsDotnet.Database.vo
         public ObservableCollection<Group> Groups { get; set; }
 
         public string GroupName { get; set; }
-
-        [JsonIgnore]
-        public DateTime Uptime { get; set; }
 
         [JsonIgnore]
         public string Version { get; set; }
@@ -132,9 +132,13 @@ namespace NmsDotnet.Database.vo
                     {
                         HeaderType = 'E'; //CM5000 to 'E'ncoder
                     }
-                    else
+                    else if (value[0] == 'D')
                     {
-                        HeaderType = value[0];
+                        HeaderType = 'D'; //DR5000 to 'D'ecoder
+                    }
+                    else if (value[0] == 'T')
+                    {
+                        HeaderType = 'U'; // Titan Live to 'U'HD encoder
                     }
                 }
                 _Type = value;

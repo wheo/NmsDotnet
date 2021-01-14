@@ -138,11 +138,20 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
                 else if (trap.TypeValue == "end")
                 {
                     conn.Open();
-                    string query = "UPDATE log set end_at = current_timestamp() WHERE ip = @ip AND oid = @oid AND snmp_type_value = 'begin'";
+                    string query = null;
+                    if (!string.IsNullOrEmpty(trap.Oid))
+                    {
+                        query = "UPDATE log set end_at = current_timestamp() WHERE ip = @ip AND oid = @oid AND snmp_type_value = 'begin'";
+                    }
+                    else
+                    {
+                        query = "UPDATE log set end_at = current_timestamp() WHERE ip = @ip AND value = @value AND snmp_type_value = 'begin' ORDER BY idx DESC LIMIT 1";
+                    }
                     MySqlCommand cmd = new MySqlCommand(query, conn);
                     cmd = new MySqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@ip", trap.IP);
                     cmd.Parameters.AddWithValue("@oid", trap.Oid);
+                    cmd.Parameters.AddWithValue("@value", trap.TranslateValue);
 
                     cmd.Prepare();
                     ret = cmd.ExecuteNonQuery();
@@ -188,12 +197,25 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
             return GetLog("");
         }
 
-        public static List<LogItem> GetLog(string dayFrom = null, string dayTo = null)
+        public static List<LogItem> GetLog(bool isHistory)
+        {
+            return GetLog(null, null, isHistory);
+        }
+
+        public static List<LogItem> GetLog(string dayFrom = null, string dayTo = null, bool isHistory = false)
         {
             string option_query = null;
             string date_query = null;
             string order_query = "ASC";
-            string is_active = "AND end_at is NULL";
+            string is_active = "";
+            if (!isHistory)
+            {
+                is_active = "AND end_at is NULL";
+            }
+            else
+            {
+                is_active = "";
+            }
 
             if (!string.IsNullOrEmpty(dayFrom) && !string.IsNullOrEmpty(dayTo))
             {
