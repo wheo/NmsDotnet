@@ -31,6 +31,16 @@
             pack://application:,,,/Asset/Fonts/#Noto Sans CJK KR Black
         </FontFamily>
 
+        <Style x:Key="BorderVisibleOnMouse" TargetType="Border">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Style.Triggers>
+                <Trigger Property="Border.IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="LightBlue"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="ServerInfoStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="{StaticResource NotoSans-Regular}" />
             <Setter Property="FontSize" Value="14" />
@@ -476,6 +486,12 @@
                         <TextBlock Text="위치되돌리기" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
                     </StackPanel>
                 </Button>
+                <Button x:Name="BtnAddPanel" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="BtnAddPanel_Click">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="AddBox" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBlock Text="패널추가" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
+                    </StackPanel>
+                </Button>
             </StackPanel>
         </Grid>
 
@@ -518,82 +534,83 @@
 
         <GridSplitter Grid.Row="1" Grid.Column ="1" Background="Silver" Width="2" ShowsPreview="False"
                 HorizontalAlignment="Center" VerticalAlignment="Stretch" />
+        <Canvas Grid.Row="1" Grid.Column="2">
+            <StackPanel>
+                <StackPanel.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="장비 추가" Click="MenuServerAdd_Click" />
+                    </ContextMenu>
+                </StackPanel.ContextMenu>
 
-        <StackPanel Grid.Row="1" Grid.Column="2">
-            <StackPanel.ContextMenu>
-                <ContextMenu>
-                    <MenuItem Header="장비 추가" Click="MenuServerAdd_Click" />
-                </ContextMenu>
-            </StackPanel.ContextMenu>
-
-            <ProgressBar x:Name="PbMainLoading" Visibility="Visible"
-                                 Style="{DynamicResource MaterialDesignCircularProgressBar}"
-                                 Width="80" Height="80"
-                                 Margin="16"
-                                 IsIndeterminate="True"
-                                 Value="0" />
-            <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed"
-                          MouseDoubleClick="ServerList_MouseDoubleClick"
-                          MouseRightButtonDown="ServerList_MouseRightButtonDown">
-                <ListView.ItemContainerStyle>
-                    <Style TargetType="{x:Type ListViewItem}">
-                        <Setter Property="Background" Value="Transparent" />
-                    </Style>
-                </ListView.ItemContainerStyle>
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Border Margin="0" Padding="0" Width="24" Height="24" BorderThickness="0" BorderBrush="Transparent" AllowDrop="True">
-                            <Border.ContextMenu>
-                                <ContextMenu ItemsSource="{Binding MenuItems, UpdateSourceTrigger=PropertyChanged}">
-                                    <!--
-                                    <MenuItem Header="장비 수정" Click="MenuServerEdit_Click" />
-                                    <MenuItem Header="장비 삭제" Click="MenuServerDel_Click" />
-                                    -->
-                                </ContextMenu>
-                            </Border.ContextMenu>
-                            <Border.ToolTip>
-                                <StackPanel Background="{Binding Color}">
-                                    <TextBlock Margin="10,5" HorizontalAlignment="Center" Text="{Binding Ip}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="16" />
-                                    <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
-                                    <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding GroupName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" />
-                                    <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="14" />
-                                    <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
-                                    <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Message}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
-                                    <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
-                                    <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Uptime}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
-                                </StackPanel>
-                            </Border.ToolTip>
-                            <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">
-                                <TextBlock Text="{Binding HeaderType, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ServerInfoStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" />
-                            </StackPanel>
-                            <!--
-                                    <StackPanel>
-                                        <Border Width="14" Height="14" CornerRadius="5" Margin="0">
-                                            <Border.Effect>
-                                                <DropShadowEffect ShadowDepth="1" />
-                                            </Border.Effect>
-
-                                            <Border.Background>
-                                                <ImageBrush ImageSource="{Binding Image}" />
-                                            </Border.Background>
-                                        </Border>
-
-                                        <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Ip}" FontSize="10" />
-                                        <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding GroupName}" FontSize="10" />
-                                        <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Name}" FontSize="8" />
+                <ProgressBar x:Name="PbMainLoading" Visibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                Style="{DynamicResource MaterialDesignCircularProgressBar}"
+                                Width="80" Height="80"
+                                Margin="16"
+                                IsIndeterminate="True"
+                                Value="0" />
+                <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed"
+                        MouseDoubleClick="ServerList_MouseDoubleClick" BorderThickness="10" BorderBrush="Red"
+                        MouseRightButtonDown="ServerList_MouseRightButtonDown">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="{x:Type ListViewItem}">
+                            <Setter Property="Background" Value="Transparent" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Margin="0" Padding="0" Width="24" Height="24" BorderThickness="0" BorderBrush="Transparent" AllowDrop="True">
+                                <Border.ContextMenu>
+                                    <ContextMenu ItemsSource="{Binding MenuItems, UpdateSourceTrigger=PropertyChanged}">
+                                        <!--
+                                <MenuItem Header="장비 수정" Click="MenuServerEdit_Click" />
+                                <MenuItem Header="장비 삭제" Click="MenuServerDel_Click" />
+                                -->
+                                    </ContextMenu>
+                                </Border.ContextMenu>
+                                <Border.ToolTip>
+                                    <StackPanel Background="{Binding Color}">
+                                        <TextBlock Margin="10,5" HorizontalAlignment="Center" Text="{Binding Ip}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="16" />
+                                        <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
+                                        <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding GroupName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" />
+                                        <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="14" />
+                                        <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
+                                        <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Message}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
+                                        <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
+                                        <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Uptime}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
                                     </StackPanel>
-                                    -->
-                        </Border>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
+                                </Border.ToolTip>
+                                <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">
+                                    <TextBlock Text="{Binding HeaderType, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ServerInfoStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                </StackPanel>
+                                <!--
+                                <StackPanel>
+                                    <Border Width="14" Height="14" CornerRadius="5" Margin="0">
+                                        <Border.Effect>
+                                            <DropShadowEffect ShadowDepth="1" />
+                                        </Border.Effect>
 
-                <ListBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <WrapPanel Margin="0" />
-                    </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-            </ListView>
-        </StackPanel>
+                                        <Border.Background>
+                                            <ImageBrush ImageSource="{Binding Image}" />
+                                        </Border.Background>
+                                    </Border>
+
+                                    <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Ip}" FontSize="10" />
+                                    <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding GroupName}" FontSize="10" />
+                                    <TextBlock Margin="1" HorizontalAlignment="Center" Text="{Binding Name}" FontSize="8" />
+                                </StackPanel>
+                                -->
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Margin="0" />
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                </ListView>
+            </StackPanel>
+        </Canvas>
 
         <GridSplitter Grid.Row="2" Grid.Column ="0" Background="Silver" Grid.ColumnSpan="3" ShowsPreview="False" Height="2" HorizontalAlignment="Stretch" />
         <DockPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3">

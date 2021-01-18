@@ -173,6 +173,7 @@
     <Compile Include="lib\KnownFolders.cs" />
     <Compile Include="Service\SnmpService.cs" />
     <Compile Include="Utils\DragAdorner.cs" />
+    <Compile Include="Utils\InputBox.cs" />
     <Compile Include="Utils\ListViewDragDropManager.cs" />
     <Compile Include="Utils\MouseUtilities.cs" />
     <Compile Include="Utils\Util.cs" />

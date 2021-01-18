@@ -30,6 +30,7 @@ using NAudio.Wave;
 using System.Windows.Media.Imaging;
 using System.Drawing;
 using Image = System.Windows.Controls.Image;
+using NmsDotnet.Utils;
 
 namespace NmsDotnet
 {
@@ -606,11 +607,18 @@ namespace NmsDotnet
             //clear 먼저
             //DialogServer.IsOpen = true;
 
-            this.IsEnabled = false;
+            if (!ServerListItem.IsEnabled)
+            {
+                MessageBox.Show("화면 잠금일 때에는 장비를 추가할 수 없습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                this.IsEnabled = false;
 
-            Server server = new Server();
-            server.Groups = NmsInfo.GetInstance().groupList;
-            var result = await DialogHost.Show(server, "DialogServer");
+                Server server = new Server();
+                server.Groups = NmsInfo.GetInstance().groupList;
+                var result = await DialogHost.Show(server, "DialogServer");
+            }
         }
 
         private async void MenuServerEdit_Click(object sender, RoutedEventArgs e)
@@ -1639,6 +1647,24 @@ namespace NmsDotnet
             else
             {
                 MessageBox.Show("더 이상 되돌릴 수 없습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+        }
+
+        private void thumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        {
+            UIElement thumb = e.Source as UIElement;
+
+            Canvas.SetLeft(thumb, Canvas.GetLeft(thumb) + e.HorizontalChange);
+            Canvas.SetTop(thumb, Canvas.GetTop(thumb) + e.VerticalChange);
+        }
+
+        private void BtnAddPanel_Click(object sender, RoutedEventArgs e)
+        {
+            string inputRead = new InputBox("패널이름").ShowDialog();
+            if ( !string.IsNullOrEmpty(inputRead))
+            {
+                //패널 추가
+                Debug.WriteLine(inputRead);
             }
         }
     }
