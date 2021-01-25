@@ -16,7 +16,7 @@ namespace NmsDotnet.vo
     public class LogItem
     {
         public string StartAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-        public string EndAt { get; set; }
+        public string _EndAt { get; set; }
         public string Ip { get; set; }
         public string Name { get; set; }
         public string Oid { get; set; }
@@ -24,6 +24,19 @@ namespace NmsDotnet.vo
         public string _Level { get; set; }
         public int LevelPriority { get; set; }
         public string TypeValue { get; set; }
+
+        public string EndAt
+        {
+            get
+            {
+                return _EndAt;
+            }
+            set
+            {
+                _EndAt = value;
+                OnPropertyChanged(new PropertyChangedEventArgs("EndAt"));
+            }
+        }
 
         public string Level
         {
@@ -59,6 +72,16 @@ namespace NmsDotnet.vo
 
         public string Color { get; set; }
         public string Value { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged = delegate { };
+
+        public void OnPropertyChanged(PropertyChangedEventArgs e)
+        {
+            if (PropertyChanged != null)
+            {
+                PropertyChanged(this, e);
+            }
+        }
 
         //deprecated
         //public string IsConfirm { get; set; }
@@ -113,7 +136,7 @@ namespace NmsDotnet.vo
                 if (trap.TypeValue == "begin")
                 {
                     string query = string.Format(@"INSERT INTO log (client_ip, ip, port, community, level, oid, value, snmp_type_value)
-VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_value) ON DUPLICATE KEY UPDATE client_ip = @client_ip");
+VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_value) "); //ON DUPLICATE KEY UPDATE client_ip = @client_ip
                     conn.Open();
                     MySqlCommand cmd = new MySqlCommand(query, conn);
                     cmd.Parameters.AddWithValue("@client_ip", trap._LocalIP);

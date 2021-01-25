@@ -32,11 +32,11 @@
         </FontFamily>
 
         <Style x:Key="BorderVisibleOnMouse" TargetType="Border">
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="Transparent" />
             <Style.Triggers>
                 <Trigger Property="Border.IsMouseOver" Value="True">
-                    <Setter Property="BorderBrush" Value="LightBlue"/>
+                    <Setter Property="BorderBrush" Value="LightBlue" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -67,6 +67,18 @@
 
         <Style x:Key="myHeaderStyle" TargetType="{x:Type GridViewColumnHeader}">
             <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+
+        <Style x:Key="ThumbStyle" TargetType="{x:Type Thumb}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Border Style="{StaticResource ResourceKey=BorderVisibleOnMouse}">
+                            <Label x:Name="lbPanel" Content="NEW" FontFamily="{StaticResource NotoSans-Black}" FontSize="20" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
@@ -439,11 +451,13 @@
                                 <materialDesign:PackIcon Kind="Settings" />
                             </MenuItem.Icon>
                         </MenuItem>
+                        <!--
                         <MenuItem Header="가청끄기" FontFamily="{StaticResource NotoSans-Regular}" Click="HiddenAlarm_Click">
                             <MenuItem.Icon>
                                 <materialDesign:PackIcon Kind="Hide" />
                             </MenuItem.Icon>
                         </MenuItem>
+                        -->
                         <!--
                         <MenuItem Header="기록보기" Click="LogView_Click">
                             <MenuItem.Icon>
@@ -454,7 +468,7 @@
                     </MenuItem>
                 </Menu>
 
-                <Button HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="MenuGroupAdd_Click">
+                <Button x:Name="BtnGroupAdd" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="MenuGroupAdd_Click" IsEnabled="False">
                     <Button.Content>
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="Group" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
@@ -462,7 +476,7 @@
                         </StackPanel>
                     </Button.Content>
                 </Button>
-                <Button HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="MenuServerAdd_Click">
+                <Button x:Name="BtnServerAdd" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="MenuServerAdd_Click" IsEnabled="False">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="ServerPlus" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
                         <TextBlock Text="장비추가" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
@@ -474,24 +488,32 @@
                         <TextBlock Text="장비정보" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
                     </StackPanel>
                 </Button>
-                <Button x:Name="BtnScreenLock" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="BtnScreenLock_Click">
+                <Button x:Name="BtnScreenLock" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="BtnScreenLock_Click" IsEnabled="False">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="Lock" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
                         <TextBlock Text="화면잠금" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
                     </StackPanel>
                 </Button>
-                <Button x:Name="BtnRevert" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="BtnRevert_Click">
+                <Button x:Name="BtnRevert" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="BtnRevert_Click" IsEnabled="False">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="StepBackward" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
                         <TextBlock Text="위치되돌리기" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
                     </StackPanel>
                 </Button>
+                <Button x:Name="BtnSoundOff" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle }" Click="HiddenAlarm_Click" IsEnabled="False">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="StopCircleOutline" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBlock Text="Ack" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
+                    </StackPanel>
+                </Button>
+                <!--
                 <Button x:Name="BtnAddPanel" HorizontalAlignment="Center" Margin="10,0,0,0" Style="{StaticResource AddButtonStyle}" Click="BtnAddPanel_Click">
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="AddBox" Width="20" Height="20" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="5,0,0,0" />
                         <TextBlock Text="패널추가" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10" />
                     </StackPanel>
                 </Button>
+                -->
             </StackPanel>
         </Grid>
 
@@ -534,22 +556,42 @@
 
         <GridSplitter Grid.Row="1" Grid.Column ="1" Background="Silver" Width="2" ShowsPreview="False"
                 HorizontalAlignment="Center" VerticalAlignment="Stretch" />
-        <Canvas Grid.Row="1" Grid.Column="2">
+        <DockPanel Grid.Row="1" Grid.Column="2">
+
+            <Canvas x:Name="cnvPanel" Panel.ZIndex="10">
+                <!--
+                <Thumb Canvas.Left="100" Canvas.Top="60" DragDelta="Thumb_DragDelta" MouseDoubleClick="thumb_MouseDoubleClick" Cursor="Hand">
+                    <Thumb.Template>
+                        <ControlTemplate>
+                            <Border Style="{StaticResource ResourceKey=BorderVisibleOnMouse}">
+                                <Label Content="blabla test" FontFamily="{StaticResource NotoSans-Black}" FontSize="20" />
+                            </Border>
+                        </ControlTemplate>
+                    </Thumb.Template>
+                </Thumb>
+                -->
+            </Canvas>
+
             <StackPanel>
+                <ProgressBar x:Name="PbMainLoading" Visibility="Visible"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         Style="{DynamicResource MaterialDesignCircularProgressBar}"
+                         Width="80" Height="80"
+                         Margin="16"
+                         IsIndeterminate="True"
+                         Value="0" />
+            </StackPanel>
+
+            <StackPanel Panel.ZIndex="1">
                 <StackPanel.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="장비 추가" Click="MenuServerAdd_Click" />
                     </ContextMenu>
                 </StackPanel.ContextMenu>
 
-                <ProgressBar x:Name="PbMainLoading" Visibility="Visible" HorizontalAlignment="Center" VerticalAlignment="Center"
-                                Style="{DynamicResource MaterialDesignCircularProgressBar}"
-                                Width="80" Height="80"
-                                Margin="16"
-                                IsIndeterminate="True"
-                                Value="0" />
-                <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed"
-                        MouseDoubleClick="ServerList_MouseDoubleClick" BorderThickness="10" BorderBrush="Red"
+                <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="Hidden"
+                        MouseDoubleClick="ServerList_MouseDoubleClick" BorderThickness="10" BorderBrush="Red" Panel.ZIndex="1"
                         MouseRightButtonDown="ServerList_MouseRightButtonDown">
                     <ListView.ItemContainerStyle>
                         <Style TargetType="{x:Type ListViewItem}">
@@ -610,7 +652,7 @@
                     </ListBox.ItemsPanel>
                 </ListView>
             </StackPanel>
-        </Canvas>
+        </DockPanel>
 
         <GridSplitter Grid.Row="2" Grid.Column ="0" Background="Silver" Grid.ColumnSpan="3" ShowsPreview="False" Height="2" HorizontalAlignment="Stretch" />
         <DockPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3">
@@ -711,7 +753,7 @@
                             <ListView.View>
                                 <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
                                     <GridViewColumn Header="Start at" Width="150" DisplayMemberBinding="{Binding StartAt}" />
-                                    <GridViewColumn Header="End at" Width="150" DisplayMemberBinding="{Binding EndAt}" />
+                                    <GridViewColumn Header="End at" Width="150" DisplayMemberBinding="{Binding EndAt, UpdateSourceTrigger=PropertyChanged}" />
                                     <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}" />
                                     <GridViewColumn Header="IP address" Width="130" DisplayMemberBinding="{Binding Ip}" />
                                     <GridViewColumn Header="Level" Width="120" CellTemplate="{StaticResource myCellTemplateLevel}" />
@@ -727,7 +769,7 @@
                             <RowDefinition Height="*" />
                             <RowDefinition Height="30" />
                         </Grid.RowDefinitions>
-                        <ListView Grid.Row="0" x:Name="DialogLvLog" ItemsSource="{Binding Logs}"
+                        <ListView Grid.Row="0" x:Name="lvLogSearch" ItemsSource="{Binding Logs}"
                                           ScrollViewer.CanContentScroll="True"
                                           ScrollViewer.IsDeferredScrollingEnabled="True"
                                           ScrollViewer.VerticalScrollBarVisibility="Visible"
@@ -738,8 +780,8 @@
                                         <Ellipse
                                                 Width="10"
                                                 Height="10"
-                                                Fill="White" Margin="5,0" />
-                                        <TextBlock Foreground="White" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
+                                                Fill="{Binding Color}" Margin="5,0" />
+                                        <TextBlock Foreground="{Binding Color}" HorizontalAlignment="Center" Text="{Binding Level}"></TextBlock>
                                     </StackPanel>
                                 </DataTemplate>
                             </ListView.Resources>

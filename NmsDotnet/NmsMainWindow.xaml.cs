@@ -31,6 +31,7 @@ using System.Windows.Media.Imaging;
 using System.Drawing;
 using Image = System.Windows.Controls.Image;
 using NmsDotnet.Utils;
+using System.Windows.Controls.Primitives;
 
 namespace NmsDotnet
 {
@@ -296,9 +297,15 @@ namespace NmsDotnet
         {
             if (PbMainLoading.Visibility == Visibility.Visible)
             {
-                PbMainLoading.Visibility = Visibility.Collapsed;
+                PbMainLoading.Visibility = Visibility.Hidden;
                 ServerListItem.Visibility = Visibility.Visible;
+
+                BtnGroupAdd.IsEnabled = true;
+                BtnServerAdd.IsEnabled = true;
                 BtnServerInfo.IsEnabled = true;
+                BtnScreenLock.IsEnabled = true;
+                BtnRevert.IsEnabled = true;
+                BtnSoundOff.IsEnabled = true;
             }
             foreach (Server server in NmsInfo.GetInstance().serverList)
             {
@@ -342,6 +349,13 @@ namespace NmsDotnet
                                     if (item != null)
                                     {
                                         NmsInfo.GetInstance().activeLog.Remove(item);
+                                    }
+                                    LogItem itemHistory = FindConnectionFailItem(NmsInfo.GetInstance().historyLog, server.Ip);
+                                    if (itemHistory != null)
+                                    {
+                                        itemHistory.EndAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                                        LvHistory.ItemsSource = null;
+                                        LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
                                     }
                                 }
 
@@ -412,18 +426,10 @@ namespace NmsDotnet
                                     if (results.Count() == 0)
                                     {
                                         NmsInfo.GetInstance().activeLog.Insert(0, log);
+                                        NmsInfo.GetInstance().historyLog.Insert(0, log);
                                     }
                                     server.Message = "Failed to connection";
                                     server.Status = Server.EnumStatus.Critical.ToString();
-
-                                    if (LvActiveLog.Items.Count > 0)
-                                    {
-                                        SoundPlay(snmp.LevelString);
-                                    }
-                                    else
-                                    {
-                                        SoundStop();
-                                    }
 
                                     server.IsConnect = Server.EnumIsConnect.Disconnect;
                                 }
@@ -432,6 +438,14 @@ namespace NmsDotnet
                                 // drawItem = true;
                             }
                         }
+                    }
+                    if (NmsInfo.GetInstance().activeLog.Count > 0)
+                    {
+                        SoundPlay(Server.EnumStatus.Critical.ToString());
+                    }
+                    else
+                    {
+                        SoundStop();
                     }
                 }
                 catch (Exception ex)
@@ -443,6 +457,7 @@ namespace NmsDotnet
 
         private LogItem FindConnectionFailItem(ObservableCollection<LogItem> ocl, string Ip)
         {
+            /*
             foreach (LogItem item in ocl)
             {
                 if (item.Ip == Ip && item.IsConnection == false)
@@ -451,6 +466,21 @@ namespace NmsDotnet
                 }
             }
             return null;
+            */
+            IEnumerable<LogItem> items =
+                from x in ocl
+                where x.Ip == Ip && x.IsConnection == false
+
+                select x;
+            IEnumerable<LogItem> item = items.OrderByDescending(x => x.LevelPriority).Take(1);
+            if (item.Count() > 0)
+            {
+                return (LogItem)item.ElementAt(0);
+            }
+            else
+            {
+                return null;
+            }
         }
 
         private LogItem FindCurrentStatusItem(ObservableCollection<LogItem> ocl, string Ip)
@@ -803,20 +833,29 @@ namespace NmsDotnet
             _snmpGetTimer.Start();
         }
 
-        private void LoggingDisplay(LogItem log, string type)
+        private void LoggingDisplay(LogItem log)
         {
-            if (type.Equals("begin"))
+            if (LvActiveLog.Dispatcher.CheckAccess())
             {
-                if (LvActiveLog.Dispatcher.CheckAccess())
-                {
-                    NmsInfo.GetInstance().activeLog.Insert(0, log);
-                }
-                else
-                {
-                    LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, log); });
-                }
+                NmsInfo.GetInstance().activeLog.Insert(0, log);
             }
-            else if (type.Equals("end"))
+            else
+            {
+                LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, log); });
+            }
+            if (LvHistory.Dispatcher.CheckAccess())
+            {
+                NmsInfo.GetInstance().historyLog.Insert(0, log);
+            }
+            else
+            {
+                LvHistory.Dispatcher.Invoke(() => { NmsInfo.GetInstance().historyLog.Insert(0, log); });
+            }
+        }
+
+        private void LoggingDisplay(List<LogItem> activeLog, List<LogItem> historyLog)
+        {
+            foreach (var log in activeLog)
             {
                 if (LvActiveLog.Dispatcher.CheckAccess())
                 {
@@ -825,6 +864,25 @@ namespace NmsDotnet
                 else
                 {
                     LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(log); });
+                }
+            }
+
+            foreach (var log in historyLog)
+            {
+                if (LvHistory.Dispatcher.CheckAccess())
+                {
+                    log.EndAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                    LvHistory.ItemsSource = null;
+                    LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
+                }
+                else
+                {
+                    LvHistory.Dispatcher.Invoke(() =>
+                    {
+                        log.EndAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                        LvHistory.ItemsSource = null;
+                        LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
+                    });
                 }
             }
         }
@@ -895,9 +953,10 @@ namespace NmsDotnet
                         SnmpV2Packet pkt = new SnmpV2Packet();
                         pkt.decode(indata, inlen);
                         logger.Info(string.Format("** SNMP Version 2 TRAP received from {0}:", inep.ToString()));
-                        if ((SnmpSharpNet.PduType)pkt.Pdu.Type != PduType.V2Trap)
+                        if ((SnmpSharpNet.PduType)pkt.Pdu.Type != PduType.V2Trap &&
+                            ((SnmpSharpNet.PduType)pkt.Pdu.Type != PduType.Inform))
                         {
-                            logger.Info("*** NOT an SNMPv2 trap ****");
+                            logger.Info("*** NOT an SNMPv2 trap or inform ****");
                         }
                         else
                         {
@@ -970,6 +1029,7 @@ namespace NmsDotnet
                                         snmp.TranslateValue = Snmp.GetTranslateValue(value);
                                         snmp.TypeValue = Enum.GetName(typeof(Snmp.TrapType), Convert.ToInt32(v.Value.ToString()));
                                         snmp.Oid = v.Oid.ToString();
+                                        snmp.IsTypeTrap = true;
                                     }
                                     else if (value.LastIndexOf("Channel") > 0)
                                     {
@@ -993,7 +1053,6 @@ namespace NmsDotnet
                                 if (!String.IsNullOrEmpty(snmp.LevelString))
                                 {
                                     //snmp.TrapString = snmp.MakeTrapLogString();
-                                    LogItem.LoggingDatabase(snmp);
 
                                     Server s = null;
                                     foreach (var server in NmsInfo.GetInstance().serverList)
@@ -1012,7 +1071,10 @@ namespace NmsDotnet
                                         if (FindItemDuplicateTrap(NmsInfo.GetInstance().activeLog, s, snmp.Oid).Count == 0 ||
                                             FindItemDuplicateTitanTrap(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue).Count == 0)
                                         {
-                                            s.ErrorCount++;
+                                            if (snmp.IsTypeTrap)
+                                            {
+                                                s.ErrorCount++;
+                                            }
                                             s.Message = snmp.TranslateValue;
 
                                             LogItem log = new LogItem
@@ -1026,26 +1088,29 @@ namespace NmsDotnet
                                                 TypeValue = "begin"
                                             };
 
-                                            LoggingDisplay(log, snmp.TypeValue);
+                                            LoggingDisplay(log);
+                                            LogItem.LoggingDatabase(snmp);
                                         }
                                     }
                                     else if (string.Equals(snmp.TypeValue, "end"))
                                     {
-                                        List<LogItem> items;
+                                        List<LogItem> activeItems;
+                                        List<LogItem> historyItems;
                                         if (!string.IsNullOrEmpty(snmp.Oid))
                                         {
-                                            items = FindItemFromOid(NmsInfo.GetInstance().activeLog, s, snmp.Oid);
+                                            activeItems = FindItemFromOid(NmsInfo.GetInstance().activeLog, s, snmp.Oid);
+                                            historyItems = FindItemFromOid(NmsInfo.GetInstance().historyLog, s, snmp.Oid);
                                         }
                                         else
                                         {
-                                            items = FindItemFromValue(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue);
+                                            activeItems = FindItemFromValue(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue);
+                                            historyItems = FindItemFromValue(NmsInfo.GetInstance().historyLog, s, snmp.TranslateValue);
                                         }
-                                        if (items.Count > 0)
+                                        if (activeItems.Count > 0)
                                         {
-                                            foreach (var item in items)
+                                            foreach (var item in activeItems)
                                             {
-                                                LoggingDisplay(item, snmp.TypeValue);
-                                                if (s.ErrorCount > 0)
+                                                if (s.ErrorCount > 0 && snmp.IsTypeTrap)
                                                 {
                                                     s.ErrorCount--;
                                                 }
@@ -1060,6 +1125,9 @@ namespace NmsDotnet
                                                     s.Status = Server.EnumStatus.Normal.ToString();
                                                 }
                                             }
+
+                                            LoggingDisplay(activeItems, historyItems);
+                                            LogItem.LoggingDatabase(snmp);
                                         }
                                     }
 
@@ -1294,7 +1362,7 @@ namespace NmsDotnet
             }
 
             NmsInfo.GetInstance().logSearch = new ObservableCollection<LogItem>(LogItem.GetLog(DpDayFrom.Text, DpDayTo.Text));
-            ListView lvDialog = (ListView)FindElemetByName(e, "DialogLvLog");
+            ListView lvDialog = (ListView)FindElemetByName(e, "lvLogSearch");
             lvDialog.ItemsSource = NmsInfo.GetInstance().logSearch;
         }
 
@@ -1558,10 +1626,10 @@ namespace NmsDotnet
                     ServerDispatcherTimer();
                     DialogHost.Close("DialogServerInfo");
 
-                    if (PbMainLoading.Visibility == Visibility.Collapsed)
+                    if (PbMainLoading.Visibility == Visibility.Hidden)
                     {
                         PbMainLoading.Visibility = Visibility.Visible;
-                        ServerListItem.Visibility = Visibility.Collapsed;
+                        ServerListItem.Visibility = Visibility.Hidden;
                         BtnServerInfo.IsEnabled = false;
                     }
                 }
@@ -1650,7 +1718,7 @@ namespace NmsDotnet
             }
         }
 
-        private void thumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
+        private void Thumb_DragDelta(object sender, System.Windows.Controls.Primitives.DragDeltaEventArgs e)
         {
             UIElement thumb = e.Source as UIElement;
 
@@ -1661,11 +1729,39 @@ namespace NmsDotnet
         private void BtnAddPanel_Click(object sender, RoutedEventArgs e)
         {
             string inputRead = new InputBox("패널이름").ShowDialog();
-            if ( !string.IsNullOrEmpty(inputRead))
+            if (!string.IsNullOrEmpty(inputRead))
             {
                 //패널 추가
-                Debug.WriteLine(inputRead);
+                MessageBox.Show(inputRead);
+                MakePanel(inputRead);
             }
+        }
+
+        private void MakePanel(string panelName)
+        {
+            Thumb thumb = new Thumb();
+            thumb.DragDelta += Thumb_DragDelta;
+            thumb.MouseDoubleClick += thumb_MouseDoubleClick;
+            thumb.Cursor = Cursors.Hand;
+            thumb.Style = this.Resources["ThumbStyle"] as Style;
+
+            Label lb = (Label)thumb.Template.FindName("lbPanel", thumb);
+
+            /*
+            Border bd = new Border();
+            Label lb = new Label();
+            lb.Content = panelName;
+            bd.Child = lb;
+            bd.Style = this.Resources["BorderVisibleOnMouse"] as Style;
+            */
+            Canvas.SetLeft(thumb, 50);
+            Canvas.SetTop(thumb, 50);
+            cnvPanel.Children.Add(thumb);
+        }
+
+        private void thumb_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            MessageBox.Show("더블클릭");
         }
     }
 }

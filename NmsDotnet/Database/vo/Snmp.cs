@@ -69,6 +69,7 @@ namespace NmsDotnet.Database.vo
         public int Index { get; set; }
         public string Main { get; set; }
         public string TranslateValue { get; set; }
+        public bool IsTypeTrap { get; set; } = false;
         public string TrapString { get; set; }
         public TrapType Type { get; set; }
         public EnumLevel Level { get; set; }

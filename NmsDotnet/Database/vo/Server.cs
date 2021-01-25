@@ -580,7 +580,8 @@ ORDER BY S.location ASC";
                 GroupName = row.Field<string>("grp_name"),
                 ModelName = row.Field<string>("type"),
                 Location = row.Field<int>("location"),
-                ErrorCount = row.Field<int>("error_count"),
+                //ErrorCount = row.Field<int>("error_count"),
+                ErrorCount = 0,
                 ConnectionErrorCount = row.Field<int>("connection_error_count"),
                 Color = row.Field<string>("color"),
                 Status = row.Field<string>("status")
