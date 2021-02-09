@@ -557,9 +557,8 @@
         <GridSplitter Grid.Row="1" Grid.Column ="1" Background="Silver" Width="2" ShowsPreview="False"
                 HorizontalAlignment="Center" VerticalAlignment="Stretch" />
         <DockPanel Grid.Row="1" Grid.Column="2">
-
+            <!--
             <Canvas x:Name="cnvPanel" Panel.ZIndex="10">
-                <!--
                 <Thumb Canvas.Left="100" Canvas.Top="60" DragDelta="Thumb_DragDelta" MouseDoubleClick="thumb_MouseDoubleClick" Cursor="Hand">
                     <Thumb.Template>
                         <ControlTemplate>
@@ -569,10 +568,9 @@
                         </ControlTemplate>
                     </Thumb.Template>
                 </Thumb>
-                -->
             </Canvas>
-
-            <StackPanel>
+                -->
+            <Grid>
                 <ProgressBar x:Name="PbMainLoading" Visibility="Visible"
                          HorizontalAlignment="Center"
                          VerticalAlignment="Center"
@@ -581,16 +579,16 @@
                          Margin="16"
                          IsIndeterminate="True"
                          Value="0" />
-            </StackPanel>
+            </Grid>
 
-            <StackPanel Panel.ZIndex="1">
+            <StackPanel>
                 <StackPanel.ContextMenu>
                     <ContextMenu>
                         <MenuItem Header="장비 추가" Click="MenuServerAdd_Click" />
                     </ContextMenu>
                 </StackPanel.ContextMenu>
 
-                <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="Hidden"
+                <ListView x:Name="ServerListItem" ScrollViewer.HorizontalScrollBarVisibility="Disabled" Visibility="Collapsed"
                         MouseDoubleClick="ServerList_MouseDoubleClick" BorderThickness="10" BorderBrush="Red" Panel.ZIndex="1"
                         MouseRightButtonDown="ServerList_MouseRightButtonDown">
                     <ListView.ItemContainerStyle>
@@ -659,6 +657,7 @@
             <TabControl SelectionChanged="TabControl_SelectionChanged">
                 <TabItem Header="액티브 알람" Height="20">
                     <ListView x:Name="LvActiveLog"
+                          GridViewColumnHeader.Click="LvSort_Click"
                           ScrollViewer.CanContentScroll="False"
                           ScrollViewer.IsDeferredScrollingEnabled="False"
                           ScrollViewer.VerticalScrollBarVisibility="Visible" HorizontalAlignment="Left">
@@ -725,10 +724,11 @@
                             <RowDefinition Height="30" />
                         </Grid.RowDefinitions>
                         <ListView Grid.Row="0" x:Name="LvHistory" ItemsSource="{Binding Logs}"
-                                          ScrollViewer.CanContentScroll="True"
-                                          ScrollViewer.IsDeferredScrollingEnabled="True"
-                                          ScrollViewer.VerticalScrollBarVisibility="Visible"
-                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                  GridViewColumnHeader.Click="LvSort_Click"
+                                  ScrollViewer.CanContentScroll="True"
+                                  ScrollViewer.IsDeferredScrollingEnabled="True"
+                                  ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.Resources>
                                 <ContextMenu x:Key="ItemContextMenu">
                                     <MenuItem Header="숨기기" Click="MenuItem_LogHide_Click" />
@@ -747,11 +747,12 @@
                                 <Style TargetType="{x:Type ListViewItem}">
                                     <EventSetter Event="PreviewMouseRightButtonDown" Handler="ListViewItem_PreviewMouseRightButtonDown" />
                                     <EventSetter Event="PreviewMouseDoubleClick" Handler="ListViewItem_PreviewMouseDoubleClick" />
+                                    <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
                                 </Style>
                             </ListView.ItemContainerStyle>
 
                             <ListView.View>
-                                <GridView AllowsColumnReorder="False" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
+                                <GridView AllowsColumnReorder="True" ColumnHeaderContainerStyle="{StaticResource myHeaderStyle}">
                                     <GridViewColumn Header="Start at" Width="150" DisplayMemberBinding="{Binding StartAt}" />
                                     <GridViewColumn Header="End at" Width="150" DisplayMemberBinding="{Binding EndAt, UpdateSourceTrigger=PropertyChanged}" />
                                     <GridViewColumn Header="Name" Width="150" DisplayMemberBinding="{Binding Name}" />
@@ -760,6 +761,11 @@
                                     <GridViewColumn Header="Value" Width="500" DisplayMemberBinding="{Binding Value}" />
                                 </GridView>
                             </ListView.View>
+                            <ListView.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="숨기기" Click="MenuItem_LogHide_Click" />
+                                </ContextMenu>
+                            </ListView.ContextMenu>
                         </ListView>
                     </Grid>
                 </TabItem>
@@ -770,10 +776,11 @@
                             <RowDefinition Height="30" />
                         </Grid.RowDefinitions>
                         <ListView Grid.Row="0" x:Name="lvLogSearch" ItemsSource="{Binding Logs}"
-                                          ScrollViewer.CanContentScroll="True"
-                                          ScrollViewer.IsDeferredScrollingEnabled="True"
-                                          ScrollViewer.VerticalScrollBarVisibility="Visible"
-                                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                  GridViewColumnHeader.Click="LvSort_Click"
+                                  ScrollViewer.CanContentScroll="True"
+                                  ScrollViewer.IsDeferredScrollingEnabled="True"
+                                  ScrollViewer.VerticalScrollBarVisibility="Visible"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                             <ListView.Resources>
                                 <DataTemplate x:Key="myCellTemplateLevel">
                                     <StackPanel Orientation="Horizontal">

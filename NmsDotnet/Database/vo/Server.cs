@@ -258,7 +258,14 @@ namespace NmsDotnet.Database.vo
 
         public int GetNewLocation()
         {
-            Location = NmsInfo.GetInstance().serverList.Max(x => x.Location) + 1;
+            try
+            {
+                Location = NmsInfo.GetInstance().serverList.Max(x => x.Location) + 1;
+            }
+            catch
+            {
+                Location = 0;
+            }
             return Location;
         }
 

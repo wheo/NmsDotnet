@@ -164,7 +164,7 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
                     string query = null;
                     if (!string.IsNullOrEmpty(trap.Oid))
                     {
-                        query = "UPDATE log set end_at = current_timestamp() WHERE ip = @ip AND oid = @oid AND snmp_type_value = 'begin'";
+                        query = "UPDATE log set end_at = current_timestamp() WHERE ip = @ip AND oid = @oid AND snmp_type_value = 'begin' ORDER BY idx DESC LIMIT 1";
                     }
                     else
                     {
@@ -230,6 +230,10 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
             string option_query = null;
             string date_query = null;
             string order_query = "ASC";
+            if (isHistory)
+            {
+                order_query = "DESC";
+            }
             string is_active = "";
             if (!isHistory)
             {

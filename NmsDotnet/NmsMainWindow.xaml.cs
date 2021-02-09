@@ -32,6 +32,8 @@ using System.Drawing;
 using Image = System.Windows.Controls.Image;
 using NmsDotnet.Utils;
 using System.Windows.Controls.Primitives;
+using System.ComponentModel;
+using System.Windows.Data;
 
 namespace NmsDotnet
 {
@@ -135,6 +137,7 @@ namespace NmsDotnet
 
             ObservableCollection<Alarm> remoteData = new ObservableCollection<Alarm>(Alarm.GetAlarmInfo());
             IEnumerable<Alarm> query = remoteData.Where(alarm => alarm.Level.Equals("Critical"));
+
             if (query.Count() > 0)
             {
                 foreach (Alarm a in query)
@@ -242,37 +245,39 @@ namespace NmsDotnet
             NmsInfo.GetInstance().serverListStack = new Stack<ObservableCollection<Server>>(10);
 
             int currentIdx = 0;
-
-            for (int i = 0; i < MAX_SERVER; i++)
+            if (ocs.Count > 0)
             {
-                Server s;
-                int currentLocation = ocs[currentIdx].Location;
-                if (i == currentLocation)
+                for (int i = 0; i < MAX_SERVER; i++)
                 {
-                    s = ocs[currentIdx];
-
-                    MenuItem miEdit = new MenuItem();
-                    miEdit.Header = "장비 수정";
-                    MenuItem miDelete = new MenuItem();
-                    miDelete.Header = "장비 삭제";
-                    List<MenuItem> menus = new List<MenuItem>();
-                    menus.Add(miEdit);
-                    menus.Add(miDelete);
-                    miEdit.Click += new System.Windows.RoutedEventHandler(this.MenuServerEdit_Click);
-                    miDelete.Click += new System.Windows.RoutedEventHandler(this.MenuServerDel_Click);
-
-                    s.MenuItems = menus;
-
-                    if (ocs.Count - 1 > currentIdx)
+                    Server s;
+                    int currentLocation = ocs[currentIdx].Location;
+                    if (i == currentLocation)
                     {
-                        currentIdx++;
+                        s = ocs[currentIdx];
+
+                        MenuItem miEdit = new MenuItem();
+                        miEdit.Header = "장비 수정";
+                        MenuItem miDelete = new MenuItem();
+                        miDelete.Header = "장비 삭제";
+                        List<MenuItem> menus = new List<MenuItem>();
+                        menus.Add(miEdit);
+                        menus.Add(miDelete);
+                        miEdit.Click += new System.Windows.RoutedEventHandler(this.MenuServerEdit_Click);
+                        miDelete.Click += new System.Windows.RoutedEventHandler(this.MenuServerDel_Click);
+
+                        s.MenuItems = menus;
+
+                        if (ocs.Count - 1 > currentIdx)
+                        {
+                            currentIdx++;
+                        }
                     }
+                    else
+                    {
+                        s = new Server();
+                    }
+                    NmsInfo.GetInstance().serverList.Add(s);
                 }
-                else
-                {
-                    s = new Server();
-                }
-                NmsInfo.GetInstance().serverList.Add(s);
             }
 
             NmsInfo.GetInstance().groupList = new ObservableCollection<Group>(Group.GetGroupList());
@@ -297,7 +302,7 @@ namespace NmsDotnet
         {
             if (PbMainLoading.Visibility == Visibility.Visible)
             {
-                PbMainLoading.Visibility = Visibility.Hidden;
+                PbMainLoading.Visibility = Visibility.Collapsed;
                 ServerListItem.Visibility = Visibility.Visible;
 
                 BtnGroupAdd.IsEnabled = true;
@@ -374,6 +379,16 @@ namespace NmsDotnet
 
                                 server.IsConnect = Server.EnumIsConnect.Connect;
 
+                                //Debug.WriteLine($"activeLog Count : {NmsInfo.GetInstance().activeLog.Count}");
+                                if (NmsInfo.GetInstance().activeLog.Count > 0)
+                                {
+                                    SoundPlay(Server.EnumStatus.Critical.ToString());
+                                }
+                                else
+                                {
+                                    SoundStop();
+                                }
+
                                 //LogItem log = new LogItem { }
                                 //NmsInfo.GetInstance().logItem.Add();
 
@@ -432,20 +447,22 @@ namespace NmsDotnet
                                     server.Status = Server.EnumStatus.Critical.ToString();
 
                                     server.IsConnect = Server.EnumIsConnect.Disconnect;
+
+                                    //Debug.WriteLine($"activeLog Count : {NmsInfo.GetInstance().activeLog.Count}");
+                                    if (NmsInfo.GetInstance().activeLog.Count > 0)
+                                    {
+                                        SoundPlay(Server.EnumStatus.Critical.ToString());
+                                    }
+                                    else
+                                    {
+                                        SoundStop();
+                                    }
                                 }
 
                                 // drawItem은 INotifyPropertyChanged 로 대체됨
                                 // drawItem = true;
                             }
                         }
-                    }
-                    if (NmsInfo.GetInstance().activeLog.Count > 0)
-                    {
-                        SoundPlay(Server.EnumStatus.Critical.ToString());
-                    }
-                    else
-                    {
-                        SoundStop();
                     }
                 }
                 catch (Exception ex)
@@ -1030,6 +1047,7 @@ namespace NmsDotnet
                                         snmp.TypeValue = Enum.GetName(typeof(Snmp.TrapType), Convert.ToInt32(v.Value.ToString()));
                                         snmp.Oid = v.Oid.ToString();
                                         snmp.IsTypeTrap = true;
+                                        logger.Info("TypeValue : " + snmp.TypeValue);
                                     }
                                     else if (value.LastIndexOf("Channel") > 0)
                                     {
@@ -1425,9 +1443,7 @@ namespace NmsDotnet
             {
                 LogItem.HideLogAlarm(_currentSelectedItem.idx);
                 NmsInfo.GetInstance().activeLog.Remove(_currentSelectedItem);
-
-                //일단 뺌
-                //NmsInfo.GetInstance().historyLog.Remove(_currentSelectedItem);
+                NmsInfo.GetInstance().historyLog.Remove(_currentSelectedItem);
             }
         }
 
@@ -1683,11 +1699,17 @@ namespace NmsDotnet
         private void ServerSettings_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             string uri = "http://";
-            ListView lv = sender as ListView;
-            Server server = (Server)lv.SelectedItem;
-            if (!string.IsNullOrEmpty(server.Ip))
+            try
             {
-                System.Diagnostics.Process.Start(String.Format($"{uri}{server.Ip}"));
+                ListView lv = sender as ListView;
+                Server server = (Server)lv.SelectedItem;
+                if (!string.IsNullOrEmpty(server.Ip))
+                {
+                    System.Diagnostics.Process.Start(String.Format($"{uri}{server.Ip}"));
+                }
+            }
+            catch
+            {
             }
         }
 
@@ -1739,6 +1761,7 @@ namespace NmsDotnet
 
         private void MakePanel(string panelName)
         {
+            /*
             Thumb thumb = new Thumb();
             thumb.DragDelta += Thumb_DragDelta;
             thumb.MouseDoubleClick += thumb_MouseDoubleClick;
@@ -1747,21 +1770,88 @@ namespace NmsDotnet
 
             Label lb = (Label)thumb.Template.FindName("lbPanel", thumb);
 
-            /*
             Border bd = new Border();
             Label lb = new Label();
             lb.Content = panelName;
             bd.Child = lb;
             bd.Style = this.Resources["BorderVisibleOnMouse"] as Style;
-            */
             Canvas.SetLeft(thumb, 50);
             Canvas.SetTop(thumb, 50);
             cnvPanel.Children.Add(thumb);
+            */
         }
 
         private void thumb_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             MessageBox.Show("더블클릭");
+        }
+
+        private GridViewColumnHeader _lastHeaderClicked = null;
+        private ListSortDirection _lastDirection = ListSortDirection.Ascending;
+
+        private void Sort(string sortBy, ListSortDirection direction, object sender)
+        {
+            ListView target = sender as ListView;
+            //ICollectionView dataView = CollectionViewSource.GetDefaultView(LvHistory.ItemsSource);
+            ICollectionView dataView = CollectionViewSource.GetDefaultView(target.ItemsSource);
+
+            dataView.SortDescriptions.Clear();
+            SortDescription sd = new SortDescription(sortBy, direction);
+            dataView.SortDescriptions.Add(sd);
+            dataView.Refresh();
+        }
+
+        private void LvSort_Click(object sender, RoutedEventArgs e)
+        {
+            var headerClicked = e.OriginalSource as GridViewColumnHeader;
+            ListSortDirection direction;
+
+            if (headerClicked != null)
+            {
+                if (headerClicked.Role != GridViewColumnHeaderRole.Padding)
+                {
+                    if (headerClicked != _lastHeaderClicked)
+                    {
+                        direction = ListSortDirection.Ascending;
+                    }
+                    else
+                    {
+                        if (_lastDirection == ListSortDirection.Ascending)
+                        {
+                            direction = ListSortDirection.Descending;
+                        }
+                        else
+                        {
+                            direction = ListSortDirection.Ascending;
+                        }
+                    }
+
+                    var columnBinding = headerClicked.Column.DisplayMemberBinding as Binding;
+                    var sortBy = columnBinding?.Path.Path ?? headerClicked.Column.Header as string;
+
+                    Sort(sortBy, direction, sender);
+
+                    if (direction == ListSortDirection.Ascending)
+                    {
+                        headerClicked.Column.HeaderTemplate =
+                          Resources["HeaderTemplateArrowUp"] as DataTemplate;
+                    }
+                    else
+                    {
+                        headerClicked.Column.HeaderTemplate =
+                          Resources["HeaderTemplateArrowDown"] as DataTemplate;
+                    }
+
+                    // Remove arrow from previously sorted header
+                    if (_lastHeaderClicked != null && _lastHeaderClicked != headerClicked)
+                    {
+                        _lastHeaderClicked.Column.HeaderTemplate = null;
+                    }
+
+                    _lastHeaderClicked = headerClicked;
+                    _lastDirection = direction;
+                }
+            }
         }
     }
 }
