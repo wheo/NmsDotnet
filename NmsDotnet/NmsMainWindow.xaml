@@ -83,6 +83,20 @@
     </Window.Resources>
 
     <Grid>
+        <Grid.Resources>
+            <Image x:Key="myImage" Source="Asset/AMSBG.png">
+                <!--
+                <Image.OpacityMask>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0.8">
+                        <GradientStop Offset="0.0" Color="#00000000" />
+                        <GradientStop Offset="1.0" Color="#FF000000" />
+                    </LinearGradientBrush>
+                </Image.OpacityMask>
+                -->
+            </Image>
+            <VisualBrush x:Key="myBrush"  Visual="{StaticResource myImage}" />
+        </Grid.Resources>
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -556,7 +570,7 @@
 
         <GridSplitter Grid.Row="1" Grid.Column ="1" Background="Silver" Width="2" ShowsPreview="False"
                 HorizontalAlignment="Center" VerticalAlignment="Stretch" />
-        <DockPanel Grid.Row="1" Grid.Column="2">
+        <DockPanel Grid.Row="1" Grid.Column="2" Background="{StaticResource myBrush}">
             <!--
             <Canvas x:Name="cnvPanel" Panel.ZIndex="10">
                 <Thumb Canvas.Left="100" Canvas.Top="60" DragDelta="Thumb_DragDelta" MouseDoubleClick="thumb_MouseDoubleClick" Cursor="Hand">

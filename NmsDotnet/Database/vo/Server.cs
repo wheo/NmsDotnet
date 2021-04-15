@@ -183,12 +183,12 @@ namespace NmsDotnet.Database.vo
 
                         if (value.ToLower().Equals("normal"))
                         {
-                            this.Color = "Green";
+                            this.Color = "#00FF00";
                             this.Message = "Normal status";
                         }
                         else if (value.ToLower().Equals("critical"))
                         {
-                            this.Color = "Red";
+                            this.Color = "#FF0000";
                         }
                         else if (value.ToLower().Equals("warning"))
                         {
@@ -196,11 +196,11 @@ namespace NmsDotnet.Database.vo
                         }
                         else if (value.ToLower().Equals("information"))
                         {
-                            this.Color = "Blue";
+                            this.Color = "#0000FF";
                         }
                         else
                         {
-                            this.Color = "White";
+                            this.Color = "#CCECFF";
                         }
                         _Status = value;
                         OnPropertyChanged(new PropertyChangedEventArgs("Status"));

@@ -754,7 +754,8 @@ namespace NmsDotnet
                     IEnumerable<Server> results = Server.GetServerList();
                     results = results.Where(s => s.Ip == server.Ip);
 
-                    if (results.Count() > 0 && (server.Ip != server.Undo.Ip))
+                    //if (results.Count() > 0 && (server.Ip != server.Undo.Ip))
+                    if (results.Count() > 0)
                     {
                         MessageBox.Show(string.Format($"{server.Ip}는 이미 등록 되었습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
                         eventArgs.Cancel();
