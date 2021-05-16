@@ -95,8 +95,11 @@ namespace NmsDotnet.Database.vo
             }
             set
             {
-                _ServicePid = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("ServicePid"));
+                if (_ServicePid != value)
+                {
+                    _ServicePid = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("ServicePid"));
+                }
             }
         }
 
@@ -112,8 +115,11 @@ namespace NmsDotnet.Database.vo
             }
             set
             {
-                _VideoOutputId = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("VideoOutputId"));
+                if (_VideoOutputId != value)
+                {
+                    _VideoOutputId = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("VideoOutputId"));
+                }
             }
         }
 
@@ -141,8 +147,11 @@ namespace NmsDotnet.Database.vo
                         HeaderType = 'U'; // Titan Live to 'U'HD encoder
                     }
                 }
-                _Type = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("HeaderType"));
+                if (_Type != value)
+                {
+                    _Type = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("HeaderType"));
+                }
             }
         }
 
@@ -161,8 +170,11 @@ namespace NmsDotnet.Database.vo
             get { return _Color; }
             set
             {
-                _Color = value;
-                OnPropertyChanged(new PropertyChangedEventArgs("Color"));
+                if (_Color != value)
+                {
+                    _Color = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("Color"));
+                }
             }
         }
 

@@ -11,6 +11,7 @@ using NmsDotnet.vo;
 using System.Windows.Controls;
 using log4net;
 using NmsDotnet.Database.vo;
+using System.Threading;
 
 namespace NmsDotnet.Service
 {
@@ -336,7 +337,8 @@ namespace NmsDotnet.Service
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_SysUptime))
                             {
-                                s.Uptime = result.Pdu.VbList[i].Value.ToString();
+                                //uptime 자원을 많이 먹어서 임시 제거
+                                //s.Uptime = result.Pdu.VbList[i].Value.ToString();
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_CM5000ModelName_oid) ||
                                 result.Pdu.VbList[i].Oid.Equals(_DR5000ModelName_oid) ||
@@ -359,7 +361,7 @@ namespace NmsDotnet.Service
                 else
                 {
                     target.Close();
-                    Debug.WriteLine("No response received from SNMP agent.");
+                    logger.Info("No response received from SNMP agent.");
                     return false;
                 }
             }
@@ -369,7 +371,6 @@ namespace NmsDotnet.Service
                 logger.Error(String.Format("Ip : {0}", s.Ip));
                 //Debug.WriteLine(e.ToString());
             }
-
             return false;
         }
     }

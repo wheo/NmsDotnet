@@ -71,6 +71,8 @@ namespace NmsDotnet.Database.vo
         public string TranslateValue { get; set; }
         public bool IsTypeTrap { get; set; } = false;
         public string TrapString { get; set; }
+        public string TitanUID { get; set; }
+        public string TitanName { get; set; }
         public TrapType Type { get; set; }
         public EnumLevel Level { get; set; }
 

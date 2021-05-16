@@ -161,6 +161,7 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="config\JsonConfig.cs" />
+    <Compile Include="config\TitanLiveStatus.cs" />
     <Compile Include="Database\AbstractDAO.cs" />
     <Compile Include="Database\DatabaseManager.cs" />
     <Compile Include="Database\vo\Alarm.cs" />
@@ -173,6 +174,7 @@
     <Compile Include="lib\KnownFolders.cs" />
     <Compile Include="Service\SnmpService.cs" />
     <Compile Include="Utils\DragAdorner.cs" />
+    <Compile Include="Utils\Http.cs" />
     <Compile Include="Utils\InputBox.cs" />
     <Compile Include="Utils\ListViewDragDropManager.cs" />
     <Compile Include="Utils\MouseUtilities.cs" />

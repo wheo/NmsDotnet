@@ -34,6 +34,7 @@ using NmsDotnet.Utils;
 using System.Windows.Controls.Primitives;
 using System.ComponentModel;
 using System.Windows.Data;
+using NmsDotnet.config;
 
 namespace NmsDotnet
 {
@@ -58,6 +59,10 @@ namespace NmsDotnet
 
         private int _SnmpPort = 162;
 
+        private List<TitanLiveStatus> _tlss;
+
+        private object tlslock = new object();
+
         public NmsMainWindow(string userid, int width, int height)
         {
             InitializeComponent();
@@ -79,7 +84,47 @@ namespace NmsDotnet
             //SnmpSetServiceTest(); //test 완료
             LogInit();
 
-            Task.Run(() => TrapListener());
+            _tlss = new List<TitanLiveStatus>();
+            /*
+            if (_tls.UIDList.Count > 12)
+            {
+                string uri = string.Format($"http://{snmp.IP}/api/v1/servicesmngt/services/state");
+                string jsonbody = JsonConvert.SerializeObject(_tls, Formatting.Indented);
+                logger.Info(jsonbody);
+                await Http.PostAsync(uri, jsonbody);
+                _tls.UIDList.Clear();
+                logger.Info("Titan Uid List is cleared");
+            }
+            */
+
+            Task.Run(() => TrapListenerAsync());
+            Task.Run(() => TitanManagerAsync());
+        }
+
+        private async Task TitanManagerAsync()
+        {
+            logger.Info("TitanManager is created");
+            TimeSpan ts = TimeSpan.FromSeconds(2);
+            while (!_shouldStop)
+            {
+                foreach (TitanLiveStatus tls in _tlss)
+                {
+                    if (tls.UIDList.Count > 0)
+                    {
+                        lock (tlslock)
+                        {
+                            string uri = string.Format($"http://{tls.IP}/api/v1/servicesmngt/services/state");
+                            string jsonbody = JsonConvert.SerializeObject(tls, Formatting.Indented);
+                            logger.Info(jsonbody);
+                            Http.PostAsync(uri, jsonbody);
+                            tls.Clear();
+                            logger.Info("Titan Uid List is cleared");
+                        }
+                    }
+                }
+
+                await Task.Delay(ts);
+            }
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -235,7 +280,7 @@ namespace NmsDotnet
 
         private void ServerDispatcherTimer()
         {
-            _snmpGetTimer = new DispatcherTimer(DispatcherPriority.DataBind);
+            _snmpGetTimer = new DispatcherTimer(DispatcherPriority.ContextIdle);
             _snmpGetTimer.Tick += new EventHandler(SnmpGetService);
             _snmpGetTimer.Interval = TimeSpan.FromSeconds(5);
             //SnmpGetTimer.Interval = new TimeSpan(0, 0, 5);
@@ -315,7 +360,6 @@ namespace NmsDotnet
             foreach (Server server in NmsInfo.GetInstance().serverList)
             {
                 //string serviceOID = null;
-
                 try
                 {
                     if (SnmpService.Get(server))
@@ -905,7 +949,7 @@ namespace NmsDotnet
             }
         }
 
-        private void TrapListener()
+        private async Task TrapListenerAsync()
         {
             logger.Info("TrapListener is created");
 
@@ -1031,6 +1075,14 @@ namespace NmsDotnet
                                     {
                                         snmp.TranslateValue = v.Value.ToString();
                                     }
+                                    else if (TitanLiveTrapType == "8")
+                                    {
+                                        snmp.TitanUID = v.Value.ToString();
+                                    }
+                                    else if (TitanLiveTrapType == "11")
+                                    {
+                                        snmp.TitanName = v.Value.ToString();
+                                    }
                                 }
                                 else
                                 {
@@ -1066,6 +1118,37 @@ namespace NmsDotnet
                                 }
                             }
 
+                            #region 타이탄 라이브 위성 인코더용
+
+                            if (snmp.LevelString == "Critical" && snmp.TypeValue == "begin" && snmp.Id.Contains(TitanLiveAlarmOid))
+                            {
+                                if (!string.IsNullOrEmpty(snmp.TitanUID))
+                                {
+                                    TitanLiveStatus tls = null;
+                                    tls = _tlss.Where(r => r.IP.Equals(snmp.IP)).FirstOrDefault();
+                                    lock (tlslock)
+                                    {
+                                        if (tls != null)
+                                        {
+                                            tls.currentTime = DateTime.UtcNow;
+                                            tls.State = "Stopped";
+                                            tls.UIDList.Add(snmp.TitanUID);
+                                        }
+                                        else
+                                        {
+                                            tls = new TitanLiveStatus();
+                                            tls.currentTime = DateTime.UtcNow;
+                                            tls.IP = snmp.IP;
+                                            tls.State = "Stopped";
+                                            tls.UIDList.Add(snmp.TitanUID);
+                                            _tlss.Add(tls);
+                                        }
+                                    }
+                                }
+                            }
+
+                            #endregion 타이탄 라이브 위성 인코더용
+
                             // trap이 활성화 되어있을 경우만 기록
                             if (Snmp.IsEnableTrap(snmp.Oid) || snmp.Id.Contains(TitanLiveAlarmOid))
                             {
@@ -1084,90 +1167,92 @@ namespace NmsDotnet
                                     }
 
                                     //var s = (Server)NmsInfo.GetInstance().serverList.Where(x => x.Ip == snmp.IP); not work casting error
-
-                                    if (string.Equals(snmp.TypeValue, "begin"))
+                                    if (s != null)
                                     {
-                                        if (FindItemDuplicateTrap(NmsInfo.GetInstance().activeLog, s, snmp.Oid).Count == 0 ||
-                                            FindItemDuplicateTitanTrap(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue).Count == 0)
+                                        if (string.Equals(snmp.TypeValue, "begin"))
                                         {
-                                            if (snmp.IsTypeTrap)
+                                            if (FindItemDuplicateTrap(NmsInfo.GetInstance().activeLog, s, snmp.Oid).Count == 0 ||
+                                                FindItemDuplicateTitanTrap(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue).Count == 0)
                                             {
-                                                s.ErrorCount++;
+                                                if (snmp.IsTypeTrap)
+                                                {
+                                                    s.ErrorCount++;
+                                                }
+                                                s.Message = snmp.TranslateValue;
+
+                                                LogItem log = new LogItem
+                                                {
+                                                    Ip = s.Ip,
+                                                    Level = snmp.LevelString,
+                                                    Name = s.UnitName,
+                                                    Oid = snmp.Oid,
+                                                    IsConnection = true,
+                                                    Value = snmp.TranslateValue,
+                                                    TypeValue = "begin"
+                                                };
+
+                                                LoggingDisplay(log);
+                                                LogItem.LoggingDatabase(snmp);
                                             }
-                                            s.Message = snmp.TranslateValue;
-
-                                            LogItem log = new LogItem
+                                        }
+                                        else if (string.Equals(snmp.TypeValue, "end"))
+                                        {
+                                            List<LogItem> activeItems;
+                                            List<LogItem> historyItems;
+                                            if (!string.IsNullOrEmpty(snmp.Oid))
                                             {
-                                                Ip = s.Ip,
-                                                Level = snmp.LevelString,
-                                                Name = s.UnitName,
-                                                Oid = snmp.Oid,
-                                                IsConnection = true,
-                                                Value = snmp.TranslateValue,
-                                                TypeValue = "begin"
-                                            };
-
-                                            LoggingDisplay(log);
-                                            LogItem.LoggingDatabase(snmp);
-                                        }
-                                    }
-                                    else if (string.Equals(snmp.TypeValue, "end"))
-                                    {
-                                        List<LogItem> activeItems;
-                                        List<LogItem> historyItems;
-                                        if (!string.IsNullOrEmpty(snmp.Oid))
-                                        {
-                                            activeItems = FindItemFromOid(NmsInfo.GetInstance().activeLog, s, snmp.Oid);
-                                            historyItems = FindItemFromOid(NmsInfo.GetInstance().historyLog, s, snmp.Oid);
-                                        }
-                                        else
-                                        {
-                                            activeItems = FindItemFromValue(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue);
-                                            historyItems = FindItemFromValue(NmsInfo.GetInstance().historyLog, s, snmp.TranslateValue);
-                                        }
-                                        if (activeItems.Count > 0)
-                                        {
-                                            foreach (var item in activeItems)
+                                                activeItems = FindItemFromOid(NmsInfo.GetInstance().activeLog, s, snmp.Oid);
+                                                historyItems = FindItemFromOid(NmsInfo.GetInstance().historyLog, s, snmp.Oid);
+                                            }
+                                            else
                                             {
-                                                if (s.ErrorCount > 0 && snmp.IsTypeTrap)
+                                                activeItems = FindItemFromValue(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue);
+                                                historyItems = FindItemFromValue(NmsInfo.GetInstance().historyLog, s, snmp.TranslateValue);
+                                            }
+                                            if (activeItems.Count > 0)
+                                            {
+                                                foreach (var item in activeItems)
                                                 {
-                                                    s.ErrorCount--;
+                                                    if (s.ErrorCount > 0 && snmp.IsTypeTrap)
+                                                    {
+                                                        s.ErrorCount--;
+                                                    }
+                                                    LogItem restoreItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, s.Ip);
+                                                    if (restoreItem != null)
+                                                    {
+                                                        s.Status = restoreItem.Level;
+                                                        s.Message = restoreItem.Value;
+                                                    }
+                                                    else
+                                                    {
+                                                        s.Status = Server.EnumStatus.Normal.ToString();
+                                                    }
                                                 }
-                                                LogItem restoreItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, s.Ip);
-                                                if (restoreItem != null)
-                                                {
-                                                    s.Status = restoreItem.Level;
-                                                    s.Message = restoreItem.Value;
-                                                }
-                                                else
-                                                {
-                                                    s.Status = Server.EnumStatus.Normal.ToString();
-                                                }
+
+                                                LoggingDisplay(activeItems, historyItems);
+                                                LogItem.LoggingDatabase(snmp);
+                                            }
+                                        }
+
+                                        if (!string.Equals(snmp.TypeValue, "log"))
+                                        {
+                                            if (s.ErrorCount > 0)
+                                            {
+                                                s.Status = Server.CompareState(s.Status, snmp.LevelString);
+                                            }
+                                            else
+                                            {
+                                                s.Status = Server.EnumStatus.Normal.ToString();
                                             }
 
-                                            LoggingDisplay(activeItems, historyItems);
-                                            LogItem.LoggingDatabase(snmp);
-                                        }
-                                    }
-
-                                    if (!string.Equals(snmp.TypeValue, "log"))
-                                    {
-                                        if (s.ErrorCount > 0)
-                                        {
-                                            s.Status = Server.CompareState(s.Status, snmp.LevelString);
-                                        }
-                                        else
-                                        {
-                                            s.Status = Server.EnumStatus.Normal.ToString();
-                                        }
-
-                                        if (LvActiveLog.Items.Count > 0)
-                                        {
-                                            SoundPlay(snmp.LevelString);
-                                        }
-                                        else
-                                        {
-                                            SoundStop();
+                                            if (LvActiveLog.Items.Count > 0)
+                                            {
+                                                SoundPlay(snmp.LevelString);
+                                            }
+                                            else
+                                            {
+                                                SoundStop();
+                                            }
                                         }
                                     }
                                 }
@@ -1175,6 +1260,9 @@ namespace NmsDotnet
 
                             logger.Info("** End of SNMP Version 2 TRAP data.");
                         }
+
+                        string jsonbody = JsonConvert.SerializeObject(_tlss, Formatting.Indented);
+                        logger.Info(jsonbody);
                     }
                 }
                 else

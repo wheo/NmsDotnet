@@ -18,6 +18,7 @@ namespace NmsDotnet.Utils
         /// <typeparam name="T">The type of object being copied.</typeparam>
         /// <param name="source">The object instance to copy.</param>
         /// <returns>The copied object.</returns>
+        ///
         public static T Clone<T>(T source)
         {
             if (!typeof(T).IsSerializable)
