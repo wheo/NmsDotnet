@@ -628,7 +628,7 @@
                                             <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
                                             <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Message}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
                                             <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
-                                            <!--<TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Uptime}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />-->
+                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Uptime}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
                                         </StackPanel>
                                     </Border.ToolTip>
                                     <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">

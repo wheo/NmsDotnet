@@ -53,6 +53,8 @@ namespace NmsDotnet
 
         private DispatcherTimer _snmpGetTimer = null;
 
+        private System.Threading.Timer _snmpGetThreadingTimer = null;
+
         private ListViewDragDropManager<Server> dragMgr;
 
         private const int MAX_SERVER = 570;
@@ -280,9 +282,12 @@ namespace NmsDotnet
 
         private void ServerDispatcherTimer()
         {
+            /*
             _snmpGetTimer = new DispatcherTimer(DispatcherPriority.ContextIdle);
             _snmpGetTimer.Tick += new EventHandler(SnmpGetService);
             _snmpGetTimer.Interval = TimeSpan.FromSeconds(5);
+            */
+            _snmpGetThreadingTimer = new System.Threading.Timer(SnmpGetService, null, 0, 5000);
             //SnmpGetTimer.Interval = new TimeSpan(0, 0, 5);
 
             ObservableCollection<Server> ocs = new ObservableCollection<Server>(Server.GetServerList());
@@ -335,7 +340,7 @@ namespace NmsDotnet
             ServerListItem.ItemsSource = NmsInfo.GetInstance().serverList;
             TreeGroup.ItemsSource = NmsInfo.GetInstance().groupList;
 
-            _snmpGetTimer.Start();
+            //_snmpGetTimer.Start();
         }
 
         private void MiEdit_Click(object sender, RoutedEventArgs e)
@@ -343,22 +348,27 @@ namespace NmsDotnet
             throw new NotImplementedException();
         }
 
-        private void SnmpGetService(object sender, EventArgs e)
+        private void SnmpGetService(object state)
         {
-            if (PbMainLoading.Visibility == Visibility.Visible)
+            Dispatcher.Invoke(() =>
             {
-                PbMainLoading.Visibility = Visibility.Collapsed;
-                ServerListItem.Visibility = Visibility.Visible;
+                if (PbMainLoading.Visibility == Visibility.Visible)
+                {
+                    PbMainLoading.Visibility = Visibility.Collapsed;
+                    ServerListItem.Visibility = Visibility.Visible;
 
-                BtnGroupAdd.IsEnabled = true;
-                BtnServerAdd.IsEnabled = true;
-                BtnServerInfo.IsEnabled = true;
-                BtnScreenLock.IsEnabled = true;
-                BtnRevert.IsEnabled = true;
-                BtnSoundOff.IsEnabled = true;
-            }
-            foreach (Server server in NmsInfo.GetInstance().serverList)
+                    BtnGroupAdd.IsEnabled = true;
+                    BtnServerAdd.IsEnabled = true;
+                    BtnServerInfo.IsEnabled = true;
+                    BtnScreenLock.IsEnabled = true;
+                    BtnRevert.IsEnabled = true;
+                    BtnSoundOff.IsEnabled = true;
+                }
+            });
+            //foreach (Server server in NmsInfo.GetInstance().serverList)
+            for (int i = 0; i < NmsInfo.GetInstance().serverList.Count(); i++)
             {
+                Server server = NmsInfo.GetInstance().serverList[i];
                 //string serviceOID = null;
                 try
                 {
@@ -544,6 +554,15 @@ namespace NmsDotnet
             }
         }
 
+        private List<LogItem> FindAllActiveAlarm(ObservableCollection<LogItem> ocl, string Ip)
+        {
+            IEnumerable<LogItem> items =
+                from x in ocl
+                where x.Ip == Ip
+                select x;
+            return items.ToList();
+        }
+
         private LogItem FindCurrentStatusItem(ObservableCollection<LogItem> ocl, string Ip)
         {
             IEnumerable<LogItem> items =
@@ -723,7 +742,7 @@ namespace NmsDotnet
             }
 
             server.Undo = server.ShallowCopy();
-            _snmpGetTimer.Stop();
+            //_snmpGetTimer.Stop();
 
             this.IsEnabled = false;
             var result = await DialogHost.Show(server, "DialogServer");
@@ -760,6 +779,13 @@ namespace NmsDotnet
                         }
                         int location = server.Location;
                         NmsInfo.GetInstance().serverList.Remove(server);
+                        //액티브 알람 지움
+                        List<LogItem> activeAlarmList = FindAllActiveAlarm(NmsInfo.GetInstance().activeLog, server.Ip);
+                        foreach (LogItem item in activeAlarmList)
+                        {
+                            NmsInfo.GetInstance().activeLog.Remove(item);
+                        }
+
                         Server emptyServer = new Server();
                         NmsInfo.GetInstance().serverList.Insert(location, emptyServer);
                         //인스턴스를 삭제하지 않고 초기화 시킴
@@ -799,11 +825,14 @@ namespace NmsDotnet
                     results = results.Where(s => s.Ip == server.Ip);
 
                     //if (results.Count() > 0 && (server.Ip != server.Undo.Ip))
-                    if (results.Count() > 0)
+                    if (string.IsNullOrEmpty(server.Id))
                     {
-                        MessageBox.Show(string.Format($"{server.Ip}는 이미 등록 되었습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
-                        eventArgs.Cancel();
-                        return;
+                        if (results.Count() > 0)
+                        {
+                            MessageBox.Show(string.Format($"{server.Ip}는 이미 등록 되었습니다", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
+                            eventArgs.Cancel();
+                            return;
+                        }
                     }
                 }
                 else if (!string.IsNullOrEmpty(server.Ip))
@@ -892,7 +921,7 @@ namespace NmsDotnet
                 }
             }
 
-            _snmpGetTimer.Start();
+            //_snmpGetTimer.Start();
         }
 
         private void LoggingDisplay(LogItem log)
@@ -1169,7 +1198,7 @@ namespace NmsDotnet
                                     //var s = (Server)NmsInfo.GetInstance().serverList.Where(x => x.Ip == snmp.IP); not work casting error
                                     if (s != null)
                                     {
-                                        if (string.Equals(snmp.TypeValue, "begin"))
+                                        if (!snmp.LevelString.Equals("Disabled") && string.Equals(snmp.TypeValue, "begin"))
                                         {
                                             if (FindItemDuplicateTrap(NmsInfo.GetInstance().activeLog, s, snmp.Oid).Count == 0 ||
                                                 FindItemDuplicateTitanTrap(NmsInfo.GetInstance().activeLog, s, snmp.TranslateValue).Count == 0)
@@ -1195,7 +1224,7 @@ namespace NmsDotnet
                                                 LogItem.LoggingDatabase(snmp);
                                             }
                                         }
-                                        else if (string.Equals(snmp.TypeValue, "end"))
+                                        else if (!snmp.LevelString.Equals("Disabled") && string.Equals(snmp.TypeValue, "end"))
                                         {
                                             List<LogItem> activeItems;
                                             List<LogItem> historyItems;
@@ -1726,7 +1755,7 @@ namespace NmsDotnet
                     Group.ImportGroup(groups);
                     Server.ImportServer(servers);
 
-                    _snmpGetTimer.Stop();
+                    //_snmpGetTimer.Stop();
                     MessageBox.Show("새로운 장비 정보를 등록했습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
                     ServerDispatcherTimer();
                     DialogHost.Close("DialogServerInfo");
