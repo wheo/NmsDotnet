@@ -268,9 +268,12 @@ namespace NmsDotnet
         private void LogInit()
         {
             // 최초 실행시에 최근로그를 한번만 가져옴
-            List<LogItem> currentLog = LogItem.GetLog();
+            //List<LogItem> currentLog = LogItem.GetLog();
+            // 최초 로그 가져오지 않음으로 변경
+            List<LogItem> currentLog = new List<LogItem>();
             NmsInfo.GetInstance().activeLog = new ObservableCollection<LogItem>(currentLog);
             //LvLog.ItemsSource = null;
+
             LvActiveLog.ItemsSource = NmsInfo.GetInstance().activeLog;
 
             List<LogItem> historyLog = LogItem.GetLog(true);
@@ -364,74 +367,166 @@ namespace NmsDotnet
                     BtnRevert.IsEnabled = true;
                     BtnSoundOff.IsEnabled = true;
                 }
-
-                //foreach (Server server in NmsInfo.GetInstance().serverList)
-                for (int i = 0; i < NmsInfo.GetInstance().serverList.Count(); i++)
+            });
+            //foreach (Server server in NmsInfo.GetInstance().serverList)
+            for (int i = 0; i < NmsInfo.GetInstance().serverList.Count(); i++)
+            {
+                Server server = NmsInfo.GetInstance().serverList[i];
+                //string serviceOID = null;
+                try
                 {
-                    Server server = NmsInfo.GetInstance().serverList[i];
-                    //string serviceOID = null;
-                    try
+                    if (SnmpService.Get(server))
                     {
-                        if (SnmpService.Get(server))
+                        //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
+
+                        if (!string.IsNullOrEmpty(server.ModelName))
                         {
-                            //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
-
-                            if (!string.IsNullOrEmpty(server.ModelName))
+                            /*
+                            if ("CM5000".Equals(server.ModelName))
                             {
-                                /*
-                                if ("CM5000".Equals(server.ModelName))
+                                serviceOID = SnmpService._CM5000ModelName_oid;
+                            }
+                            else
+                            {
+                                serviceOID = SnmpService._DR5000ModelName_oid;
+                            }
+                            */
+                            if (server.IsConnect != Server.EnumIsConnect.Connect)
+                            {
+                                if (server.IsConnect != Server.EnumIsConnect.Init)
                                 {
-                                    serviceOID = SnmpService._CM5000ModelName_oid;
-                                }
-                                else
-                                {
-                                    serviceOID = SnmpService._DR5000ModelName_oid;
-                                }
-                                */
-                                if (server.IsConnect != Server.EnumIsConnect.Connect)
-                                {
-                                    if (server.IsConnect != Server.EnumIsConnect.Init)
+                                    Snmp snmp = new Snmp
                                     {
-                                        Snmp snmp = new Snmp
-                                        {
-                                            IP = server.Ip,
-                                            Port = "65535",
-                                            Community = "public",
-                                            Oid = SnmpService._MyConnectionOid,
-                                            LevelString = Server.EnumStatus.Critical.ToString(),
-                                            TypeValue = "end",
-                                            TranslateValue = "Failed to connection"
-                                        };
-                                        LogItem.LoggingDatabase(snmp);
+                                        IP = server.Ip,
+                                        Port = "65535",
+                                        Community = "public",
+                                        Oid = SnmpService._MyConnectionOid,
+                                        LevelString = Server.EnumStatus.Critical.ToString(),
+                                        TypeValue = "end",
+                                        TranslateValue = "Failed to connection"
+                                    };
+                                    LogItem.LoggingDatabase(snmp);
 
-                                        LogItem item = FindConnectionFailItem(NmsInfo.GetInstance().activeLog, server.Ip);
-                                        if (item != null)
+                                    LogItem item = FindConnectionFailItem(NmsInfo.GetInstance().activeLog, server.Ip);
+                                    if (item != null)
+                                    {
+                                        if (LvActiveLog.Dispatcher.CheckAccess())
                                         {
                                             NmsInfo.GetInstance().activeLog.Remove(item);
                                         }
-                                        LogItem itemHistory = FindConnectionFailItem(NmsInfo.GetInstance().historyLog, server.Ip);
-                                        if (itemHistory != null)
+                                        else
                                         {
-                                            itemHistory.EndAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                                            LvHistory.ItemsSource = null;
-                                            LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
+                                            LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
+                                        }
+                                        
+                                    }
+                                    LogItem itemHistory = FindConnectionFailItem(NmsInfo.GetInstance().historyLog, server.Ip);
+                                    if (itemHistory != null)
+                                    {
+                                        itemHistory.EndAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                                        LvHistory.ItemsSource = null;
+                                        LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
+                                    }
+                                }
+
+                                LogItem curruntStatusItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, server.Ip);
+                                if (curruntStatusItem != null)
+                                {
+                                    server.Status = curruntStatusItem.Level;
+                                    server.Message = curruntStatusItem.Value;
+                                }
+                                else
+                                {
+                                    server.Status = Server.EnumStatus.Normal.ToString();
+                                }
+
+                                server.ConnectionErrorCount = 0;
+
+                                server.IsConnect = Server.EnumIsConnect.Connect;
+
+                                //Debug.WriteLine($"activeLog Count : {NmsInfo.GetInstance().activeLog.Count}");
+                                if (NmsInfo.GetInstance().activeLog.Count > 0)
+                                {
+                                    SoundPlay(Server.EnumStatus.Critical.ToString());
+                                }
+                                else
+                                {
+                                    SoundStop();
+                                }
+
+                                //LogItem log = new LogItem { }
+                                //NmsInfo.GetInstance().logItem.Add();
+
+                                // server.IsChange = true; INotify 인터페이스로 대체
+                                // logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
+                                // drawItem은 INotifyPropertyChanged 로 대체됨
+                                // drawItem = true;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (!string.IsNullOrEmpty(server.Ip))
+                        {
+                            if (server.IsConnect != Server.EnumIsConnect.Disconnect)
+                            {
+                                //server.IsChange = true;
+                                //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
+
+                                server.ConnectionErrorCount++;
+
+                                //if (server.IsConnect != (int)Server.EnumIsConnect.Init && server.ConnectionErrorCount > 1)
+                                if (server.ConnectionErrorCount > 1)
+                                {
+                                    Snmp snmp = new Snmp
+                                    {
+                                        IP = server.Ip,
+                                        Port = "65535",
+                                        Community = "public",
+                                        Oid = SnmpService._MyConnectionOid,
+                                        LevelString = Server.EnumStatus.Critical.ToString(),
+                                        TypeValue = "begin",
+                                        TranslateValue = "Failed to connection"
+                                    };
+                                    LogItem.LoggingDatabase(snmp);
+
+                                    LogItem log = new LogItem
+                                    {
+                                        Ip = server.Ip,
+                                        Level = Server.EnumStatus.Critical.ToString(),
+                                        Oid = SnmpService._MyConnectionOid,
+                                        Name = server.UnitName,
+                                        IsConnection = false,
+                                        TypeValue = "begin",
+                                        Value = "Failed to connection"
+                                    };
+
+                                    IEnumerable<LogItem> results = NmsInfo.GetInstance().activeLog.Where(l => l.Ip == log.Ip && l.Oid == log.Oid);
+
+                                    if (results.Count() == 0)
+                                    {
+                                        if (LvActiveLog.Dispatcher.CheckAccess())
+                                        {
+                                            NmsInfo.GetInstance().activeLog.Insert(0, log);
+                                        }
+                                        else
+                                        {
+                                            LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, log); });
+                                        }
+
+                                        if (LvHistory.Dispatcher.CheckAccess())
+                                        {
+                                            NmsInfo.GetInstance().historyLog.Insert(0, log);
+                                        }
+                                        else
+                                        {
+                                            LvHistory.Dispatcher.Invoke(() => { NmsInfo.GetInstance().historyLog.Insert(0, log); });
                                         }
                                     }
+                                    server.Message = "Failed to connection";
+                                    server.Status = Server.EnumStatus.Critical.ToString();
 
-                                    LogItem curruntStatusItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, server.Ip);
-                                    if (curruntStatusItem != null)
-                                    {
-                                        server.Status = curruntStatusItem.Level;
-                                        server.Message = curruntStatusItem.Value;
-                                    }
-                                    else
-                                    {
-                                        server.Status = Server.EnumStatus.Normal.ToString();
-                                    }
-
-                                    server.ConnectionErrorCount = 0;
-
-                                    server.IsConnect = Server.EnumIsConnect.Connect;
+                                    server.IsConnect = Server.EnumIsConnect.Disconnect;
 
                                     //Debug.WriteLine($"activeLog Count : {NmsInfo.GetInstance().activeLog.Count}");
                                     if (NmsInfo.GetInstance().activeLog.Count > 0)
@@ -442,89 +537,19 @@ namespace NmsDotnet
                                     {
                                         SoundStop();
                                     }
-
-                                    //LogItem log = new LogItem { }
-                                    //NmsInfo.GetInstance().logItem.Add();
-
-                                    // server.IsChange = true; INotify 인터페이스로 대체
-                                    // logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
-                                    // drawItem은 INotifyPropertyChanged 로 대체됨
-                                    // drawItem = true;
                                 }
+
+                                // drawItem은 INotifyPropertyChanged 로 대체됨
+                                // drawItem = true;
                             }
                         }
-                        else
-                        {
-                            if (!string.IsNullOrEmpty(server.Ip))
-                            {
-                                if (server.IsConnect != Server.EnumIsConnect.Disconnect)
-                                {
-                                    //server.IsChange = true;
-                                    //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
-
-                                    server.ConnectionErrorCount++;
-
-                                    //if (server.IsConnect != (int)Server.EnumIsConnect.Init && server.ConnectionErrorCount > 1)
-                                    if (server.ConnectionErrorCount > 1)
-                                    {
-                                        Snmp snmp = new Snmp
-                                        {
-                                            IP = server.Ip,
-                                            Port = "65535",
-                                            Community = "public",
-                                            Oid = SnmpService._MyConnectionOid,
-                                            LevelString = Server.EnumStatus.Critical.ToString(),
-                                            TypeValue = "begin",
-                                            TranslateValue = "Failed to connection"
-                                        };
-                                        LogItem.LoggingDatabase(snmp);
-
-                                        LogItem log = new LogItem
-                                        {
-                                            Ip = server.Ip,
-                                            Level = Server.EnumStatus.Critical.ToString(),
-                                            Oid = SnmpService._MyConnectionOid,
-                                            Name = server.UnitName,
-                                            IsConnection = false,
-                                            TypeValue = "begin",
-                                            Value = "Failed to connection"
-                                        };
-
-                                        IEnumerable<LogItem> results = NmsInfo.GetInstance().activeLog.Where(l => l.Ip == log.Ip && l.Oid == log.Oid);
-
-                                        if (results.Count() == 0)
-                                        {
-                                            NmsInfo.GetInstance().activeLog.Insert(0, log);
-                                            NmsInfo.GetInstance().historyLog.Insert(0, log);
-                                        }
-                                        server.Message = "Failed to connection";
-                                        server.Status = Server.EnumStatus.Critical.ToString();
-
-                                        server.IsConnect = Server.EnumIsConnect.Disconnect;
-
-                                        //Debug.WriteLine($"activeLog Count : {NmsInfo.GetInstance().activeLog.Count}");
-                                        if (NmsInfo.GetInstance().activeLog.Count > 0)
-                                        {
-                                            SoundPlay(Server.EnumStatus.Critical.ToString());
-                                        }
-                                        else
-                                        {
-                                            SoundStop();
-                                        }
-                                    }
-
-                                    // drawItem은 INotifyPropertyChanged 로 대체됨
-                                    // drawItem = true;
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.Error(ex.ToString());
                     }
                 }
-            });
+                catch (Exception ex)
+                {
+                    logger.Error(ex.ToString());
+                }
+            }
         }
 
         private LogItem FindConnectionFailItem(ObservableCollection<LogItem> ocl, string Ip)
@@ -585,7 +610,7 @@ namespace NmsDotnet
         {
             IEnumerable<LogItem> items =
                 from x in ocl
-                where x.Oid == oid && x.Ip == s.Ip
+                where x.Oid == oid && x.Ip == s.Ip && string.IsNullOrEmpty(x.EndAt)
                 select x;
             return items.ToList();
         }
@@ -1339,6 +1364,8 @@ namespace NmsDotnet
             {
                 _soundPlayer = new SoundPlayer(@"Sound\alarm.wav");
                 _soundPlayer.PlayLooping();
+                await Task.Delay(5000);
+                _soundPlayer.Stop();
             }
         }
 
@@ -1348,6 +1375,8 @@ namespace NmsDotnet
             {
                 _soundPlayer = new SoundPlayer(path);
                 _soundPlayer.PlayLooping();
+                await Task.Delay(5000);
+                _soundPlayer.Stop();
             }
         }
 
