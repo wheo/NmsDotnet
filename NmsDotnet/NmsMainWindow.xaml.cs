@@ -283,6 +283,22 @@ namespace NmsDotnet
             LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
         }
 
+        private void LodingisDone()
+        {
+            if (PbMainLoading.Visibility == Visibility.Visible)
+            {
+                PbMainLoading.Visibility = Visibility.Collapsed;
+                ServerListItem.Visibility = Visibility.Visible;
+
+                BtnGroupAdd.IsEnabled = true;
+                BtnServerAdd.IsEnabled = true;
+                BtnServerInfo.IsEnabled = true;
+                BtnScreenLock.IsEnabled = true;
+                BtnRevert.IsEnabled = true;
+                BtnSoundOff.IsEnabled = true;
+            }
+        }
+
         private void ServerDispatcherTimer()
         {
             /*
@@ -290,8 +306,13 @@ namespace NmsDotnet
             _snmpGetTimer.Tick += new EventHandler(SnmpGetService);
             _snmpGetTimer.Interval = TimeSpan.FromSeconds(5);
             */
-            _snmpGetThreadingTimer = new System.Threading.Timer(SnmpGetService, null, 0, 5000);
+            //_snmpGetThreadingTimer = new System.Threading.Timer(SnmpGetService, null, 0, 5000);
             //SnmpGetTimer.Interval = new TimeSpan(0, 0, 5);
+
+            //Task.Factory.StartNew(new Action<object>(SnmpGetService), 5);
+            Task.Run(() => SnmpGetService(5));
+
+            LodingisDone();
 
             ObservableCollection<Server> ocs = new ObservableCollection<Server>(Server.GetServerList());
             NmsInfo.GetInstance().serverList = new ObservableCollection<Server>();
@@ -351,23 +372,12 @@ namespace NmsDotnet
             throw new NotImplementedException();
         }
 
-        private void SnmpGetService(object state)
+        private async Task SnmpGetService(double sleepSecond)
         {
-            Dispatcher.Invoke(() =>
+            TimeSpan ts = TimeSpan.FromSeconds((double)sleepSecond);
+            await Task.Delay(ts);
+            while (!_shouldStop)
             {
-                if (PbMainLoading.Visibility == Visibility.Visible)
-                {
-                    PbMainLoading.Visibility = Visibility.Collapsed;
-                    ServerListItem.Visibility = Visibility.Visible;
-
-                    BtnGroupAdd.IsEnabled = true;
-                    BtnServerAdd.IsEnabled = true;
-                    BtnServerInfo.IsEnabled = true;
-                    BtnScreenLock.IsEnabled = true;
-                    BtnRevert.IsEnabled = true;
-                    BtnSoundOff.IsEnabled = true;
-                }
-
                 //foreach (Server server in NmsInfo.GetInstance().serverList)
                 for (int i = 0; i < NmsInfo.GetInstance().serverList.Count(); i++)
                 {
@@ -549,7 +559,10 @@ namespace NmsDotnet
                         logger.Error(ex.ToString());
                     }
                 }
-            });
+
+                await Task.Delay(ts);
+                Debug.WriteLine("snmp service is alive");
+            }
         }
 
         private LogItem FindConnectionFailItem(ObservableCollection<LogItem> ocl, string Ip)
