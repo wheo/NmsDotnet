@@ -620,7 +620,7 @@
                                         </ContextMenu>
                                     </Border.ContextMenu>
                                     <Border.ToolTip>
-                                        <StackPanel Background="{Binding Color}">
+                                        <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">
                                             <TextBlock Margin="10,5" HorizontalAlignment="Center" Text="{Binding Ip, UpdateSourceTrigger=Explicit}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="16" />
                                             <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
                                             <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding GroupName, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" />
@@ -715,6 +715,18 @@
                                 <EventSetter Event="PreviewMouseDoubleClick" Handler="ListViewItem_PreviewMouseDoubleClick" />
                                 <Setter Property="ContextMenu" Value="{StaticResource ItemContextMenu}" />
                                 <Setter Property="Background" Value="{Binding Color}" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="{x:Type ListViewItem}">
+                                            <Border
+                                                    BorderBrush="Transparent"
+                                                    BorderThickness="0"
+                                                    Background="{TemplateBinding Background}">
+                                                <GridViewRowPresenter HorizontalAlignment="Stretch" VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Width="Auto" Margin="0" Content="{TemplateBinding Content}" />
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
                             </Style>
                         </ListView.ItemContainerStyle>
 

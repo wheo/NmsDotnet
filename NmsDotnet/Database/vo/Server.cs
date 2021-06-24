@@ -195,12 +195,12 @@ namespace NmsDotnet.Database.vo
 
                         if (value.ToLower().Equals("normal"))
                         {
-                            this.Color = "#00FF00";
+                            this.Color = "#00FF7F";
                             this.Message = "Normal status";
                         }
                         else if (value.ToLower().Equals("critical"))
                         {
-                            this.Color = "#FF0000";
+                            this.Color = "#EE0000";
                         }
                         else if (value.ToLower().Equals("warning"))
                         {
