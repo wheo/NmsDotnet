@@ -1393,6 +1393,15 @@ namespace NmsDotnet
             }
         }
 
+        private async Task SoundPlayAsync(string path, bool preview)
+        {
+            if (_soundPlayer == null)
+            {
+                _soundPlayer = new SoundPlayer(path);
+                _soundPlayer.PlayLooping();
+            }
+        }
+
         private void SoundStop()
         {
             if (_soundPlayer != null)
@@ -1501,6 +1510,7 @@ namespace NmsDotnet
                 //TreeGroup.ItemsSource = Group.GetGroupList();
                 //ServerListItem.ItemsSource = Server.GetServerList();
             }
+            _soundPlayer.Stop();
         }
 
         private void HiddenAlarm_Click(object sender, RoutedEventArgs e)
@@ -2012,6 +2022,23 @@ namespace NmsDotnet
                     _lastHeaderClicked = headerClicked;
                     _lastDirection = direction;
                 }
+            }
+        }
+
+        private void Button_AlarmSoundClick(object sender, RoutedEventArgs e)
+        {
+            Button b = (Button)e.Source as Button;
+            string path = b.Uid;
+
+            if (File.Exists(path))
+            {
+                _soundPlayer.Stop();
+                _soundPlayer = null;
+                Task.Run(() => SoundPlayAsync(path, true));
+            }
+            else
+            {
+                MessageBox.Show("재생할 파일이 없습니다");
             }
         }
     }

@@ -269,6 +269,11 @@
                                                         <Button Content="파일업로드" Click="BtnAlarmFileUpload_Click"  Height="18" Padding="10,0" FontFamily="{DynamicResource NotoSans-Regular}" Uid="{Binding Uid}"  FontSize="12" />
                                                     </StackPanel>
                                                 </DataTemplate>
+                                                <DataTemplate x:Key="myCellTemplatePreview">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Button Content="듣기" Click="Button_AlarmSoundClick"  Height="18" Padding="10,0" FontFamily="{DynamicResource NotoSans-Regular}" Uid="{Binding Path}"  FontSize="12" />
+                                                    </StackPanel>
+                                                </DataTemplate>
                                             </ListView.Resources>
                                             <ListView.ItemContainerStyle>
                                                 <Style TargetType="{x:Type ListViewItem}">
@@ -293,6 +298,7 @@
                                                         </GridViewColumn.CellTemplate>
                                                     </GridViewColumn>
                                                     <GridViewColumn Header="설정" CellTemplate="{StaticResource myCellTemplateEdit}" />
+                                                    <GridViewColumn Header="듣기" CellTemplate="{StaticResource myCellTemplatePreview}" />
                                                 </GridView>
                                             </ListView.View>
                                         </ListView>
@@ -621,18 +627,18 @@
                                     </Border.ContextMenu>
                                     <Border.ToolTip>
                                         <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">
-                                            <TextBlock Margin="10,5" HorizontalAlignment="Center" Text="{Binding Ip, UpdateSourceTrigger=Explicit}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="16" />
+                                            <TextBlock Margin="10,5" HorizontalAlignment="Center" Text="{Binding Ip, UpdateSourceTrigger=Explicit}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="16" Foreground="Black" />
                                             <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
-                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding GroupName, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" />
-                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding UnitName, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="14" />
+                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding GroupName, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" Foreground="Black" />
+                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding UnitName, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="14" Foreground="Black" />
                                             <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
-                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
+                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" Foreground="Black" />
                                             <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
-                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Uptime, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" />
+                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Uptime, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" Foreground="Black" />
                                         </StackPanel>
                                     </Border.ToolTip>
                                     <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">
-                                        <TextBlock Text="{Binding HeaderType, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ServerInfoStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                        <TextBlock Text="{Binding HeaderType, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ServerInfoStyle}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="Black" />
                                     </StackPanel>
                                     <!--
                                 <StackPanel>
