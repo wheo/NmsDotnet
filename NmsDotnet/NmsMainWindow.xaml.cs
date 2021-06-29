@@ -1395,11 +1395,14 @@ namespace NmsDotnet
 
         private async Task SoundPlayAsync(string path, bool preview)
         {
-            if (_soundPlayer == null)
+            if (_soundPlayer != null)
             {
-                _soundPlayer = new SoundPlayer(path);
-                _soundPlayer.PlayLooping();
+                _soundPlayer.Stop();
+                _soundPlayer = null;
             }
+            _soundPlayer = new SoundPlayer(path);
+            _soundPlayer.PlayLooping();
+            logger.Info("play sound : " + path);
         }
 
         private void SoundStop()
@@ -1510,7 +1513,10 @@ namespace NmsDotnet
                 //TreeGroup.ItemsSource = Group.GetGroupList();
                 //ServerListItem.ItemsSource = Server.GetServerList();
             }
-            _soundPlayer.Stop();
+            if (_soundPlayer != null)
+            {
+                _soundPlayer.Stop();
+            }
         }
 
         private void HiddenAlarm_Click(object sender, RoutedEventArgs e)
@@ -2030,15 +2036,21 @@ namespace NmsDotnet
             Button b = (Button)e.Source as Button;
             string path = b.Uid;
 
-            if (File.Exists(path))
+            try
             {
-                _soundPlayer.Stop();
-                _soundPlayer = null;
-                Task.Run(() => SoundPlayAsync(path, true));
+                if (File.Exists(path))
+                {
+                    Task.Run(() => SoundPlayAsync(path, true));
+                }
+                else
+                {
+                    MessageBox.Show("재생할 파일이 없습니다");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                MessageBox.Show("재생할 파일이 없습니다");
+                logger.Error(path);
+                logger.Error(ex.ToString());
             }
         }
     }
