@@ -100,7 +100,7 @@ namespace NmsDotnet
             */
 
             Task.Run(() => TrapListenerAsync());
-            Task.Run(() => TitanManagerAsync());
+            //Task.Run(() => TitanManagerAsync());
         }
 
         private async Task TitanManagerAsync()
