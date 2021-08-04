@@ -433,8 +433,19 @@ namespace NmsDotnet
                                         if (itemHistory != null)
                                         {
                                             itemHistory.EndAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                                            LvHistory.ItemsSource = null;
-                                            LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
+                                            if (LvHistory.Dispatcher.CheckAccess())
+                                            {
+                                                LvHistory.ItemsSource = null;
+                                                LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
+                                            }
+                                            else
+                                            {
+                                                LvHistory.Dispatcher.Invoke(() =>
+                                                {
+                                                    LvHistory.ItemsSource = null;
+                                                    LvHistory.ItemsSource = NmsInfo.GetInstance().historyLog;
+                                                });
+                                            }
                                         }
                                     }
 
@@ -522,7 +533,6 @@ namespace NmsDotnet
                                             {
                                                 LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, log); });
                                             }
-
                                             if (LvHistory.Dispatcher.CheckAccess())
                                             {
                                                 NmsInfo.GetInstance().historyLog.Insert(0, log);
