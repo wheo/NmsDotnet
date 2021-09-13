@@ -118,7 +118,7 @@ namespace NmsDotnet
                             string uri = string.Format($"http://{tls.IP}/api/v1/servicesmngt/services/state");
                             string jsonbody = JsonConvert.SerializeObject(tls, Formatting.Indented);
                             logger.Info(jsonbody);
-                            Http.PostAsync(uri, jsonbody);
+                            Http.TitanApiPostAsync(uri, jsonbody);
                             tls.Clear();
                             logger.Info("Titan Uid List is cleared");
                         }

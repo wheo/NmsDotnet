@@ -21,12 +21,43 @@ namespace NmsDotnet.Utils
             return true;
         }
 
-        public static async Task PostAsync(string uri, string jsonBody)
+        public static void Post(string uri, string jsonBody)
         {
-            Task.Run(() => Post(uri, jsonBody));
+            // Here we create the request and write the POST data to it.
+            var request = (HttpWebRequest)HttpWebRequest.Create(uri);
+            request.ContentType = "application/json";
+
+            request.Method = "POST";
+            request.Timeout = 1000;
+            WebResponse response;
+
+            try
+            {
+                using (var writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    writer.Write(jsonBody);
+                }
+
+                response = request.GetResponse();
+                var webStream = response.GetResponseStream();
+                var reader = new StreamReader(webStream);
+                logger.Info(jsonBody);
+                logger.Info(reader.ReadToEnd());
+            }
+            catch (WebException wex)
+            {
+                logger.Error(wex.ToString());
+                logger.Error(uri);
+                logger.Error(jsonBody);
+            }
         }
 
-        public static void Post(string uri, string jsonBody)
+        public static async Task TitanApiPostAsync(string uri, string jsonBody)
+        {
+            Task.Run(() => TitanApiPost(uri, jsonBody));
+        }
+
+        public static void TitanApiPost(string uri, string jsonBody)
         {
             // Here we create the request and write the POST data to it.
             var request = (HttpWebRequest)HttpWebRequest.Create(uri);
