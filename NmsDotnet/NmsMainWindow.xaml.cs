@@ -65,19 +65,25 @@ namespace NmsDotnet
 
         private object tlslock = new object();
 
-        public NmsMainWindow(string userid, int width, int height)
+        public NmsMainWindow(string userid, string ip, int width, int height)
         {
             InitializeComponent();
             ToolTipGlobalOption();
             logger.Info("NMS Main is Starting");
             //this.Width = width;
             //this.Height = height;
+            string[] host = ip.Split(':');
+
+            HostManager.getInstance().uri = string.Format($"http://{ip}");
+            HostManager.getInstance().ip = host[0];
+            HostManager.getInstance().port = host[1];
+
             logger.Info(string.Format($"({userid}) logged in"));
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            GetInitSetting();
+            //GetInitSetting();
             DragNDropSetting();
             GetAlarmInfo();
             LoadMibFiles();
@@ -178,12 +184,12 @@ namespace NmsDotnet
         {
             NmsInfo.GetInstance().alarmInfo = new ObservableCollection<Alarm>();
 
-            Alarm ac = new Alarm { Level = "Critical", Uid = Server.EnumStatus.Critical };
-            Alarm aw = new Alarm { Level = "Warning", Uid = Server.EnumStatus.Warning };
-            Alarm ai = new Alarm { Level = "Information", Uid = Server.EnumStatus.Information };
+            Alarm ac = new Alarm { level = "Critical", Uid = Server.EnumStatus.Critical };
+            Alarm aw = new Alarm { level = "Warning", Uid = Server.EnumStatus.Warning };
+            Alarm ai = new Alarm { level = "Information", Uid = Server.EnumStatus.Information };
 
             ObservableCollection<Alarm> remoteData = new ObservableCollection<Alarm>(Alarm.GetAlarmInfo());
-            IEnumerable<Alarm> query = remoteData.Where(alarm => alarm.Level.Equals("Critical"));
+            IEnumerable<Alarm> query = remoteData.Where(alarm => alarm.level.Equals("Critical"));
 
             if (query.Count() > 0)
             {
@@ -197,7 +203,7 @@ namespace NmsDotnet
             {
                 NmsInfo.GetInstance().alarmInfo.Add(ac);
             }
-            query = remoteData.Where(alarm => alarm.Level.Equals("Warning"));
+            query = remoteData.Where(alarm => alarm.level.Equals("Warning"));
             if (query.Count() > 0)
             {
                 foreach (Alarm a in query)
@@ -210,7 +216,7 @@ namespace NmsDotnet
             {
                 NmsInfo.GetInstance().alarmInfo.Add(aw);
             }
-            query = remoteData.Where(alarm => alarm.Level.Equals("Information"));
+            query = remoteData.Where(alarm => alarm.level.Equals("Information"));
             if (query.Count() > 0)
             {
                 foreach (Alarm a in query)
@@ -389,7 +395,7 @@ namespace NmsDotnet
                         {
                             //logger.Debug(String.Format("[{0}/{1}] ServerService current status", server.Ip, server.Status));
 
-                            if (!string.IsNullOrEmpty(server.ModelName))
+                            if (!string.IsNullOrEmpty(server.Type))
                             {
                                 /*
                                 if ("CM5000".Equals(server.ModelName))
@@ -452,15 +458,15 @@ namespace NmsDotnet
                                     LogItem curruntStatusItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, server.Ip);
                                     if (curruntStatusItem != null)
                                     {
-                                        server.Status = curruntStatusItem.Level;
+                                        server.status = curruntStatusItem.Level;
                                         server.Message = curruntStatusItem.Value;
                                     }
                                     else
                                     {
-                                        server.Status = Server.EnumStatus.Normal.ToString();
+                                        server.status = Server.EnumStatus.Normal.ToString();
                                     }
 
-                                    server.ConnectionErrorCount = 0;
+                                    server.connection_error_count = 0;
 
                                     server.IsConnect = Server.EnumIsConnect.Connect;
 
@@ -493,10 +499,10 @@ namespace NmsDotnet
                                     //server.IsChange = true;
                                     //logger.Info(String.Format($"[{server.Ip}] ServerService ({server.Status}) status changed")); // INotify 로 이동
 
-                                    server.ConnectionErrorCount++;
+                                    server.connection_error_count++;
 
                                     //if (server.IsConnect != (int)Server.EnumIsConnect.Init && server.ConnectionErrorCount > 1)
-                                    if (server.ConnectionErrorCount > 1)
+                                    if (server.connection_error_count > 1)
                                     {
                                         Snmp snmp = new Snmp
                                         {
@@ -515,7 +521,7 @@ namespace NmsDotnet
                                             Ip = server.Ip,
                                             Level = Server.EnumStatus.Critical.ToString(),
                                             Oid = SnmpService._MyConnectionOid,
-                                            Name = server.UnitName,
+                                            Name = server.Name,
                                             IsConnection = false,
                                             TypeValue = "begin",
                                             Value = "Failed to connection"
@@ -543,7 +549,7 @@ namespace NmsDotnet
                                             }
                                         }
                                         server.Message = "Failed to connection";
-                                        server.Status = Server.EnumStatus.Critical.ToString();
+                                        server.status = Server.EnumStatus.Critical.ToString();
 
                                         server.IsConnect = Server.EnumIsConnect.Disconnect;
 
@@ -720,7 +726,7 @@ namespace NmsDotnet
                 if (string.IsNullOrEmpty(group.Id))
                 {
                     Group.AddGroup(group);
-                    group.Servers = new ObservableCollection<Server>();
+                    group.Server = new ObservableCollection<Server>();
                     NmsInfo.GetInstance().groupList.Add(group);
 
                     //deprecated 2020-10-28 by wheo
@@ -744,9 +750,9 @@ namespace NmsDotnet
 
                 if (Group.DeleteGroup(group.Id) > 0) // 데이터베이스에 서버는 gid cascade 라서 그룹이 지워지면 서버도 지워짐
                 {
-                    if (group.Servers != null)
+                    if (group.Server != null)
                     {
-                        foreach (Server s in group.Servers)
+                        foreach (Server s in group.Server)
                         {
                             int location = s.Location;
                             NmsInfo.GetInstance().serverList.Remove(s);
@@ -814,14 +820,14 @@ namespace NmsDotnet
                     //logger.Debug(server.Id);
                     if (Server.DeleteServer(server) > 0)
                     {
-                        logger.Info(String.Format("[{0}/{1} deleted]", server.Ip, server.Status));
+                        logger.Info(String.Format("[{0}/{1} deleted]", server.Ip, server.status));
                         foreach (Group g in NmsInfo.GetInstance().groupList)
                         {
-                            foreach (Server s in g.Servers)
+                            foreach (Server s in g.Server)
                             {
                                 if (s.Id == server.Id)
                                 {
-                                    g.Servers.Remove(s);
+                                    g.Server.Remove(s);
                                     break;
                                 }
                             }
@@ -858,10 +864,10 @@ namespace NmsDotnet
                 //cancel button
                 if (server.Undo != null)
                 {
-                    server.UnitName = server.Undo.UnitName;
+                    server.Name = server.Undo.Name;
                     server.Ip = server.Undo.Ip;
-                    server.GroupName = server.Undo.GroupName;
-                    server.Gid = server.Undo.Gid;
+                    server.Grp_name = server.Undo.Grp_name;
+                    server.gid = server.Undo.gid;
                 }
             }
             else if ((bool)eventArgs.Parameter == true)
@@ -901,14 +907,14 @@ namespace NmsDotnet
                             MessageBox.Show(string.Format($"IP를 입력해 주세요", "경고", MessageBoxImage.Warning, MessageBoxButton.OK));
                             eventArgs.Cancel();
                         }
-                        else if (!string.IsNullOrEmpty(server.Gid))
+                        else if (!string.IsNullOrEmpty(server.gid))
                         {
                             foreach (Group g in NmsInfo.GetInstance().groupList)
                             {
-                                if (g.Id == server.Gid)
+                                if (g.Id == server.gid)
                                 {
-                                    server.GroupName = g.Name;
-                                    g.Servers.Add(server);
+                                    server.Grp_name = g.Name;
+                                    g.Server.Add(server);
                                     break;
                                 }
                             }
@@ -943,17 +949,17 @@ namespace NmsDotnet
                         server.EditServer();
                         foreach (Group g in NmsInfo.GetInstance().groupList)
                         {
-                            foreach (Server s in g.Servers)
+                            foreach (Server s in g.Server)
                             {
                                 if (s.Id == server.Id)
                                 {
-                                    g.Servers.Remove(s);
+                                    g.Server.Remove(s);
                                     break;
                                 }
                             }
-                            if (g.Id == server.Gid)
+                            if (g.Id == server.gid)
                             {
-                                g.Servers.Add(server);
+                                g.Server.Add(server);
                             }
                         }
 
@@ -1262,7 +1268,7 @@ namespace NmsDotnet
                                                 {
                                                     Ip = s.Ip,
                                                     Level = snmp.LevelString,
-                                                    Name = s.UnitName,
+                                                    Name = s.Name,
                                                     Oid = snmp.Oid,
                                                     IsConnection = true,
                                                     Value = snmp.TranslateValue,
@@ -1298,12 +1304,12 @@ namespace NmsDotnet
                                                     LogItem restoreItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, s.Ip);
                                                     if (restoreItem != null)
                                                     {
-                                                        s.Status = restoreItem.Level;
+                                                        s.status = restoreItem.Level;
                                                         s.Message = restoreItem.Value;
                                                     }
                                                     else
                                                     {
-                                                        s.Status = Server.EnumStatus.Normal.ToString();
+                                                        s.status = Server.EnumStatus.Normal.ToString();
                                                     }
                                                 }
 
@@ -1316,11 +1322,11 @@ namespace NmsDotnet
                                         {
                                             if (s.ErrorCount > 0)
                                             {
-                                                s.Status = Server.CompareState(s.Status, snmp.LevelString);
+                                                s.status = Server.CompareState(s.status, snmp.LevelString);
                                             }
                                             else
                                             {
-                                                s.Status = Server.EnumStatus.Normal.ToString();
+                                                s.status = Server.EnumStatus.Normal.ToString();
                                             }
 
                                             if (LvActiveLog.Items.Count > 0)
@@ -1361,11 +1367,11 @@ namespace NmsDotnet
             {
                 foreach (Alarm alarm in NmsInfo.GetInstance().alarmInfo)
                 {
-                    if (alarm.Level.Equals(levelString))
+                    if (alarm.level.Equals(levelString))
                     {
-                        if (File.Exists(alarm.Path))
+                        if (File.Exists(alarm.path))
                         {
-                            Task.Run(() => SoundPlayAsync(alarm.Path));
+                            Task.Run(() => SoundPlayAsync(alarm.path));
                         }
                         else
                         {
@@ -1740,9 +1746,9 @@ namespace NmsDotnet
                     {
                         Utils.Util.ConvertMp3ToWav(destfilepath);
                     }
-                    var query = NmsInfo.GetInstance().alarmInfo.Where<Alarm>(a => a.Level.Equals(levelString)).Take(1);
+                    var query = NmsInfo.GetInstance().alarmInfo.Where<Alarm>(a => a.level.Equals(levelString)).Take(1);
                     Alarm alarm = (Alarm)query.ElementAt(0);
-                    alarm.Path = Path.Combine(subpath, Path.ChangeExtension(Path.GetFileName(filename), "WAV"));
+                    alarm.path = Path.Combine(subpath, Path.ChangeExtension(Path.GetFileName(filename), "WAV"));
                     MessageBox.Show("업로드 완료", "정보", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }

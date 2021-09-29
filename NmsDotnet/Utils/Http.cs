@@ -16,12 +16,45 @@ namespace NmsDotnet.Utils
     {
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
-        public static bool Get(string uri)
+        public static string Get(string uri, NameValueCollection nv)
         {
-            return true;
+            string responseText = string.Empty;
+
+            if (nv != null)
+            {
+                string q = String.Join("&",
+                 nv.AllKeys.Select(a => a + "=" + HttpUtility.UrlEncode(nv[a])));
+                uri = string.Format($"{uri}?{q}");
+            }
+
+            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
+            request.Method = "GET";
+            request.Timeout = 5 * 1000; // 5초
+            //request.Headers.Add("Authorization", "BASIC SGVsbG8="); // 헤더 추가 방법
+
+            try
+            {
+                using (HttpWebResponse resp = (HttpWebResponse)request.GetResponse())
+                {
+                    HttpStatusCode status = resp.StatusCode;
+                    Console.WriteLine(status);  // 정상이면 "OK"
+
+                    Stream respStream = resp.GetResponseStream();
+                    using (StreamReader sr = new StreamReader(respStream))
+                    {
+                        responseText = sr.ReadToEnd();
+                    }
+                }
+            }
+            catch (WebException we)
+            {
+                logger.Error(we.Message);
+            }
+
+            return responseText;
         }
 
-        public static void Post(string uri, string jsonBody)
+        public static string Post(string uri, string jsonBody)
         {
             // Here we create the request and write the POST data to it.
             var request = (HttpWebRequest)HttpWebRequest.Create(uri);
@@ -29,7 +62,6 @@ namespace NmsDotnet.Utils
 
             request.Method = "POST";
             request.Timeout = 1000;
-            WebResponse response;
 
             try
             {
@@ -38,17 +70,25 @@ namespace NmsDotnet.Utils
                     writer.Write(jsonBody);
                 }
 
-                response = request.GetResponse();
-                var webStream = response.GetResponseStream();
-                var reader = new StreamReader(webStream);
+                string response = string.Empty;
+                using (WebResponse res = request.GetResponse())
+                {
+                    Stream respStream = res.GetResponseStream();
+                    using (StreamReader sr = new StreamReader(respStream))
+                    {
+                        response = sr.ReadToEnd();
+                    }
+                }
+
                 logger.Info(jsonBody);
-                logger.Info(reader.ReadToEnd());
+                return response;
             }
             catch (WebException wex)
             {
                 logger.Error(wex.ToString());
                 logger.Error(uri);
                 logger.Error(jsonBody);
+                return null;
             }
         }
 

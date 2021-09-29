@@ -1,7 +1,9 @@
 ﻿using log4net;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
+using NmsDotnet.config;
 using NmsDotnet.Database.vo;
+using NmsDotnet.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -43,6 +45,7 @@ namespace NmsDotnet.Database.vo
         [JsonIgnore]
         public int _Location { get; set; }
 
+        [JsonProperty("location")]
         public int Location
         {
             get { return _Location; }
@@ -59,7 +62,8 @@ namespace NmsDotnet.Database.vo
         [JsonIgnore]
         public string _UnitName { get; set; }
 
-        public string UnitName
+        [JsonProperty("name")]
+        public string Name
         {
             get
             { return _UnitName; }
@@ -73,12 +77,13 @@ namespace NmsDotnet.Database.vo
             }
         }
 
-        public string Gid { get; set; }
+        public string gid { get; set; }
 
         [JsonIgnore]
         public ObservableCollection<Group> Groups { get; set; }
 
-        public string GroupName { get; set; }
+        [JsonProperty("grp_name")]
+        public string Grp_name { get; set; }
 
         [JsonIgnore]
         public string Version { get; set; }
@@ -123,7 +128,8 @@ namespace NmsDotnet.Database.vo
             }
         }
 
-        public string ModelName
+        [JsonProperty("type")]
+        public string Type
         {
             get { return _Type; }
             set
@@ -164,7 +170,7 @@ namespace NmsDotnet.Database.vo
         [JsonIgnore]
         public int ErrorCount { get; set; }
 
-        [JsonIgnore]
+        [JsonProperty("color")]
         public string Color
         {
             get { return _Color; }
@@ -182,7 +188,7 @@ namespace NmsDotnet.Database.vo
         public string Message { get; set; }
 
         [JsonIgnore]
-        public string Status
+        public string status
         {
             get { return _Status; }
             set
@@ -259,13 +265,13 @@ namespace NmsDotnet.Database.vo
         }
 
         [JsonIgnore]
-        public int ConnectionErrorCount { get; set; }
+        public int connection_error_count { get; set; }
 
         public Server()
         {
             _Status = "";
             IsConnect = (int)EnumIsConnect.Init;
-            ConnectionErrorCount = 0;
+            connection_error_count = 0;
         }
 
         public int GetNewLocation()
@@ -287,20 +293,20 @@ namespace NmsDotnet.Database.vo
             this.Ip = null;
             this.Location = 0;
             this.Color = null;
-            this.Gid = null;
-            this.GroupName = null;
+            this.gid = null;
+            this.Grp_name = null;
             this.Groups = null;
             this.VideoOutputId = 0;
             this.ServicePid = 0;
-            this.ModelName = null;
+            this.Type = null;
             this.Message = null;
             this.IsConnect = EnumIsConnect.Init;
             this.HeaderType = '\0';
-            this.Status = null;
-            this.UnitName = null;
+            this.status = null;
+            this.Name = null;
             this.Version = null;
             this.ErrorCount = 0;
-            this.ConnectionErrorCount = 0;
+            this.connection_error_count = 0;
         }
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
@@ -384,10 +390,10 @@ namespace NmsDotnet.Database.vo
             return dt.AsEnumerable().Select(row => new Server
             {
                 Id = row.Field<string>("id"),
-                Gid = row.Field<string>("gid"),
-                UnitName = row.Field<string>("name"),
+                gid = row.Field<string>("gid"),
+                Name = row.Field<string>("name"),
                 Ip = row.Field<string>("ip"),
-                GroupName = row.Field<string>("grp_name"),
+                Grp_name = row.Field<string>("grp_name"),
             }).ToList();
         }
 
@@ -395,13 +401,13 @@ namespace NmsDotnet.Database.vo
         {
             string id = null;
 
-            if (String.IsNullOrEmpty(UnitName))
+            if (String.IsNullOrEmpty(Name))
             {
             }
             else if (String.IsNullOrEmpty(Ip))
             {
             }
-            else if (String.IsNullOrEmpty(Gid))
+            else if (String.IsNullOrEmpty(gid))
             {
             }
             string query = "SELECT uuid() as id";
@@ -424,9 +430,9 @@ namespace NmsDotnet.Database.vo
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", id);
-                cmd.Parameters.AddWithValue("@name", this.UnitName);
+                cmd.Parameters.AddWithValue("@name", this.Name);
                 cmd.Parameters.AddWithValue("@ip", this.Ip);
-                cmd.Parameters.AddWithValue("@gid", this.Gid);
+                cmd.Parameters.AddWithValue("@gid", this.gid);
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
@@ -443,8 +449,8 @@ namespace NmsDotnet.Database.vo
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", this.Id);
                 cmd.Parameters.AddWithValue("@ip", this.Ip);
-                cmd.Parameters.AddWithValue("@name", this.UnitName);
-                cmd.Parameters.AddWithValue("@gid", this.Gid);
+                cmd.Parameters.AddWithValue("@name", this.Name);
+                cmd.Parameters.AddWithValue("@gid", this.gid);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
@@ -469,21 +475,26 @@ namespace NmsDotnet.Database.vo
         public static int UpdateServerStatus(Server server)
         {
             int ret = 0;
+            /*
             string query = "UPDATE server set status = @status, type = @type, name = @name, location = @location, error_count = @error_count, connection_error_count = @connection_error_count WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@id", server.Id);
-                cmd.Parameters.AddWithValue("@status", server.Status);
-                cmd.Parameters.AddWithValue("@name", server.UnitName);
-                cmd.Parameters.AddWithValue("@location", server.Location);
-                cmd.Parameters.AddWithValue("@type", server.ModelName);
+                cmd.Parameters.AddWithValue("@id", server.id);
+                cmd.Parameters.AddWithValue("@status", server.status);
+                cmd.Parameters.AddWithValue("@name", server.name);
+                cmd.Parameters.AddWithValue("@location", server.location);
+                cmd.Parameters.AddWithValue("@type", server.type);
                 cmd.Parameters.AddWithValue("@error_count", server.ErrorCount);
-                cmd.Parameters.AddWithValue("@connection_error_count", server.ConnectionErrorCount);
+                cmd.Parameters.AddWithValue("@connection_error_count", server.connection_error_count);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
+            */
+            string jsonBody = JsonConvert.SerializeObject(server);
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
+            Http.Post(uri, jsonBody);
             return ret;
         }
 
@@ -549,9 +560,9 @@ namespace NmsDotnet.Database.vo
                         if (!string.IsNullOrEmpty(s.Id))
                         {
                             cmd.Parameters.AddWithValue("@id", s.Id);
-                            cmd.Parameters.AddWithValue("@name", s.UnitName);
+                            cmd.Parameters.AddWithValue("@name", s.Name);
                             cmd.Parameters.AddWithValue("@ip", s.Ip);
-                            cmd.Parameters.AddWithValue("@gid", s.Gid);
+                            cmd.Parameters.AddWithValue("@gid", s.gid);
                             cmd.Parameters.AddWithValue("@location", s.Location);
                             cmd.Prepare();
                             cmd.ExecuteNonQuery();
@@ -573,6 +584,18 @@ namespace NmsDotnet.Database.vo
 
         public static List<Server> GetServerList()
         {
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
+
+            string response = Http.Get(uri, null);
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+
+            //DataTable dt = (DataTable)JsonConvert.DeserializeObject<DataTable>(response, settings);
+            return JsonConvert.DeserializeObject<List<Server>>(response);
+            /*
             DataTable dt = new DataTable();
             string query = @"SELECT S.*
 , IF(S.status = 'Critical', 'Red', IF(S.status = 'Warning', '#FF8000', IF(S.status = 'Information', 'Blue', 'Green'))) AS color
@@ -592,19 +615,20 @@ ORDER BY S.location ASC";
 
             return dt.AsEnumerable().Select(row => new Server
             {
-                Id = row.Field<string>("id"),
-                Gid = row.Field<string>("gid"),
-                UnitName = row.Field<string>("name"),
-                Ip = row.Field<string>("ip"),
-                GroupName = row.Field<string>("grp_name"),
-                ModelName = row.Field<string>("type"),
-                Location = row.Field<int>("location"),
+                id = row.Field<string>("id"),
+                gid = row.Field<string>("gid"),
+                name = row.Field<string>("name"),
+                ip = row.Field<string>("ip"),
+                grp_name = row.Field<string>("grp_name"),
+                type = row.Field<string>("type"),
+                location = row.Field<int>("location"),
                 //ErrorCount = row.Field<int>("error_count"),
                 ErrorCount = 0,
-                ConnectionErrorCount = row.Field<int>("connection_error_count"),
-                Color = row.Field<string>("color"),
-                Status = row.Field<string>("status")
+                connection_error_count = row.Field<int>("connection_error_count"),
+                color = row.Field<string>("color"),
+                status = row.Field<string>("status")
             }).ToList();
+            */
         }
 
         //deprecated 2020-10-29

@@ -161,16 +161,17 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="config\HostManager.cs" />
     <Compile Include="config\JsonConfig.cs" />
     <Compile Include="config\TitanLiveStatus.cs" />
     <Compile Include="Database\AbstractDAO.cs" />
     <Compile Include="Database\DatabaseManager.cs" />
-    <Compile Include="Database\vo\Alarm.cs" />
-    <Compile Include="Database\vo\Group.cs" />
-    <Compile Include="Database\vo\Login.cs" />
-    <Compile Include="Database\vo\NmsInfo.cs" />
-    <Compile Include="Database\vo\Server.cs" />
-    <Compile Include="Database\vo\Snmp.cs" />
+    <Compile Include="vo\Alarm.cs" />
+    <Compile Include="vo\Group.cs" />
+    <Compile Include="vo\Login.cs" />
+    <Compile Include="vo\NmsInfo.cs" />
+    <Compile Include="vo\Server.cs" />
+    <Compile Include="vo\Snmp.cs" />
     <Compile Include="Interface\SampleInterface.cs" />
     <Compile Include="lib\KnownFolders.cs" />
     <Compile Include="Service\SnmpService.cs" />
@@ -180,7 +181,7 @@
     <Compile Include="Utils\ListViewDragDropManager.cs" />
     <Compile Include="Utils\MouseUtilities.cs" />
     <Compile Include="Utils\Util.cs" />
-    <Compile Include="Database\vo\LogtItem.cs" />
+    <Compile Include="vo\LogtItem.cs" />
     <Page Include="LoginWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

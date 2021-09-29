@@ -13,6 +13,7 @@ namespace NmsDotnet.config
         public String id { get; set; }
         public String pw { get; set; }
         public String DatabaseName { get; set; }
+        public string email { get; set; }
 
         public String configFileName = "config.json";
 

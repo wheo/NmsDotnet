@@ -7,7 +7,7 @@
         x:Class="NmsDotnet.NmsMainWindow"
         mc:Ignorable="d"
         WindowState="Maximized" WindowStyle="ThreeDBorderWindow"
-        Title="AMS" MinHeight="480" MinWidth="600" MaxHeight="1024" MaxWidth="1280"
+        Title="AMS" MinHeight="480" MinWidth="600" MaxHeight="1024" MaxWidth="1920"
         FontFamily="NotoSans-Regular" Background="#e0ece4"
         WindowStartupLocation="CenterScreen"
         Loaded="Window_Loaded"
@@ -542,7 +542,7 @@
                       SelectedItemChanged="TreeGroup_SelectedItemChanged"
                       PreviewMouseRightButtonDown="TreeGroup_PreviewMouseRightButtonDown">
                 <TreeView.ItemTemplate>
-                    <HierarchicalDataTemplate ItemsSource="{Binding Servers}" ItemContainerStyle="{StaticResource CountryTemplateItemContainerStyle}">
+                    <HierarchicalDataTemplate ItemsSource="{Binding Server}" ItemContainerStyle="{StaticResource CountryTemplateItemContainerStyle}">
                         <StackPanel Orientation="Horizontal" Margin="5,0">
                             <StackPanel.ContextMenu>
                                 <ContextMenu>
@@ -561,7 +561,7 @@
                                                 Width="10"
                                                 Height="10"
                                                 Fill="{Binding Color, UpdateSourceTrigger=PropertyChanged}" Margin="5,0" />
-                                            <TextBlock Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10">
+                                            <TextBlock Text="{Binding Name}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10">
                                             </TextBlock>
                                         </StackPanel>
                                         <TextBlock Text="{Binding Ip}" Margin="20,0,0,0" FontSize="10" FontFamily="{StaticResource NotoSans-Regular}" ></TextBlock>

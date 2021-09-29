@@ -9,6 +9,8 @@ using NmsDotnet.Database.vo;
 using Newtonsoft.Json;
 using System;
 using System.Diagnostics;
+using NmsDotnet.config;
+using NmsDotnet.Utils;
 
 namespace NmsDotnet.Database.vo
 {
@@ -18,14 +20,15 @@ namespace NmsDotnet.Database.vo
 
         private static readonly ILog logger = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
 
+        [JsonProperty("gid")]
         public string Id { get; set; }
+
+        [JsonProperty("name")]
         public string Name { get; set; }
 
         // List를 ObservableCollection 으로 만들어주기때문에 List로 할당해도 될듯?(내생각) ???
-        [JsonIgnore]
-        public ObservableCollection<Server> Servers { get; set; }
-
-        //public ObservableCollection<Server> Servers { get; set; }
+        [JsonProperty("server")]
+        public ObservableCollection<Server> Server { get; set; }
 
         public static bool ImportGroup(ObservableCollection<Group> groups)
         {
@@ -137,13 +140,46 @@ namespace NmsDotnet.Database.vo
 
         public static List<Group> GetGroupList()
         {
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/group");
+
+            string response = Http.Get(uri, null);
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+
+            //DataTable dt = (DataTable)JsonConvert.DeserializeObject<DataTable>(response, settings);
+            List<Group> groups = JsonConvert.DeserializeObject<List<Group>>(response);
+
+            foreach (Group g in groups)
+            {
+                if (g.Server == null)
+                {
+                    g.Server = new ObservableCollection<Server>();
+                }
+            }
+
+            foreach (Server s in NmsInfo.GetInstance().serverList)
+            {
+                foreach (Group g in groups)
+                {
+                    if (s.gid == g.Id)
+                    {
+                        g.Server.Add(s);
+                    }
+                }
+            }
+
+            return groups;
+#if false
             DataTable dt = new DataTable();
             string query = "SELECT G.* FROM grp G ORDER BY G.create_time";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 conn.Open();
                 /*
-                MySqlCommand cmd = new MySqlCommand(query, conn);
+                MySqlCommand cmd = new MySqlCommand(query, conn)
                 cmd.Prepare();
                 */
                 MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
@@ -168,7 +204,7 @@ namespace NmsDotnet.Database.vo
             {
                 foreach (Group g in groups)
                 {
-                    if (s.Gid == g.Id)
+                    if (s.gid == g.Id)
                     {
                         g.Servers.Add(s);
                     }
@@ -176,6 +212,7 @@ namespace NmsDotnet.Database.vo
             }
 
             return groups;
+#endif
         }
     }
 }

@@ -63,20 +63,20 @@ namespace NmsDotnet.Service
             pdu.VbList.Add(new Oid("1.3.6.1.4.1.27338.5.3.2.3.3.1.0"), new Integer32(5005)); // video output pid
             */
 
-            if (string.IsNullOrEmpty(s.ModelName))
+            if (string.IsNullOrEmpty(s.Type))
             {
                 return false;
             }
 
-            if ("cm5000".Equals(s.ModelName.ToLower()))
+            if ("cm5000".Equals(s.Type.ToLower()))
             {
-                pdu.VbList.Add(new Oid(_CM5000UnitName_oid), new OctetString(s.UnitName));
+                pdu.VbList.Add(new Oid(_CM5000UnitName_oid), new OctetString(s.Name));
             }
-            else if ("dr5000".Equals(s.ModelName.ToLower()))
+            else if ("dr5000".Equals(s.Type.ToLower()))
             {
                 pdu.VbList.Add(new Oid(_DR5000ServicePid_oid), new Integer32(s.ServicePid)); // primary service id
                 pdu.VbList.Add(new Oid(_DR5000VideoOutputId_oid), new Integer32(s.VideoOutputId)); // video output pid
-                pdu.VbList.Add(new Oid(_DR5000UnitName_oid), new OctetString(s.UnitName));
+                pdu.VbList.Add(new Oid(_DR5000UnitName_oid), new OctetString(s.Name));
             }
 
             // Set Agent security parameters
@@ -146,18 +146,18 @@ namespace NmsDotnet.Service
 
             pdu.VbList.Add(_SysUptime);
 
-            if (string.IsNullOrEmpty(s.ModelName))
+            if (string.IsNullOrEmpty(s.Type))
             {
                 return false;
             }
             // _oid : 장비 이름
-            if (s.ModelName.ToLower() == "cm5000")
+            if (s.Type.ToLower() == "cm5000")
             {
                 pdu.VbList.Add(_CM5000CurrentVersion_oid);
                 pdu.VbList.Add(_CM5000UnitName_oid);
                 pdu.VbList.Add(_CM5000ModelName_oid);
             }
-            else if (s.ModelName.ToLower() == "dr5000")
+            else if (s.Type.ToLower() == "dr5000")
             {
                 pdu.VbList.Add(_DR5000CurrentVersion_oid);
                 pdu.VbList.Add(_DR5000UnitName_oid);
@@ -201,7 +201,7 @@ namespace NmsDotnet.Service
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_DR5000UnitName_oid))
                             {
-                                s.UnitName = result.Pdu.VbList[i].Value.ToString();
+                                s.Name = result.Pdu.VbList[i].Value.ToString();
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_DR5000ModelName_oid))
                             {
@@ -224,7 +224,7 @@ namespace NmsDotnet.Service
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_CM5000UnitName_oid))
                             {
-                                s.UnitName = result.Pdu.VbList[i].Value.ToString();
+                                s.Name = result.Pdu.VbList[i].Value.ToString();
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_CM5000ModelName_oid))
                             {
@@ -343,12 +343,12 @@ namespace NmsDotnet.Service
                                 result.Pdu.VbList[i].Oid.Equals(_DR5000ModelName_oid) ||
                                 result.Pdu.VbList[i].Oid.Equals(_TITANLiveModelName_oid))
                             {
-                                s.ModelName = result.Pdu.VbList[i].Value.ToString();
+                                s.Type = result.Pdu.VbList[i].Value.ToString();
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_CM5000UnitName_oid) ||
                                 result.Pdu.VbList[i].Oid.Equals(_DR5000UnitName_oid))
                             {
-                                s.UnitName = result.Pdu.VbList[i].Value.ToString();
+                                s.Name = result.Pdu.VbList[i].Value.ToString();
                             }
 
                             //logger.Info(String.Format($"[{Ip}] sysDescr({result.Pdu.VbList[i].Oid.ToString()}) ({ SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type)}): { result.Pdu.VbList[i].Value.ToString()}"));

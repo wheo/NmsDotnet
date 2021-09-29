@@ -1,7 +1,12 @@
 ﻿using log4net;
 using MySql.Data.MySqlClient;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using NmsDotnet.config;
+using NmsDotnet.Utils;
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
 using System.Linq;
@@ -18,24 +23,24 @@ namespace NmsDotnet.Database.vo
         {
         }
 
-        public int Id { get; set; }
-        public string Level { get; set; }
-        public string _Path { get; set; }
+        public int id { get; set; }
+        public string level { get; set; }
+        public string _path { get; set; }
 
-        public string Path
+        public string path
         {
-            get { return _Path; }
+            get { return _path; }
             set
             {
-                if (_Path != value)
+                if (_path != value)
                 {
-                    _Path = value;
+                    _path = value;
                     OnPropertyChanged(new PropertyChangedEventArgs("Path"));
                 }
             }
         }
 
-        public string Ip { get; set; }
+        public string ip { get; set; }
 
         public Server.EnumStatus Uid { get; set; }
 
@@ -56,7 +61,7 @@ namespace NmsDotnet.Database.vo
 
         public static List<Alarm> GetAlarmInfo()
         {
-            DataTable dt = new DataTable();
+            /*
             string query = string.Format($"SELECT A.* FROM alarm A WHERE A.ip = '{Utils.Util.GetLocalIpAddress()}'");
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
@@ -66,7 +71,23 @@ namespace NmsDotnet.Database.vo
                 MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
                 adpt.Fill(dt);
             }
+            */
+            NameValueCollection nv = new NameValueCollection();
+            nv.Add("ip", Util.GetLocalIpAddress());
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting/alarm");
 
+            string response = Http.Get(uri, nv);
+            //DataTable dt = (DataTable)JsonConvert.DeserializeObject(response, (typeof(DataTable)));
+            //JObject applyJObj = JObject.Parse(response);
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+
+            //DataTable dt = (DataTable)JsonConvert.DeserializeObject<DataTable>(response, settings);
+            return JsonConvert.DeserializeObject<List<Alarm>>(response);
+            /*
             return dt.AsEnumerable().Select(row => new Alarm
             {
                 Id = row.Field<int>("id"),
@@ -74,24 +95,30 @@ namespace NmsDotnet.Database.vo
                 Path = row.Field<string>("path"),
                 Ip = row.Field<string>("ip")
             }).ToList();
+            */
         }
 
         public static int UpdateAlarmInfo(Alarm alarm)
         {
             int ret = 0;
-            alarm.Ip = Utils.Util.GetLocalIpAddress();
+            alarm.ip = Utils.Util.GetLocalIpAddress();
+            /*
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
                 string query = string.Format(@"INSERT INTO alarm (level, path, ip) VALUES (@level, @path, @ip) ON DUPLICATE KEY UPDATE path = @path, Ip = @ip");
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
 
-                cmd.Parameters.AddWithValue("@level", alarm.Level);
-                cmd.Parameters.AddWithValue("@path", alarm.Path);
-                cmd.Parameters.AddWithValue("@ip", alarm.Ip);
+                cmd.Parameters.AddWithValue("@level", alarm.level);
+                cmd.Parameters.AddWithValue("@path", alarm.path);
+                cmd.Parameters.AddWithValue("@ip", alarm.ip);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
+            */
+            string jsonBody = JsonConvert.SerializeObject(alarm);
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting/alarm");
+            Http.Post(uri, jsonBody);
 
             return ret;
         }

@@ -55,11 +55,12 @@ namespace NmsDotnet
                     jsonConfig.DatabaseName = "TNM_NMS";
 
                     jsonString = JsonSerializer.Serialize(jsonConfig);
-                    File.WriteAllText(jsonConfig.configFileName, jsonString);
                 }
 
                 jsonString = File.ReadAllText(jsonConfig.configFileName);
                 jsonConfig = JsonSerializer.Deserialize<JsonConfig>(jsonString);
+                IP.Text = jsonConfig.ip;
+                LoginID.Text = jsonConfig.email;
 
                 DatabaseManager.getInstance().SetConnectionString(jsonConfig.ip, jsonConfig.port, jsonConfig.id, jsonConfig.pw, jsonConfig.DatabaseName);
             }
@@ -80,9 +81,14 @@ namespace NmsDotnet
         {
             try
             {
-                if (Login.GetInstance().LoginCheck(LoginID.Text, LoginPW.Password))
+                jsonConfig.email = LoginID.Text;
+                jsonConfig.ip = IP.Text;
+                string jsonString = JsonSerializer.Serialize(jsonConfig);
+                File.WriteAllText(jsonConfig.configFileName, jsonString);
+
+                if (Login.GetInstance().LoginCheck(IP.Text, LoginID.Text, LoginPW.Password))
                 {
-                    NmsMainWindow nmsMainWindow = new NmsMainWindow(LoginID.Text, 1280, 1024);
+                    NmsMainWindow nmsMainWindow = new NmsMainWindow(LoginID.Text, IP.Text, 1280, 1024);
                     nmsMainWindow.Show();
                     this.Close();
                 }

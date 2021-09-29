@@ -6,6 +6,10 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using MySql.Data.MySqlClient;
+using NmsDotnet.Utils;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
+using System.Net;
 
 namespace NmsDotnet.Database.vo
 {
@@ -16,7 +20,9 @@ namespace NmsDotnet.Database.vo
         }
 
         public string id { get; set; }
-        public string pw { get; set; }
+        public string email { get; set; }
+        public string password { get; set; }
+        public bool is_login { get; set; }
 
         public static Login login;
 
@@ -29,8 +35,9 @@ namespace NmsDotnet.Database.vo
             return login;
         }
 
-        public bool LoginCheck(string LoginID, string LoginPW)
+        public bool LoginCheck(string ip, string LoginID, string LoginPW)
         {
+            /*
             String query = "SELECT * FROM user WHERE id = @id AND pw = @pw";
             try
             {
@@ -57,6 +64,19 @@ namespace NmsDotnet.Database.vo
             {
                 throw new ArgumentException("Database Connection Error");
             }
+            */
+            email = LoginID;
+            password = LoginPW;
+
+            string json = JsonConvert.SerializeObject(login);
+
+            string host = string.Format($"http://{ip}");
+
+            string response = Http.Post(host + "/api/v1/auth", json);
+
+            login = JsonConvert.DeserializeObject<Login>(response);
+
+            return login.is_login;
         }
     }
 }

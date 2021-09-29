@@ -286,8 +286,8 @@ AND T.is_visible = 'Y'");
                     {
                         Id = rdr["id"].ToString(),
                         Ip = rdr["ip"].ToString(),
-                        UnitName = rdr["name"].ToString(),
-                        Status = rdr["status"].ToString()
+                        Name = rdr["name"].ToString(),
+                        status = rdr["status"].ToString()
                     };
                 }
             }

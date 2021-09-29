@@ -43,7 +43,8 @@
         <Grid Width="280" Height="240" VerticalAlignment="Bottom" Margin="0,100">
             <TextBlock Text="로그인을 해주세요" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="5" Foreground="Gray" FontSize="10" FontFamily="{StaticResource NotoSans-Regular}" />
             <StackPanel VerticalAlignment="Center" Margin="10">
-                <TextBox x:Name="LoginID" materialDesign:HintAssist.Hint="아이디" Style="{StaticResource MaterialDesignFloatingHintTextBox}" FontFamily="{StaticResource NotoSans-Regular}" Margin="0,10" />
+                <TextBox x:Name="IP" materialDesign:HintAssist.Hint="IP 주소" Style="{StaticResource MaterialDesignFloatingHintTextBox}" FontFamily="{StaticResource NotoSans-Regular}" ></TextBox>
+                <TextBox x:Name="LoginID" materialDesign:HintAssist.Hint="이메일" Style="{StaticResource MaterialDesignFloatingHintTextBox}" FontFamily="{StaticResource NotoSans-Regular}" Margin="0,10" />
                 <PasswordBox x:Name="LoginPW" materialDesign:HintAssist.Hint="암호" Style="{StaticResource MaterialDesignFloatingHintPasswordBox}" FontFamily="{StaticResource NotoSans-Regular}" Margin="0,10" KeyDown="LoginPW_KeyDown" />
             </StackPanel>
         </Grid>

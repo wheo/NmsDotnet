@@ -1,4 +1,6 @@
 ﻿using MySql.Data.MySqlClient;
+using Newtonsoft.Json;
+using NmsDotnet.config;
 using NmsDotnet.Database;
 using NmsDotnet.Database.vo;
 using NmsDotnet.Utils;
@@ -227,7 +229,27 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
 
         public static List<LogItem> GetLog(string dayFrom = null, string dayTo = null, bool isHistory = false)
         {
-            string option_query = null;
+            string uri = "";
+            if (!isHistory)
+            {
+                uri = string.Format($"{HostManager.getInstance().uri}/api/v1/log/active");
+            }
+            else
+            {
+                uri = string.Format($"{HostManager.getInstance().uri}/api/v1/log/history");
+            }
+
+            string response = Http.Get(uri, null);
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+
+            //DataTable dt = (DataTable)JsonConvert.DeserializeObject<DataTable>(response, settings);
+            return JsonConvert.DeserializeObject<List<LogItem>>(response);
+
+#if false
             string date_query = null;
             string order_query = "ASC";
             if (isHistory)
@@ -293,6 +315,7 @@ ORDER BY L.start_at {3}", _LocalIp, is_active, date_query, order_query);
                 Value = row.Field<string>("value"),
                 TypeValue = row.Field<string>("type_value")
             }).ToList();
+#endif
         }
 
         public static int HideLogAlarm(int idx)
