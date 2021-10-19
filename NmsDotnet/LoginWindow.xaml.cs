@@ -48,9 +48,9 @@ namespace NmsDotnet
                 {
                     MessageBox.Show("config.json 파일이 없습니다.\n환경설정 파일을 읽지 못했습니다.\n기본값으로 설정합니다.", "경고", MessageBoxButton.OK);
                     //default value
-                    jsonConfig.ip = "192.168.2.66";
-                    jsonConfig.port = 33306;
-                    jsonConfig.id = "tnmnms";
+                    jsonConfig.ip = "127.0.0.1";
+                    jsonConfig.port = 3306;
+                    jsonConfig.id = "root";
                     jsonConfig.pw = "tnmtech";
                     jsonConfig.DatabaseName = "TNM_NMS";
 

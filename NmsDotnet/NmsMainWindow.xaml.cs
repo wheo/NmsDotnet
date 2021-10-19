@@ -76,7 +76,14 @@ namespace NmsDotnet
 
             HostManager.getInstance().uri = string.Format($"http://{ip}");
             HostManager.getInstance().ip = host[0];
-            HostManager.getInstance().port = host[1];
+            if (host.Count() > 1)
+            {
+                HostManager.getInstance().port = host[1];
+            }
+            else
+            {
+                HostManager.getInstance().port = "80";
+            }
 
             logger.Info(string.Format($"({userid}) logged in"));
         }
@@ -1438,7 +1445,7 @@ namespace NmsDotnet
                 DpDayTo.Text = Convert.ToDateTime(DpDayTo.Text).AddDays(1).ToString("yyyy-MM-dd");
             }
 
-            NmsInfo.GetInstance().logSearch = new ObservableCollection<LogItem>(LogItem.GetLog(DpDayFrom.Text, DpDayTo.Text));
+            NmsInfo.GetInstance().logSearch = new ObservableCollection<LogItem>(LogItem.GetLog(DpDayFrom.Text, DpDayTo.Text, true));
             ListView lvDialog = (ListView)FindElemetByName(e, "lvLogSearch");
             lvDialog.ItemsSource = NmsInfo.GetInstance().logSearch;
         }
