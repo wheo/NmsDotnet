@@ -35,6 +35,12 @@ namespace NmsDotnet.Database.vo
         [JsonIgnore]
         public ObservableCollection<Alarm> alarmInfo;
 
+        [JsonIgnore]
+        public string pollingSec;
+
+        [JsonIgnore]
+        public string snmpPort;
+
         public void activeLogRemove(LogItem item)
         {
             this.activeLog.Remove(item);

@@ -381,51 +381,82 @@ namespace NmsDotnet
         private async Task GetInformation(double sleepSecond)
         {
             TimeSpan ts = TimeSpan.FromSeconds((double)sleepSecond);
-            await Task.Delay(ts);
+
             while (!_shouldStop)
             {
+                await Task.Delay(ts);
                 Board.Getinstance().GetBoard();
 
                 try
                 {
-                    foreach (Server s in Board.Getinstance().server)
+                    if (Board.Getinstance().server != null)
                     {
-                        IEnumerable<Server> results = NmsInfo.GetInstance().serverList;
-                        Server c = (Server)results.Where(x => x.Id == s.Id).FirstOrDefault();
-                        if (c != null)
+                        foreach (Server s in Board.Getinstance().server)
                         {
-                            c.PutInfo(s);
-                        }
-                        else
-                        {
-                            ServerListItem.Dispatcher.Invoke(() => { NmsInfo.GetInstance().serverList.Add(s); });
-                        }
-                    }
-
-                    /*
-                    Server temp_server = null;
-
-                    foreach (Server s in NmsInfo.GetInstance().serverList)
-                    {
-                        if (s.Id != null)
-                        {
-                            IEnumerable<Server> results = Board.Getinstance().server;
+                            IEnumerable<Server> results = NmsInfo.GetInstance().serverList;
                             Server c = (Server)results.Where(x => x.Id == s.Id).FirstOrDefault();
+                            if (c != null)
+                            {
+                                c.PutInfo(s);
+                            }
+                            /*
+                            else
+                            {
+                                ServerListItem.Dispatcher.Invoke(() => { NmsInfo.GetInstance().serverList.Add(s); });
+                            }
+                            */
+                        }
+                        /*
+                        Server temp_server = null;
+
+                        foreach (Server s in Board.Getinstance().server)
+                        {
+                            Server c = (Server)NmsInfo.GetInstance().serverList.Where(x => x.Id == s.Id && x.Id != null).FirstOrDefault();
                             if (c == null)
                             {
+                                //s는 새로운 장비이다
                                 temp_server = s;
                                 break;
                             }
                         }
+
+                        if (temp_server != null)
+                        {
+                            temp_server.GetNewLocation();
+                            if (string.IsNullOrEmpty(temp_server.Id))
+                            {
+                                foreach (Group g in NmsInfo.GetInstance().groupList)
+                                {
+                                    if (g.Id == temp_server.Gid)
+                                    {
+                                        temp_server.Grp_name = g.Name;
+                                        g.Server.Add(temp_server);
+                                        break;
+                                    }
+                                }
+
+                                // 하나의 함수로 변경해야 함
+                                MenuItem miEdit = new MenuItem();
+                                miEdit.Header = "장비 수정";
+                                MenuItem miDelete = new MenuItem();
+                                miDelete.Header = "장비 삭제";
+                                List<MenuItem> menus = new List<MenuItem>();
+                                menus.Add(miEdit);
+                                menus.Add(miDelete);
+                                miEdit.Click += new System.Windows.RoutedEventHandler(this.MenuServerEdit_Click);
+                                miDelete.Click += new System.Windows.RoutedEventHandler(this.MenuServerDel_Click);
+                                temp_server.MenuItems = menus;
+
+                                temp_server.Color = "Green";
+
+                                NmsInfo.GetInstance().serverList.Insert(temp_server.Location, temp_server);
+
+                                //ServerListItem.ItemsSource = Server.GetServerList();
+                                //TreeGroup.ItemsSource = Group.GetGroupList();
+                            }
+                        }
+                        */
                     }
-                    if (temp_server != null)
-                    {
-                        int location = temp_server.Location;
-                        NmsInfo.GetInstance().serverList.Remove(temp_server);
-                        Server emptyServer = new Server();
-                        NmsInfo.GetInstance().serverList.Insert(location, emptyServer);
-                    }
-                    */
                 }
                 catch (Exception e)
                 {
@@ -474,6 +505,7 @@ namespace NmsDotnet
                 {
                     logger.Error(e.ToString());
                 }
+                Debug.WriteLine("alive ...");
             }
         }
 
@@ -571,7 +603,7 @@ namespace NmsDotnet
         {
             //MessageBox.Show("Get");
             //Service.SnmpService.GetNext();
-            logger.Info(sender);
+            //logger.Info(sender);
             MenuItem menuItem = (MenuItem)e.Source;
             ContextMenu menu = (ContextMenu)menuItem.Parent;
             ListView lv = (ListView)menu.PlacementTarget;
@@ -1385,6 +1417,8 @@ namespace NmsDotnet
             settings.SnmpCM5000Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList("CM5000");
             settings.SnmpDR5000Settings = (List<SnmpSetting>)Snmp.GetTrapAlarmList("DR5000");
             settings.AlarmSettings = NmsInfo.GetInstance().alarmInfo;
+            settings.SnmpPort = settings.GetSnmpPort();
+            settings.PollingSec = settings.GetPollingSec(); ;
             var result = await DialogHost.Show(settings, "DialogSettingInfo");
         }
 
@@ -1943,6 +1977,20 @@ namespace NmsDotnet
                 logger.Error(path);
                 logger.Error(ex.ToString());
             }
+        }
+
+        private void btn_Port_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = (Button)sender as Button;
+            GlobalSettings gs = (GlobalSettings)btn.DataContext;
+            gs.SetSnmpPort(gs.SnmpPort);
+        }
+
+        private void btn_Polling_Click(object sender, RoutedEventArgs e)
+        {
+            Button btn = (Button)sender as Button;
+            GlobalSettings gs = (GlobalSettings)btn.DataContext;
+            gs.SetPollingSec(gs.PollingSec);
         }
     }
 }

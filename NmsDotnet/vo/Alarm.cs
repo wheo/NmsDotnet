@@ -54,7 +54,7 @@ namespace NmsDotnet.Database.vo
                 if (e.PropertyName.Equals("Path"))
 
                 {
-                    UpdateAlarmInfo(this);
+                    UpdateAlarmInfo();
                 }
             }
         }
@@ -98,10 +98,10 @@ namespace NmsDotnet.Database.vo
             */
         }
 
-        public static int UpdateAlarmInfo(Alarm alarm)
+        public int UpdateAlarmInfo()
         {
             int ret = 0;
-            alarm.ip = Utils.Util.GetLocalIpAddress();
+            this.ip = Utils.Util.GetLocalIpAddress();
             /*
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
@@ -116,7 +116,7 @@ namespace NmsDotnet.Database.vo
                 ret = cmd.ExecuteNonQuery();
             }
             */
-            string jsonBody = JsonConvert.SerializeObject(alarm);
+            string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting/alarm");
             Http.Post(uri, jsonBody);
 

@@ -6,6 +6,7 @@ using NmsDotnet.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Data;
 using System.Linq;
 
@@ -46,8 +47,10 @@ namespace NmsDotnet.Database.vo
         [JsonProperty("level")]
         public string LevelString { get; set; }
 
+        [JsonIgnore]
         public ComboBoxPairs _Level { get; set; }
 
+        [JsonIgnore]
         public ComboBoxPairs Level
         {
             get
@@ -64,12 +67,88 @@ namespace NmsDotnet.Database.vo
         public List<ComboBoxPairs> LevelItem { get; set; }
     }
 
+    public class KeyValue
+    {
+        [JsonProperty("k")]
+        public string k { get; set; }
+
+        [JsonProperty("v")]
+        public string v { get; set; }
+    }
+
     public class GlobalSettings
     {
         public List<SnmpSetting> SnmpCM5000Settings { get; set; }
         public List<SnmpSetting> SnmpDR5000Settings { get; set; }
         public ObservableCollection<Alarm> AlarmSettings { get; set; }
-        public int SnmpPort { get; set; }
+
+        public string SnmpPort { get; set; }
+
+        public string GetSnmpPort()
+        {
+            NameValueCollection nv = new NameValueCollection();
+            nv.Add("request", "snmp_port");
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting");
+            string response = Http.Get(uri, nv);
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+
+            KeyValue kv = JsonConvert.DeserializeObject<KeyValue>(response);
+            return kv.v;
+        }
+
+        public void SetSnmpPort(string value)
+        {
+            NameValueCollection nv = new NameValueCollection();
+            nv.Add("k", "snmp_port");
+            nv.Add("v", value);
+
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting");
+            string response = Http.Put(uri, nv);
+
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+        }
+
+        public string GetPollingSec()
+        {
+            NameValueCollection nv = new NameValueCollection();
+            nv.Add("request", "polling_sec");
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting");
+            string response = Http.Get(uri, nv);
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+
+            KeyValue kv = JsonConvert.DeserializeObject<KeyValue>(response);
+            return kv.v;
+        }
+
+        public void SetPollingSec(string value)
+        {
+            NameValueCollection nv = new NameValueCollection();
+            nv.Add("k", "polling_sec");
+            nv.Add("v", value);
+
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting");
+            string response = Http.Put(uri, nv);
+
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+        }
+
+        public string PollingSec { get; set; }
     }
 
     public class Snmp

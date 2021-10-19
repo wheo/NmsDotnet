@@ -26,22 +26,30 @@ namespace NmsDotnet.Utils
                  nv.AllKeys.Select(a => a + "=" + HttpUtility.UrlEncode(nv[a])));
                 uri = string.Format($"{uri}?{q}");
             }
-
-            HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
-            request.Method = "GET";
-            request.Timeout = 5 * 1000; // 5초
-            //request.Headers.Add("Authorization", "BASIC SGVsbG8="); // 헤더 추가 방법
-
-            using (HttpWebResponse resp = (HttpWebResponse)request.GetResponse())
+            try
             {
-                HttpStatusCode status = resp.StatusCode;
-                Console.WriteLine(status);  // 정상이면 "OK"
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
+                request.Method = "GET";
+                request.Timeout = 5 * 1000; // 5초
+                                            //request.Headers.Add("Authorization", "BASIC SGVsbG8="); // 헤더 추가 방법
 
-                Stream respStream = resp.GetResponseStream();
-                using (StreamReader sr = new StreamReader(respStream))
+                using (HttpWebResponse resp = (HttpWebResponse)request.GetResponse())
                 {
-                    responseText = sr.ReadToEnd();
+                    HttpStatusCode status = resp.StatusCode;
+                    //Console.WriteLine(status);  // 정상이면 "OK"
+
+                    Stream respStream = resp.GetResponseStream();
+                    using (StreamReader sr = new StreamReader(respStream))
+                    {
+                        responseText = sr.ReadToEnd();
+                    }
                 }
+            }
+            catch (WebException wex)
+            {
+                logger.Error(wex.ToString());
+                logger.Error(uri);
+                return null;
             }
 
             return responseText;
@@ -159,6 +167,45 @@ namespace NmsDotnet.Utils
                 logger.Error(jsonBody);
                 return null;
             }
+        }
+
+        public static string Put(string uri, NameValueCollection nv)
+        {
+            string responseText = string.Empty;
+
+            if (nv != null)
+            {
+                string q = String.Join("&",
+                 nv.AllKeys.Select(a => a + "=" + HttpUtility.UrlEncode(nv[a])));
+                uri = string.Format($"{uri}?{q}");
+            }
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
+                request.Method = "PUT";
+                request.Timeout = 5 * 1000; // 5초
+                                            //request.Headers.Add("Authorization", "BASIC SGVsbG8="); // 헤더 추가 방법
+
+                using (HttpWebResponse resp = (HttpWebResponse)request.GetResponse())
+                {
+                    HttpStatusCode status = resp.StatusCode;
+                    //Console.WriteLine(status);  // 정상이면 "OK"
+
+                    Stream respStream = resp.GetResponseStream();
+                    using (StreamReader sr = new StreamReader(respStream))
+                    {
+                        responseText = sr.ReadToEnd();
+                    }
+                }
+            }
+            catch (WebException wex)
+            {
+                logger.Error(wex.ToString());
+                logger.Error(uri);
+                return null;
+            }
+
+            return responseText;
         }
 
         public static async Task TitanApiPostAsync(string uri, string jsonBody)

@@ -200,7 +200,7 @@
             <materialDesign:DialogHost.DialogContentTemplate>
                 <DataTemplate>
                     <Grid Width="800" Height="950">
-                        <TabControl>
+                        <TabControl  SelectionChanged="TabControl_SelectionChanged">
                             <TabItem Header="알람 설정" FontFamily="{StaticResource NotoSans-Regular}">
                                 <GroupBox Header="알람 설정" FontSize="14" Margin="5,5,5,60" FontFamily="{StaticResource NotoSans-Regular}">
                                     <DockPanel>
@@ -252,6 +252,32 @@
                                                 </ItemsControl>
                                             </ScrollViewer>
                                         </GroupBox>
+                                    </DockPanel>
+                                </GroupBox>
+                            </TabItem>
+                            <TabItem Header="폴링 주기 설정" FontFamily="{StaticResource NotoSans-Regular}">
+                                <GroupBox Header="폴링 주기 설정">
+                                    <DockPanel Margin="0">
+                                        <Border CornerRadius="6" BorderThickness="2" DockPanel.Dock="Top">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBox Width="100" Text="{Binding PollingSec}" materialDesign:HintAssist.Hint="초" Style="{StaticResource MaterialDesignFloatingHintTextBox}" FontFamily="{StaticResource NotoSans-Regular}" ></TextBox>
+                                                <Button Content="설정" Click="btn_Polling_Click"></Button>
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Height="25" />
+                                    </DockPanel>
+                                </GroupBox>
+                            </TabItem>
+                            <TabItem Header="포트 설정" FontFamily="{StaticResource NotoSans-Regular}">
+                                <GroupBox Header="포트 설정">
+                                    <DockPanel Margin="0">
+                                        <Border CornerRadius="6" BorderThickness="2" DockPanel.Dock="Top">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBox Width="100" Text="{Binding SnmpPort}" materialDesign:HintAssist.Hint="포트" Style="{StaticResource MaterialDesignFloatingHintTextBox}" FontFamily="{StaticResource NotoSans-Regular}" ></TextBox>
+                                                <Button Content="설정" Click="btn_Port_Click"></Button>
+                                            </StackPanel>
+                                        </Border>
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Bottom" Height="25" />
                                     </DockPanel>
                                 </GroupBox>
                             </TabItem>
@@ -339,7 +365,7 @@
                                 <Button.CommandParameter>
                                     <system:Boolean xmlns:system="clr-namespace:System;assembly=mscorlib">True</system:Boolean>
                                 </Button.CommandParameter>
-                                입력
+                                확인
                             </Button>
                         </StackPanel>
                     </Grid>
