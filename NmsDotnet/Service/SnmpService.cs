@@ -70,13 +70,13 @@ namespace NmsDotnet.Service
 
             if ("cm5000".Equals(s.Type.ToLower()))
             {
-                pdu.VbList.Add(new Oid(_CM5000UnitName_oid), new OctetString(s.Name));
+                pdu.VbList.Add(new Oid(_CM5000UnitName_oid), new OctetString(s.UnitName));
             }
             else if ("dr5000".Equals(s.Type.ToLower()))
             {
                 pdu.VbList.Add(new Oid(_DR5000ServicePid_oid), new Integer32(s.ServicePid)); // primary service id
                 pdu.VbList.Add(new Oid(_DR5000VideoOutputId_oid), new Integer32(s.VideoOutputId)); // video output pid
-                pdu.VbList.Add(new Oid(_DR5000UnitName_oid), new OctetString(s.Name));
+                pdu.VbList.Add(new Oid(_DR5000UnitName_oid), new OctetString(s.UnitName));
             }
 
             // Set Agent security parameters
@@ -201,7 +201,7 @@ namespace NmsDotnet.Service
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_DR5000UnitName_oid))
                             {
-                                s.Name = result.Pdu.VbList[i].Value.ToString();
+                                s.UnitName = result.Pdu.VbList[i].Value.ToString();
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_DR5000ModelName_oid))
                             {
@@ -224,7 +224,7 @@ namespace NmsDotnet.Service
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_CM5000UnitName_oid))
                             {
-                                s.Name = result.Pdu.VbList[i].Value.ToString();
+                                s.UnitName = result.Pdu.VbList[i].Value.ToString();
                             }
                             else if (result.Pdu.VbList[i].Oid.Equals(_CM5000ModelName_oid))
                             {
@@ -348,7 +348,7 @@ namespace NmsDotnet.Service
                             else if (result.Pdu.VbList[i].Oid.Equals(_CM5000UnitName_oid) ||
                                 result.Pdu.VbList[i].Oid.Equals(_DR5000UnitName_oid))
                             {
-                                s.Name = result.Pdu.VbList[i].Value.ToString();
+                                s.UnitName = result.Pdu.VbList[i].Value.ToString();
                             }
 
                             //logger.Info(String.Format($"[{Ip}] sysDescr({result.Pdu.VbList[i].Oid.ToString()}) ({ SnmpConstants.GetTypeName(result.Pdu.VbList[0].Value.Type)}): { result.Pdu.VbList[i].Value.ToString()}"));

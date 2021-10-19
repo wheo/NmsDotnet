@@ -38,7 +38,7 @@ namespace NmsDotnet.Database.vo
              * 4. commit
              */
 
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 int ret = 0;
@@ -75,8 +75,9 @@ namespace NmsDotnet.Database.vo
             return true;
         }
 
-        public static int AddGroup(Group grp)
+        public string AddGroup()
         {
+            /*
             string id = null;
             string query = "SELECT uuid() as id";
 
@@ -104,12 +105,19 @@ namespace NmsDotnet.Database.vo
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
-            return ret;
+            */
+
+            this.Id = Guid.NewGuid().ToString();
+            string jsonBody = JsonConvert.SerializeObject(this);
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/group");
+            string response = Http.Put(uri, jsonBody);
+            return this.Id;
         }
 
-        public static int EditGroup(Group grp)
+        public int EditGroup()
         {
             int ret = 0;
+            /*
             string query = "UPDATE grp set name = @name WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
@@ -120,12 +128,19 @@ namespace NmsDotnet.Database.vo
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
+            */
+
+            string jsonBody = JsonConvert.SerializeObject(this);
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/group");
+            string response = Http.Post(uri, jsonBody);
+            ret = 1;
             return ret;
         }
 
-        public static int DeleteGroup(string id)
+        public int DeleteGroup()
         {
             int ret = 0;
+            /*
             string query = "DELETE FROM grp WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
@@ -135,6 +150,13 @@ namespace NmsDotnet.Database.vo
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
+            return ret;
+            */
+
+            string jsonBody = JsonConvert.SerializeObject(this);
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/group");
+            string response = Http.Delete(uri, jsonBody);
+            ret = 1;
             return ret;
         }
 
@@ -164,9 +186,12 @@ namespace NmsDotnet.Database.vo
             {
                 foreach (Group g in groups)
                 {
-                    if (s.gid == g.Id)
+                    if (s.Gid == g.Id)
                     {
+                        Server temp = (Server)g.Server.Where(x => x.Gid == g.Id).FirstOrDefault();
+                        g.Server.Remove(temp);
                         g.Server.Add(s);
+                        break;
                     }
                 }
             }

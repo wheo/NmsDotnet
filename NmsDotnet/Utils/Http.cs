@@ -32,23 +32,16 @@ namespace NmsDotnet.Utils
             request.Timeout = 5 * 1000; // 5초
             //request.Headers.Add("Authorization", "BASIC SGVsbG8="); // 헤더 추가 방법
 
-            try
+            using (HttpWebResponse resp = (HttpWebResponse)request.GetResponse())
             {
-                using (HttpWebResponse resp = (HttpWebResponse)request.GetResponse())
-                {
-                    HttpStatusCode status = resp.StatusCode;
-                    Console.WriteLine(status);  // 정상이면 "OK"
+                HttpStatusCode status = resp.StatusCode;
+                Console.WriteLine(status);  // 정상이면 "OK"
 
-                    Stream respStream = resp.GetResponseStream();
-                    using (StreamReader sr = new StreamReader(respStream))
-                    {
-                        responseText = sr.ReadToEnd();
-                    }
+                Stream respStream = resp.GetResponseStream();
+                using (StreamReader sr = new StreamReader(respStream))
+                {
+                    responseText = sr.ReadToEnd();
                 }
-            }
-            catch (WebException we)
-            {
-                logger.Error(we.Message);
             }
 
             return responseText;
@@ -61,6 +54,82 @@ namespace NmsDotnet.Utils
             request.ContentType = "application/json";
 
             request.Method = "POST";
+            request.Timeout = 1000;
+
+            try
+            {
+                using (var writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    writer.Write(jsonBody);
+                }
+
+                string response = string.Empty;
+                using (WebResponse res = request.GetResponse())
+                {
+                    Stream respStream = res.GetResponseStream();
+                    using (StreamReader sr = new StreamReader(respStream))
+                    {
+                        response = sr.ReadToEnd();
+                    }
+                }
+
+                logger.Info(jsonBody);
+                return response;
+            }
+            catch (WebException wex)
+            {
+                logger.Error(wex.ToString());
+                logger.Error(uri);
+                logger.Error(jsonBody);
+                return null;
+            }
+        }
+
+        public static string Delete(string uri, string jsonBody)
+        {
+            // Here we create the request and write the POST data to it.
+            var request = (HttpWebRequest)HttpWebRequest.Create(uri);
+            request.ContentType = "application/json";
+
+            request.Method = "DELETE";
+            request.Timeout = 1000;
+
+            try
+            {
+                using (var writer = new StreamWriter(request.GetRequestStream()))
+                {
+                    writer.Write(jsonBody);
+                }
+
+                string response = string.Empty;
+                using (WebResponse res = request.GetResponse())
+                {
+                    Stream respStream = res.GetResponseStream();
+                    using (StreamReader sr = new StreamReader(respStream))
+                    {
+                        response = sr.ReadToEnd();
+                    }
+                }
+
+                logger.Info(jsonBody);
+                return response;
+            }
+            catch (WebException wex)
+            {
+                logger.Error(wex.ToString());
+                logger.Error(uri);
+                logger.Error(jsonBody);
+                return null;
+            }
+        }
+
+        public static string Put(string uri, string jsonBody)
+        {
+            // Here we create the request and write the POST data to it.
+            var request = (HttpWebRequest)HttpWebRequest.Create(uri);
+            request.ContentType = "application/json";
+
+            request.Method = "PUT";
             request.Timeout = 1000;
 
             try

@@ -24,6 +24,18 @@ namespace NmsDotnet.Database.vo
             return (Server)this.MemberwiseClone();
         }
 
+        public void PutInfo(Server s)
+        {
+            this.Ip = s.Ip;
+            this.UnitName = s.UnitName;
+            this.status = s.status;
+            this.Color = s.Color;
+            this.Location = s.Location;
+            this.Type = s.Type;
+            this.Uptime = s.Uptime;
+            this.Version = s.Version;
+        }
+
         [JsonIgnore]
         public Server Undo { get; set; }
 
@@ -39,7 +51,10 @@ namespace NmsDotnet.Database.vo
         [JsonIgnore]
         public string Uptime { get; set; }
 
+        [JsonProperty("id")]
         public string Id { get; set; }
+
+        [JsonProperty("ip")]
         public string Ip { get; set; }
 
         [JsonIgnore]
@@ -63,7 +78,7 @@ namespace NmsDotnet.Database.vo
         public string _UnitName { get; set; }
 
         [JsonProperty("name")]
-        public string Name
+        public string UnitName
         {
             get
             { return _UnitName; }
@@ -77,7 +92,8 @@ namespace NmsDotnet.Database.vo
             }
         }
 
-        public string gid { get; set; }
+        [JsonProperty("gid")]
+        public string Gid { get; set; }
 
         [JsonIgnore]
         public ObservableCollection<Group> Groups { get; set; }
@@ -167,7 +183,7 @@ namespace NmsDotnet.Database.vo
         //public ObservableCollection<Group> Groups { get; set; }
 
         //public List<Group> Groups { get; set; }
-        [JsonIgnore]
+        [JsonProperty("error_count")]
         public int ErrorCount { get; set; }
 
         [JsonProperty("color")]
@@ -293,7 +309,7 @@ namespace NmsDotnet.Database.vo
             this.Ip = null;
             this.Location = 0;
             this.Color = null;
-            this.gid = null;
+            this.Gid = null;
             this.Grp_name = null;
             this.Groups = null;
             this.VideoOutputId = 0;
@@ -303,7 +319,7 @@ namespace NmsDotnet.Database.vo
             this.IsConnect = EnumIsConnect.Init;
             this.HeaderType = '\0';
             this.status = null;
-            this.Name = null;
+            this.UnitName = null;
             this.Version = null;
             this.ErrorCount = 0;
             this.connection_error_count = 0;
@@ -320,35 +336,10 @@ namespace NmsDotnet.Database.vo
                     e.PropertyName.Equals("Name") ||
                         e.PropertyName.Equals("Location"))
                 {
-                    UpdateServerStatus(this);
+                    UpdateServerStatus();
                 }
             }
         }
-
-        public static int GetServerLastStatus()
-        {
-            int ret = 0;
-            string query = "UPDATE server set status = @status";
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@status", "idle");
-                cmd.Prepare();
-                ret = cmd.ExecuteNonQuery();
-            }
-            return ret;
-        }
-
-        // deprecated
-        /*
-        public void SetServerInfo(string name, string ip, string gid)
-        {
-            UnitName = name;
-            Ip = ip;
-            Gid = gid;
-        }
-        */
 
         public static string CompareState(string a, string b)
         {
@@ -374,34 +365,11 @@ namespace NmsDotnet.Database.vo
             return str.ToLower();
         }
 
-        public static IEnumerable<Server> GetServerSettings()
-        {
-            DataTable dt = new DataTable();
-            string query = @"SELECT S.*, G.name as grp_name, A.path FROM server S LEFT JOIN asset A ON S.status = A.id LEFT JOIN grp G ON G.id = S.gid ORDER BY G.name, S.create_time";
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Prepare();
-                MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
-                adpt.Fill(dt);
-            }
-
-            return dt.AsEnumerable().Select(row => new Server
-            {
-                Id = row.Field<string>("id"),
-                gid = row.Field<string>("gid"),
-                Name = row.Field<string>("name"),
-                Ip = row.Field<string>("ip"),
-                Grp_name = row.Field<string>("grp_name"),
-            }).ToList();
-        }
-
         public string AddServer()
         {
+            /*
             string id = null;
-
-            if (String.IsNullOrEmpty(Name))
+            if (String.IsNullOrEmpty(UnitName))
             {
             }
             else if (String.IsNullOrEmpty(Ip))
@@ -430,18 +398,25 @@ namespace NmsDotnet.Database.vo
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", id);
-                cmd.Parameters.AddWithValue("@name", this.Name);
+                cmd.Parameters.AddWithValue("@name", this.UnitName);
                 cmd.Parameters.AddWithValue("@ip", this.Ip);
                 cmd.Parameters.AddWithValue("@gid", this.gid);
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
             return id;
+            */
+            this.Id = Guid.NewGuid().ToString();
+            string jsonBody = JsonConvert.SerializeObject(this);
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
+            string response = Http.Put(uri, jsonBody);
+            return this.Id;
         }
 
         public int EditServer()
         {
-            int ret = 0;
+            int ret = 1;
+            /*
             string query = "UPDATE server set ip = @ip, name = @name, gid = @gid WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
@@ -449,17 +424,23 @@ namespace NmsDotnet.Database.vo
                 MySqlCommand cmd = new MySqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@id", this.Id);
                 cmd.Parameters.AddWithValue("@ip", this.Ip);
-                cmd.Parameters.AddWithValue("@name", this.Name);
+                cmd.Parameters.AddWithValue("@name", this.UnitName);
                 cmd.Parameters.AddWithValue("@gid", this.gid);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
+            */
+            string jsonBody = JsonConvert.SerializeObject(this);
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
+            string response = Http.Post(uri, jsonBody);
+            ret = 1;
             return ret;
         }
 
         public static int DeleteServer(Server server)
         {
             int ret = 0;
+            /*
             string query = "DELETE FROM server WHERE id = @id";
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
             {
@@ -469,10 +450,16 @@ namespace NmsDotnet.Database.vo
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
+            */
+
+            string jsonBody = JsonConvert.SerializeObject(server);
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
+            string response = Http.Delete(uri, jsonBody);
+            ret = 1;
             return ret;
         }
 
-        public static int UpdateServerStatus(Server server)
+        public int UpdateServerStatus()
         {
             int ret = 0;
             /*
@@ -492,28 +479,14 @@ namespace NmsDotnet.Database.vo
                 ret = cmd.ExecuteNonQuery();
             }
             */
-            string jsonBody = JsonConvert.SerializeObject(server);
+            string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
-            Http.Post(uri, jsonBody);
+            string response = Http.Post(uri, jsonBody);
             return ret;
         }
 
-        public static int UpdateServerInformation(Server server)
-        {
-            int ret = 0;
-            string query = "UPDATE server set version = @version WHERE id = @id";
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@id", server.Id);
-                cmd.Parameters.AddWithValue("@version", server.Version);
-                cmd.Prepare();
-                ret = cmd.ExecuteNonQuery();
-            }
-            return ret;
-        }
-
+        //deprecated
+        /*
         public static bool ValidServerIP(string ip)
         {
             bool ret = false;
@@ -531,6 +504,7 @@ namespace NmsDotnet.Database.vo
             }
             return ret;
         }
+        */
 
         public static bool ImportServer(ObservableCollection<Server> servers)
         {
@@ -540,7 +514,7 @@ namespace NmsDotnet.Database.vo
              * 4. commit
              */
 
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 int ret = 0;
                 conn.Open();
@@ -560,9 +534,9 @@ namespace NmsDotnet.Database.vo
                         if (!string.IsNullOrEmpty(s.Id))
                         {
                             cmd.Parameters.AddWithValue("@id", s.Id);
-                            cmd.Parameters.AddWithValue("@name", s.Name);
+                            cmd.Parameters.AddWithValue("@name", s.UnitName);
                             cmd.Parameters.AddWithValue("@ip", s.Ip);
-                            cmd.Parameters.AddWithValue("@gid", s.gid);
+                            cmd.Parameters.AddWithValue("@gid", s.Gid);
                             cmd.Parameters.AddWithValue("@location", s.Location);
                             cmd.Prepare();
                             cmd.ExecuteNonQuery();

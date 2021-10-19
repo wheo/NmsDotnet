@@ -17,6 +17,7 @@ namespace NmsDotnet.Database.vo
         }
 
         public ObservableCollection<Server> serverList;
+
         public ObservableCollection<Group> groupList;
 
         [JsonIgnore]
@@ -33,6 +34,16 @@ namespace NmsDotnet.Database.vo
 
         [JsonIgnore]
         public ObservableCollection<Alarm> alarmInfo;
+
+        public void activeLogRemove(LogItem item)
+        {
+            this.activeLog.Remove(item);
+        }
+
+        public void historyLogRemove(LogItem item)
+        {
+            this.historyLog.Remove(item);
+        }
 
         public class LimitedSizeObservableCollection<T> : ObservableCollection<T>
         {

@@ -17,16 +17,26 @@ namespace NmsDotnet.vo
 {
     public class LogItem
     {
+        [JsonProperty("start_at")]
         public string StartAt { get; set; } = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+
         public string _EndAt { get; set; }
+
+        [JsonProperty("ip")]
         public string Ip { get; set; }
+
+        [JsonProperty("name")]
         public string Name { get; set; }
+
+        [JsonProperty("oid")]
         public string Oid { get; set; }
+
         public bool IsConnection { get; set; } = true;
         public string _Level { get; set; }
         public int LevelPriority { get; set; }
         public string TypeValue { get; set; }
 
+        [JsonProperty("end_at")]
         public string EndAt
         {
             get
@@ -40,6 +50,7 @@ namespace NmsDotnet.vo
             }
         }
 
+        [JsonProperty("level")]
         public string Level
         {
             get
@@ -72,7 +83,10 @@ namespace NmsDotnet.vo
             }
         }
 
+        [JsonProperty("color")]
         public string Color { get; set; }
+
+        [JsonProperty("value")]
         public string Value { get; set; }
 
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
@@ -133,7 +147,7 @@ namespace NmsDotnet.vo
         public static int LoggingDatabase(Snmp trap)
         {
             int ret = 0;
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 if (trap.TypeValue == "begin")
                 {
@@ -191,7 +205,7 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
             int ret = 0;
 
             string query = "UPDATE log set is_display = 'Y' WHERE idx = @idx";
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
@@ -207,7 +221,7 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
             int ret = 0;
 
             string query = "UPDATE log set is_display = 'N'";
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
@@ -321,7 +335,7 @@ ORDER BY L.start_at {3}", _LocalIp, is_active, date_query, order_query);
         public static int HideLogAlarm(int idx)
         {
             int ret = 0;
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 // end_at 시간을 줘야하는지 고민해야함
                 conn.Open();

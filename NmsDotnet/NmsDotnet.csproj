@@ -166,7 +166,9 @@
     <Compile Include="config\TitanLiveStatus.cs" />
     <Compile Include="Database\AbstractDAO.cs" />
     <Compile Include="Database\DatabaseManager.cs" />
+    <Compile Include="Utils\MyJsonConveter.cs" />
     <Compile Include="vo\Alarm.cs" />
+    <Compile Include="vo\Board.cs" />
     <Compile Include="vo\Group.cs" />
     <Compile Include="vo\Login.cs" />
     <Compile Include="vo\NmsInfo.cs" />

@@ -62,7 +62,7 @@ namespace NmsDotnet
                 IP.Text = jsonConfig.ip;
                 LoginID.Text = jsonConfig.email;
 
-                DatabaseManager.getInstance().SetConnectionString(jsonConfig.ip, jsonConfig.port, jsonConfig.id, jsonConfig.pw, jsonConfig.DatabaseName);
+                DatabaseManager.GetInstance().SetConnectionString(jsonConfig.ip, jsonConfig.port, jsonConfig.id, jsonConfig.pw, jsonConfig.DatabaseName);
             }
             catch (FileLoadException e)
             {

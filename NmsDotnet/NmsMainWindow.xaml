@@ -561,7 +561,7 @@
                                                 Width="10"
                                                 Height="10"
                                                 Fill="{Binding Color, UpdateSourceTrigger=PropertyChanged}" Margin="5,0" />
-                                            <TextBlock Text="{Binding Name}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10">
+                                            <TextBlock Text="{Binding UnitName}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10">
                                             </TextBlock>
                                         </StackPanel>
                                         <TextBlock Text="{Binding Ip}" Margin="20,0,0,0" FontSize="10" FontFamily="{StaticResource NotoSans-Regular}" ></TextBlock>

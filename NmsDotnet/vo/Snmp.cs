@@ -1,5 +1,7 @@
 ﻿using log4net;
 using MySql.Data.MySqlClient;
+using Newtonsoft.Json;
+using NmsDotnet.config;
 using NmsDotnet.Utils;
 using System;
 using System.Collections.Generic;
@@ -31,11 +33,34 @@ namespace NmsDotnet.Database.vo
     ///
     public class SnmpSetting
     {
+        [JsonProperty("translate")]
         public string Name { get; set; }
+
+        [JsonConverter(typeof(MyJsonConveter))]
+        [JsonProperty("is_enable")]
         public bool IsEnable { get; set; }
 
+        [JsonProperty("idx")]
         public int Idx { get; set; }
-        public ComboBoxPairs Level { get; set; }
+
+        [JsonProperty("level")]
+        public string LevelString { get; set; }
+
+        public ComboBoxPairs _Level { get; set; }
+
+        public ComboBoxPairs Level
+        {
+            get
+            {
+                return this._Level;
+            }
+            set
+            {
+                LevelString = value._Key;
+                this._Level = value;
+            }
+        }
+
         public List<ComboBoxPairs> LevelItem { get; set; }
     }
 
@@ -123,7 +148,7 @@ namespace NmsDotnet.Database.vo
         {
             int value = 0;
             string query = String.Format($"SELECT v FROM setting WHERE k = 'snmp_port'");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
@@ -145,7 +170,7 @@ namespace NmsDotnet.Database.vo
 INNER JOIN snmp S ON S.name = T.name
 WHERE T.is_enable = 'N'
 AND T.is_visible = 'Y'");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
@@ -184,7 +209,7 @@ AND T.is_visible = 'Y'");
         {
             string value = null;
             string query = String.Format($"SELECT S.id, T.name, T.level FROM snmp S INNER JOIN translate T ON T.name = S.name WHERE S.id like '{oid}%'");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
@@ -202,7 +227,7 @@ AND T.is_visible = 'Y'");
         {
             string value = null;
             string query = String.Format($"SELECT name FROM snmp WHERE id = '{oid}'");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
@@ -222,6 +247,7 @@ AND T.is_visible = 'Y'");
 
         public static IEnumerable<SnmpSetting> GetTrapAlarmList(string type)
         {
+            /*
             DataTable dt = new DataTable();
             string query = String.Format($"SELECT * FROM translate WHERE type = '{type}' AND is_visible = 'Y'");
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
@@ -230,6 +256,18 @@ AND T.is_visible = 'Y'");
                 MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
                 adpt.Fill(dt);
             }
+            */
+
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting/trap?type={type}");
+
+            string response = Http.Get(uri, null);
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
+
+            List<SnmpSetting> set = JsonConvert.DeserializeObject<List<SnmpSetting>>(response);
 
             List<ComboBoxPairs> cbxLevel = new List<ComboBoxPairs>();
             cbxLevel.Add(new ComboBoxPairs { _Key = "", _Value = "Passthrough" });
@@ -237,6 +275,15 @@ AND T.is_visible = 'Y'");
             cbxLevel.Add(new ComboBoxPairs { _Key = "Warning", _Value = "Warning" });
             cbxLevel.Add(new ComboBoxPairs { _Key = "Information", _Value = "Information" });
 
+            foreach (SnmpSetting s in set)
+            {
+                s.Level = new ComboBoxPairs { _Key = s.LevelString, _Value = s.LevelString };
+                s.LevelItem = cbxLevel;
+            }
+
+            return set;
+
+            /*
             List<SnmpSetting> settings = dt.AsEnumerable().Select(row => new SnmpSetting
             {
                 Name = row.Field<string>("translate"),
@@ -247,13 +294,14 @@ AND T.is_visible = 'Y'");
             }).ToList();
 
             return settings;
+            */
         }
 
         public static string GetTranslateValue(string name)
         {
             string value = null;
             string query = String.Format($"SELECT translate FROM translate WHERE name = '{name}'");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
@@ -275,7 +323,7 @@ AND T.is_visible = 'Y'");
         {
             Server server = null;
             string query = string.Format($"SELECT * FROM server WHERE ip = '{snmp.IP}'");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);
@@ -286,7 +334,7 @@ AND T.is_visible = 'Y'");
                     {
                         Id = rdr["id"].ToString(),
                         Ip = rdr["ip"].ToString(),
-                        Name = rdr["name"].ToString(),
+                        UnitName = rdr["name"].ToString(),
                         status = rdr["status"].ToString()
                     };
                 }
@@ -299,6 +347,7 @@ AND T.is_visible = 'Y'");
         {
             foreach (var item in settings.SnmpCM5000Settings)
             {
+                /*
                 int ret = 0;
                 string query = "UPDATE translate set is_enable = @is_enable, level = @level WHERE idx = @idx";
                 using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
@@ -311,10 +360,16 @@ AND T.is_visible = 'Y'");
                     cmd.Prepare();
                     ret = cmd.ExecuteNonQuery();
                 }
+                */
+
+                string jsonBody = JsonConvert.SerializeObject(item, Formatting.Indented, new MyJsonConveter());
+                string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting/trap");
+                string response = Http.Post(uri, jsonBody);
             }
 
             foreach (var item in settings.SnmpDR5000Settings)
             {
+                /*
                 int ret = 0;
                 string query = "UPDATE translate set is_enable = @is_enable, level = @level WHERE idx = @idx";
                 using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
@@ -327,13 +382,17 @@ AND T.is_visible = 'Y'");
                     cmd.Prepare();
                     ret = cmd.ExecuteNonQuery();
                 }
+                */
+                string jsonBody = JsonConvert.SerializeObject(item);
+                string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/setting/trap");
+                string response = Http.Post(uri, jsonBody);
             }
         }
 
         public static void RegisterSnmpInfo(Snmp snmp)
         {
             string query = String.Format(@"INSERT INTO snmp (id, ip, syntax, community, type) VALUES (@id, @ip, @syntax, @community, @type) ON DUPLICATE KEY UPDATE edit_time = CURRENT_TIMESTAMP(), ip = @ip, syntax = @syntax, community = @community, type = @type");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
+            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand(query, conn);

@@ -8,6 +8,10 @@ namespace NmsDotnet.config
 {
     public class HostManager
     {
+        private HostManager()
+        {
+        }
+
         public string uri { get; set; }
         public string ip { get; set; }
         public string port { get; set; }

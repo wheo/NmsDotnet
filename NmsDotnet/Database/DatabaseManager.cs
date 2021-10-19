@@ -37,7 +37,7 @@ namespace NmsDotnet.Database
                     databaseName);
         }
 
-        public static DatabaseManager getInstance()
+        public static DatabaseManager GetInstance()
         {
             if (instance == null)
             {
