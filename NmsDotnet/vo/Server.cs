@@ -406,7 +406,7 @@ namespace NmsDotnet.Database.vo
             }
             return id;
             */
-            this.Id = Guid.NewGuid().ToString();
+            //this.Id = Guid.NewGuid().ToString();
             string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
             string response = Http.Put(uri, jsonBody);
@@ -455,6 +455,7 @@ namespace NmsDotnet.Database.vo
             string jsonBody = JsonConvert.SerializeObject(server);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
             string response = Http.Delete(uri, jsonBody);
+            logger.Info(response);
             ret = 1;
             return ret;
         }
@@ -558,17 +559,25 @@ namespace NmsDotnet.Database.vo
 
         public static List<Server> GetServerList()
         {
-            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
-
-            string response = Http.Get(uri, null);
-            var settings = new JsonSerializerSettings
+            try
             {
-                NullValueHandling = NullValueHandling.Ignore,
-                MissingMemberHandling = MissingMemberHandling.Ignore
-            };
+                string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
 
-            //DataTable dt = (DataTable)JsonConvert.DeserializeObject<DataTable>(response, settings);
-            return JsonConvert.DeserializeObject<List<Server>>(response);
+                string response = Http.Get(uri, null);
+                var settings = new JsonSerializerSettings
+                {
+                    NullValueHandling = NullValueHandling.Ignore,
+                    MissingMemberHandling = MissingMemberHandling.Ignore
+                };
+
+                //DataTable dt = (DataTable)JsonConvert.DeserializeObject<DataTable>(response, settings);
+                return JsonConvert.DeserializeObject<List<Server>>(response);
+            }
+            catch (Exception e)
+            {
+                logger.Error(e.ToString());
+                return null;
+            }
             /*
             DataTable dt = new DataTable();
             string query = @"SELECT S.*

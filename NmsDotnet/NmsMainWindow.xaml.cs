@@ -472,32 +472,19 @@ namespace NmsDotnet
                         IEnumerable<LogItem> result = NmsInfo.GetInstance().activeLog;
                         LogItem log = (LogItem)result.Where(x => x.Oid == item.Oid && x.Ip == item.Ip).FirstOrDefault();
                         if (log == null)
-                        {
-                            if (LvActiveLog.Dispatcher.CheckAccess())
-                            {
-                                NmsInfo.GetInstance().activeLog.Insert(0, item);
-                            }
-                            else
-                            {
-                                LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, item); });
-                            }
+                        {   
+                            SoundPlay("Critical");
+                            LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, item); });                            
                         }
                     }
 
                     foreach (LogItem item in NmsInfo.GetInstance().activeLog)
-                    {
+                    {   
                         IEnumerable<LogItem> result = currentLog;
                         LogItem log = (LogItem)result.Where(x => x.Oid == item.Oid && x.Ip == item.Ip).FirstOrDefault();
                         if (log == null)
                         {
-                            if (LvActiveLog.Dispatcher.CheckAccess())
-                            {
-                                NmsInfo.GetInstance().activeLog.Remove(item);
-                            }
-                            else
-                            {
-                                LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
-                            }
+                            LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
                         }
                     }
                 }
@@ -786,7 +773,8 @@ namespace NmsDotnet
                 this.IsEnabled = true;
             }
 
-            Server server = (Server)eventArgs.Session.Content;
+            Server temp = (Server)eventArgs.Session.Content;
+            Server server = temp.ShallowCopy();
 
             if ((bool)eventArgs.Parameter == false)
             {
@@ -828,7 +816,6 @@ namespace NmsDotnet
 
                 try
                 {
-                    server.GetNewLocation();
                     if (string.IsNullOrEmpty(server.Id))
                     {
                         if (string.IsNullOrEmpty(server.Ip))
@@ -864,6 +851,8 @@ namespace NmsDotnet
 
                             server.Color = "Green";
 
+                            server.GetNewLocation();
+
                             NmsInfo.GetInstance().serverList.Insert(server.Location, server);
 
                             //ServerListItem.ItemsSource = Server.GetServerList();
@@ -877,6 +866,10 @@ namespace NmsDotnet
                     }
                     else
                     {
+                        if (temp.Ip != server.Ip)
+                        {
+                            LogItem.Flush(temp);
+                        }
                         server.EditServer();
                         foreach (Group g in NmsInfo.GetInstance().groupList)
                         {
@@ -1299,7 +1292,8 @@ namespace NmsDotnet
                 _soundPlayer = new SoundPlayer(@"Sound\alarm.wav");
                 _soundPlayer.PlayLooping();
                 await Task.Delay(5000);
-                _soundPlayer.Stop();
+                if (_soundPlayer != null) _soundPlayer.Stop();
+                if (_soundPlayer != null) _soundPlayer = null;
             }
         }
 
@@ -1310,7 +1304,8 @@ namespace NmsDotnet
                 _soundPlayer = new SoundPlayer(path);
                 _soundPlayer.PlayLooping();
                 await Task.Delay(5000);
-                _soundPlayer.Stop();
+                if (_soundPlayer != null) _soundPlayer.Stop();
+                if (_soundPlayer != null) _soundPlayer = null;
             }
         }
 

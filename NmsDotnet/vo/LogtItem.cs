@@ -102,7 +102,7 @@ namespace NmsDotnet.vo
         //deprecated
         //public string IsConfirm { get; set; }
 
-        static public string _LocalIp { get; } = Util.GetLocalIpAddress();
+        public static string _LocalIp { get; } = Util.GetLocalIpAddress();
 
         public int idx { get; set; }
 
@@ -228,6 +228,18 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
+            return ret;
+        }
+
+        public static int Flush(Server server)
+        {
+            int ret = 0;
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/log");
+
+            string jsonBody = JsonConvert.SerializeObject(server);
+
+            string response = Http.Delete(uri, jsonBody);
+            ret = 1;
             return ret;
         }
 

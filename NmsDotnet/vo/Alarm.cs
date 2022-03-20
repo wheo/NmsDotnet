@@ -26,6 +26,7 @@ namespace NmsDotnet.Database.vo
         public int id { get; set; }
         public string level { get; set; }
         public string _path { get; set; }
+        public string repeat { get; set; }
 
         public string path
         {
@@ -54,7 +55,7 @@ namespace NmsDotnet.Database.vo
                 if (e.PropertyName.Equals("Path"))
 
                 {
-                    UpdateAlarmInfo();
+                    //UpdateAlarmInfo();
                 }
             }
         }

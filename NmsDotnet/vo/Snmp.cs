@@ -41,6 +41,10 @@ namespace NmsDotnet.Database.vo
         [JsonProperty("is_enable")]
         public bool IsEnable { get; set; }
 
+        [JsonConverter(typeof(MyJsonConveter))]
+        [JsonProperty("is_visible")]
+        public bool IsVisible { get; set; }
+
         [JsonProperty("idx")]
         public int Idx { get; set; }
 
