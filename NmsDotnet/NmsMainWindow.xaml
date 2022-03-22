@@ -199,7 +199,7 @@
                                    VerticalAlignment="Center" HorizontalAlignment="Center">
             <materialDesign:DialogHost.DialogContentTemplate>
                 <DataTemplate>
-                    <Grid Width="800" Height="950">
+                    <Grid Width="800" Height="800">
                         <TabControl  SelectionChanged="TabControl_SelectionChanged">
                             <TabItem Header="알람 설정" FontFamily="{StaticResource NotoSans-Regular}">
                                 <GroupBox Header="알람 설정" FontSize="14" Margin="5,5,5,60" FontFamily="{StaticResource NotoSans-Regular}">
@@ -653,7 +653,7 @@
                                         <StackPanel Background="{Binding Color, UpdateSourceTrigger=PropertyChanged}">
                                             <TextBlock Margin="10,5" HorizontalAlignment="Center" Text="{Binding Ip, UpdateSourceTrigger=Explicit}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="16" Foreground="Black" />
                                             <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
-                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding GroupName, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" Foreground="Black" />
+                                            <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Grp_name, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="12" Foreground="Black" />
                                             <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding UnitName, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="14" Foreground="Black" />
                                             <Border BorderBrush="Silver" BorderThickness="0,1,0,0" Margin="0" />
                                             <TextBlock Margin="5,5" HorizontalAlignment="Center" Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource NotoSans-Regular}" FontSize="10" Foreground="Black" />

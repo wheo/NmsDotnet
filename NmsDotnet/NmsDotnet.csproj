@@ -172,6 +172,7 @@
     <Compile Include="vo\Group.cs" />
     <Compile Include="vo\Login.cs" />
     <Compile Include="vo\NmsInfo.cs" />
+    <Compile Include="vo\Result.cs" />
     <Compile Include="vo\Server.cs" />
     <Compile Include="vo\Snmp.cs" />
     <Compile Include="Interface\SampleInterface.cs" />

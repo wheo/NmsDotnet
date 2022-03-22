@@ -11,6 +11,7 @@ using System;
 using System.Diagnostics;
 using NmsDotnet.config;
 using NmsDotnet.Utils;
+using NmsDotnet.vo;
 
 namespace NmsDotnet.Database.vo
 {
@@ -48,7 +49,7 @@ namespace NmsDotnet.Database.vo
                     string query = String.Format("DELETE FROM grp");
                     MySqlCommand cmd = conn.CreateCommand();
                     cmd.CommandText = query;
-                    cmd.Prepare();
+                    //cmd.Prepare();
                     ret = cmd.ExecuteNonQuery();
 
                     query = "INSERT INTO grp (id, name) VALUES (@id, @name)";
@@ -58,7 +59,7 @@ namespace NmsDotnet.Database.vo
                     {
                         cmd.Parameters.AddWithValue("@id", g.Id);
                         cmd.Parameters.AddWithValue("@name", g.Name);
-                        cmd.Prepare();
+                        //cmd.Prepare();
                         cmd.ExecuteNonQuery();
                         cmd.Parameters.Clear();
                     }
@@ -107,10 +108,12 @@ namespace NmsDotnet.Database.vo
             }
             */
 
-            this.Id = Guid.NewGuid().ToString();
+            //this.Id = Guid.NewGuid().ToString();
             string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/group");
             string response = Http.Put(uri, jsonBody);
+            Result result = JsonConvert.DeserializeObject<Result>(response);
+            this.Id = result.id;
             return this.Id;
         }
 
@@ -156,7 +159,17 @@ namespace NmsDotnet.Database.vo
             string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/group");
             string response = Http.Delete(uri, jsonBody);
-            ret = 1;
+            logger.Info(response);
+            Result result = JsonConvert.DeserializeObject<Result>(response);
+            if (result.result)
+            {
+                ret = 1;
+            }
+            else
+            {
+                ret = 0;
+            }
+
             return ret;
         }
 

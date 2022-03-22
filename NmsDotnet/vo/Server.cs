@@ -4,6 +4,7 @@ using Newtonsoft.Json;
 using NmsDotnet.config;
 using NmsDotnet.Database.vo;
 using NmsDotnet.Utils;
+using NmsDotnet.vo;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -28,8 +29,8 @@ namespace NmsDotnet.Database.vo
         {
             this.Ip = s.Ip;
             this.UnitName = s.UnitName;
-            this.status = s.status;
-            this.Color = s.Color;
+            this.Status = s.Status;
+            //this.Color = s.Color;
             this.Location = s.Location;
             this.Type = s.Type;
             this.Uptime = s.Uptime;
@@ -48,7 +49,7 @@ namespace NmsDotnet.Database.vo
         [JsonIgnore]
         private string _Color;
 
-        [JsonIgnore]
+        [JsonProperty("uptime")]
         public string Uptime { get; set; }
 
         [JsonProperty("id")]
@@ -119,7 +120,7 @@ namespace NmsDotnet.Database.vo
                 if (_ServicePid != value)
                 {
                     _ServicePid = value;
-                    OnPropertyChanged(new PropertyChangedEventArgs("ServicePid"));
+                    //OnPropertyChanged(new PropertyChangedEventArgs("ServicePid"));
                 }
             }
         }
@@ -139,7 +140,7 @@ namespace NmsDotnet.Database.vo
                 if (_VideoOutputId != value)
                 {
                     _VideoOutputId = value;
-                    OnPropertyChanged(new PropertyChangedEventArgs("VideoOutputId"));
+                    //OnPropertyChanged(new PropertyChangedEventArgs("VideoOutputId"));
                 }
             }
         }
@@ -166,7 +167,7 @@ namespace NmsDotnet.Database.vo
                     }
                     else if (value[0] == 'T')
                     {
-                        HeaderType = 'U'; // Titan Live to 'U'HD encoder
+                        HeaderType = 'T'; // Titan Live to 'U'HD encoder
                     }
                 }
                 if (_Type != value)
@@ -203,8 +204,8 @@ namespace NmsDotnet.Database.vo
         [JsonIgnore]
         public string Message { get; set; }
 
-        [JsonIgnore]
-        public string status
+        [JsonProperty("status")]
+        public string Status
         {
             get { return _Status; }
             set
@@ -223,14 +224,17 @@ namespace NmsDotnet.Database.vo
                         else if (value.ToLower().Equals("critical"))
                         {
                             this.Color = "#EE0000";
+                            this.Message = "Critical";
                         }
                         else if (value.ToLower().Equals("warning"))
                         {
                             this.Color = "#FF8000";
+                            this.Message = "Warning";
                         }
                         else if (value.ToLower().Equals("information"))
                         {
                             this.Color = "#0000FF";
+                            this.Message = "Information";
                         }
                         else
                         {
@@ -318,7 +322,7 @@ namespace NmsDotnet.Database.vo
             this.Message = null;
             this.IsConnect = EnumIsConnect.Init;
             this.HeaderType = '\0';
-            this.status = null;
+            this.Status = null;
             this.UnitName = null;
             this.Version = null;
             this.ErrorCount = 0;
@@ -332,8 +336,7 @@ namespace NmsDotnet.Database.vo
             if (PropertyChanged != null)
             {
                 PropertyChanged(this, e);
-                if (e.PropertyName.Equals("Status") ||
-                    e.PropertyName.Equals("Name") ||
+                if (e.PropertyName.Equals("Name") ||
                         e.PropertyName.Equals("Location"))
                 {
                     UpdateServerStatus();
@@ -410,6 +413,8 @@ namespace NmsDotnet.Database.vo
             string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
             string response = Http.Put(uri, jsonBody);
+            Result result = JsonConvert.DeserializeObject<Result>(response);
+            this.Id = result.id;
             return this.Id;
         }
 
@@ -456,7 +461,15 @@ namespace NmsDotnet.Database.vo
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
             string response = Http.Delete(uri, jsonBody);
             logger.Info(response);
-            ret = 1;
+            Result result = JsonConvert.DeserializeObject<Result>(response);
+            if (result.result)
+            {
+                ret = 1;
+            }
+            else
+            {
+                ret = 0;
+            }
             return ret;
         }
 

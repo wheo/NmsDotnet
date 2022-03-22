@@ -467,24 +467,32 @@ namespace NmsDotnet
 
                 try
                 {
-                    foreach (LogItem item in currentLog)
-                    {
-                        IEnumerable<LogItem> result = NmsInfo.GetInstance().activeLog;
-                        LogItem log = (LogItem)result.Where(x => x.Oid == item.Oid && x.Ip == item.Ip).FirstOrDefault();
-                        if (log == null)
-                        {   
-                            SoundPlay("Critical");
-                            LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, item); });                            
-                        }
-                    }
-
+                    List<LogItem> temp = new List<LogItem>();
                     foreach (LogItem item in NmsInfo.GetInstance().activeLog)
-                    {   
+                    {
                         IEnumerable<LogItem> result = currentLog;
                         LogItem log = (LogItem)result.Where(x => x.Oid == item.Oid && x.Ip == item.Ip).FirstOrDefault();
                         if (log == null)
                         {
-                            LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
+                            temp.Add(item);
+                            //LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
+                        }
+                    }
+
+                    foreach (LogItem item in temp)
+                    {
+                        LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
+                        logger.Info(string.Format($"({item.Ip}) {item.Value} log removed"));
+                    }
+
+                    foreach (LogItem item in currentLog)
+                    {
+                        IEnumerable<LogItem> result = NmsInfo.GetInstance().activeLog;
+                        LogItem log = (LogItem)result.Where(x => x.Value == item.Value && x.Ip == item.Ip).FirstOrDefault();
+                        if (log == null)
+                        {
+                            SoundPlay("Critical");
+                            LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Insert(0, item); });
                         }
                     }
                 }
@@ -679,6 +687,10 @@ namespace NmsDotnet
                     //ServerListItem.ItemsSource = Server.GetServerList();
                     //서비스 스레드 종료 꼭 해야함 (서비스 스레드는 1개로 운영)
                 }
+                else
+                {
+                    MessageBox.Show("그룹 삭제 실패");
+                }
             }
         }
 
@@ -735,7 +747,7 @@ namespace NmsDotnet
                     //logger.Debug(server.Id);
                     if (Server.DeleteServer(server) > 0)
                     {
-                        logger.Info(String.Format("[{0}/{1} deleted]", server.Ip, server.status));
+                        logger.Info(String.Format("[{0}/{1} deleted]", server.Ip, server.Status));
                         foreach (Group g in NmsInfo.GetInstance().groupList)
                         {
                             foreach (Server s in g.Server)
@@ -761,6 +773,10 @@ namespace NmsDotnet
                         NmsInfo.GetInstance().serverList.Insert(location, emptyServer);
                         //인스턴스를 삭제하지 않고 초기화 시킴
                         //server.Clear();
+                    }
+                    else
+                    {
+                        MessageBox.Show("삭제 실패");
                     }
                 }
             }
@@ -1174,7 +1190,7 @@ namespace NmsDotnet
                                                 };
 
                                                 LoggingDisplay(log);
-                                                LogItem.LoggingDatabase(snmp);
+                                                //LogItem.LoggingDatabase(snmp);
                                             }
                                         }
                                         else if (!snmp.LevelString.Equals("Disabled") && string.Equals(snmp.TypeValue, "end"))
@@ -1202,12 +1218,12 @@ namespace NmsDotnet
                                                     LogItem restoreItem = FindCurrentStatusItem(NmsInfo.GetInstance().activeLog, s.Ip);
                                                     if (restoreItem != null)
                                                     {
-                                                        s.status = restoreItem.Level;
+                                                        s.Status = restoreItem.Level;
                                                         s.Message = restoreItem.Value;
                                                     }
                                                     else
                                                     {
-                                                        s.status = Server.EnumStatus.Normal.ToString();
+                                                        s.Status = Server.EnumStatus.Normal.ToString();
                                                     }
                                                 }
 
@@ -1220,11 +1236,11 @@ namespace NmsDotnet
                                         {
                                             if (s.ErrorCount > 0)
                                             {
-                                                s.status = Server.CompareState(s.status, snmp.LevelString);
+                                                s.Status = Server.CompareState(s.Status, snmp.LevelString);
                                             }
                                             else
                                             {
-                                                s.status = Server.EnumStatus.Normal.ToString();
+                                                s.Status = Server.EnumStatus.Normal.ToString();
                                             }
 
                                             if (LvActiveLog.Items.Count > 0)
@@ -1474,9 +1490,16 @@ namespace NmsDotnet
                 DpDayTo.Text = Convert.ToDateTime(DpDayTo.Text).AddDays(1).ToString("yyyy-MM-dd");
             }
 
-            NmsInfo.GetInstance().logSearch = new ObservableCollection<LogItem>(LogItem.GetLog(DpDayFrom.Text, DpDayTo.Text, true));
-            ListView lvDialog = (ListView)FindElemetByName(e, "lvLogSearch");
-            lvDialog.ItemsSource = NmsInfo.GetInstance().logSearch;
+            try
+            {
+                NmsInfo.GetInstance().logSearch = new ObservableCollection<LogItem>(LogItem.GetLog(DpDayFrom.Text, DpDayTo.Text, true));
+                ListView lvDialog = (ListView)FindElemetByName(e, "lvLogSearch");
+                lvDialog.ItemsSource = NmsInfo.GetInstance().logSearch;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex.ToString());
+            }
         }
 
         private void ClosingLogViewDialogEventHandler(object sender, DialogClosingEventArgs eventArgs)

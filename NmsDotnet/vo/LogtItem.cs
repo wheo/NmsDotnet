@@ -7,6 +7,7 @@ using NmsDotnet.Utils;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
@@ -265,7 +266,11 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
                 uri = string.Format($"{HostManager.getInstance().uri}/api/v1/log/history");
             }
 
-            string response = Http.Get(uri, null);
+            NameValueCollection nv = new NameValueCollection();
+            nv.Add("from", dayFrom);
+            nv.Add("to", dayTo);
+
+            string response = Http.Get(uri, nv);
             var settings = new JsonSerializerSettings
             {
                 NullValueHandling = NullValueHandling.Ignore,
@@ -347,6 +352,7 @@ ORDER BY L.start_at {3}", _LocalIp, is_active, date_query, order_query);
         public static int HideLogAlarm(int idx)
         {
             int ret = 0;
+            /*
             using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
             {
                 // end_at 시간을 줘야하는지 고민해야함
@@ -358,6 +364,19 @@ ORDER BY L.start_at {3}", _LocalIp, is_active, date_query, order_query);
                 cmd.Prepare();
                 ret = cmd.ExecuteNonQuery();
             }
+            */
+            string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/log/hide");
+
+            NameValueCollection nv = new NameValueCollection();
+            nv.Add("idx", idx.ToString());
+
+            string response = Http.Put(uri, nv);
+
+            var settings = new JsonSerializerSettings
+            {
+                NullValueHandling = NullValueHandling.Ignore,
+                MissingMemberHandling = MissingMemberHandling.Ignore
+            };
 
             return ret;
         }
