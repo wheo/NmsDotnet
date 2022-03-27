@@ -81,7 +81,9 @@ namespace NmsDotnet.Utils
                     }
                 }
 
-                logger.Info(jsonBody);
+                logger.Info(string.Format($"{uri} post ({jsonBody})"));
+                //System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
+                //logger.Info(t.ToString());
                 return response;
             }
             catch (WebException wex)

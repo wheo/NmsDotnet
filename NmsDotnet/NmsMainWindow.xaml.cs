@@ -318,9 +318,6 @@ namespace NmsDotnet
             //SnmpGetTimer.Interval = new TimeSpan(0, 0, 5);
 
             //Task.Factory.StartNew(new Action<object>(SnmpGetService), 5);
-            Task.Run(() => GetInformation(5));
-
-            LodingisDone();
 
             ObservableCollection<Server> ocs = new ObservableCollection<Server>(Server.GetServerList());
 
@@ -375,7 +372,9 @@ namespace NmsDotnet
             ServerListItem.ItemsSource = NmsInfo.GetInstance().serverList;
             TreeGroup.ItemsSource = NmsInfo.GetInstance().groupList;
 
-            //_snmpGetTimer.Start();
+            Task.Run(() => GetInformation(5));
+
+            LodingisDone();
         }
 
         private async Task GetInformation(double sleepSecond)
@@ -475,7 +474,6 @@ namespace NmsDotnet
                         if (log == null)
                         {
                             temp.Add(item);
-                            //LvActiveLog.Dispatcher.Invoke(() => { NmsInfo.GetInstance().activeLog.Remove(item); });
                         }
                     }
 
@@ -658,7 +656,10 @@ namespace NmsDotnet
                 }
                 else
                 {
-                    group.EditGroup();
+                    if (group.EditGroup() < 1)
+                    {
+                        MessageBox.Show("그룹명 변경 에러가 발생하였습니다");
+                    }
                 }
             }
         }
@@ -1750,16 +1751,18 @@ namespace NmsDotnet
                 if (ofd.ShowDialog() == true)
                 {
                     string importJson = File.ReadAllText(ofd.FileName);
+                    /*
                     var jObj = JObject.Parse(importJson);
 
                     ObservableCollection<Server> servers = jObj["serverList"].ToObject<ObservableCollection<Server>>();
                     ObservableCollection<Group> groups = jObj["groupList"].ToObject<ObservableCollection<Group>>();
-                    Group.ImportGroup(groups);
-                    Server.ImportServer(servers);
+                    //Group.ImportGroup(groups);
+                    //Server.ImportServer(servers);
 
                     //_snmpGetTimer.Stop();
                     MessageBox.Show("새로운 장비 정보를 등록했습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
                     ServerDispatcherTimer();
+                    */
                     DialogHost.Close("DialogServerInfo");
 
                     if (PbMainLoading.Visibility == Visibility.Hidden)

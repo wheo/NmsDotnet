@@ -136,7 +136,16 @@ namespace NmsDotnet.Database.vo
             string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/group");
             string response = Http.Post(uri, jsonBody);
-            ret = 1;
+            Result result = JsonConvert.DeserializeObject<Result>(response);
+            if (result.result)
+            {
+                ret = 1;
+            }
+            else
+            {
+                ret = 0;
+            }
+
             return ret;
         }
 
