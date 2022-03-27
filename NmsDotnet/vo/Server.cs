@@ -69,11 +69,11 @@ namespace NmsDotnet.Database.vo
             {
                 if (_Location != value)
                 {
-                    logger.Info(string.Format($"({UnitName}) old L : {_Location}, new L : {value}"));
                     int temp = _Location;
                     _Location = value;
                     if (temp > 0)
                     {
+                        logger.Info(string.Format($"({UnitName}) old L : {_Location}, new L : {value}"));
                         OnPropertyChanged(new PropertyChangedEventArgs("Location"));
                     }
                 }
@@ -178,6 +178,7 @@ namespace NmsDotnet.Database.vo
                 if (_Type != value)
                 {
                     _Type = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("HeaderType"));
                 }
             }
         }
@@ -200,6 +201,7 @@ namespace NmsDotnet.Database.vo
                 if (_Color != value)
                 {
                     _Color = value;
+                    OnPropertyChanged(new PropertyChangedEventArgs("Color"));
                 }
             }
         }
@@ -244,6 +246,7 @@ namespace NmsDotnet.Database.vo
                             this.Color = "#CCECFF";
                         }
                         _Status = value;
+                        OnPropertyChanged(new PropertyChangedEventArgs("Status"));
                     }
                 }
                 else
@@ -298,13 +301,23 @@ namespace NmsDotnet.Database.vo
 
         public int GetNewLocation()
         {
-            try
+            while (true)
             {
-                Location = NmsInfo.GetInstance().serverList.Max(x => x.Location) + 1;
-            }
-            catch
-            {
-                Location = 0;
+                try
+                {
+                    Location = NmsInfo.GetInstance().serverList.Max(x => x.Location) + 1;
+                    logger.Info(string.Format($"max L : {Location}"));
+                }
+                catch (Exception e)
+                {
+                    logger.Error(e.ToString());
+                    Location = 0;
+                }
+                if (Location > 0)
+                {
+                    logger.Info(string.Format($"break : {Location}"));
+                    break;
+                }
             }
             return Location;
         }
