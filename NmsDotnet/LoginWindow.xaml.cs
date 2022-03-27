@@ -55,6 +55,7 @@ namespace NmsDotnet
                     jsonConfig.DatabaseName = "TNM_NMS";
 
                     jsonString = JsonSerializer.Serialize(jsonConfig);
+                    File.WriteAllText(jsonConfig.configFileName, jsonString);
                 }
 
                 jsonString = File.ReadAllText(jsonConfig.configFileName);
