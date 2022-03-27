@@ -62,7 +62,7 @@ namespace NmsDotnet.Utils
             request.ContentType = "application/json";
 
             request.Method = "POST";
-            request.Timeout = 1000;
+            request.Timeout = 5000;
 
             try
             {
