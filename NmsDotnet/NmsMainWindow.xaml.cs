@@ -851,6 +851,9 @@ namespace NmsDotnet
                                     break;
                                 }
                             }
+                            server.Color = "#00FF7F";
+                            server.GetNewLocation();
+
                             server.Id = server.AddServer();
                             //NmsInfo.GetInstance().serverList.Add(server);
 
@@ -865,10 +868,6 @@ namespace NmsDotnet
                             miEdit.Click += new System.Windows.RoutedEventHandler(this.MenuServerEdit_Click);
                             miDelete.Click += new System.Windows.RoutedEventHandler(this.MenuServerDel_Click);
                             server.MenuItems = menus;
-
-                            server.Color = "#00FF7F";
-
-                            server.GetNewLocation();
 
                             NmsInfo.GetInstance().serverList.Insert(server.Location, server);
 

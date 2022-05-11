@@ -31,7 +31,7 @@ namespace NmsDotnet.Database.vo
             this.UnitName = s.UnitName;
             this.Status = s.Status;
             //this.Color = s.Color;
-            this.Location = s.Location;
+            //this.Location = s.Location;
             this.Type = s.Type;
             this.Uptime = s.Uptime;
             this.Version = s.Version;
@@ -71,9 +71,9 @@ namespace NmsDotnet.Database.vo
                 {
                     int temp = _Location;
                     _Location = value;
-                    if (temp > 0)
+                    if (temp > 0 && Id != null)
                     {
-                        logger.Info(string.Format($"({UnitName}) old L : {_Location}, new L : {value}"));
+                        logger.Info(string.Format($"({UnitName}) old L : {temp}, new L : {value}"));
                         OnPropertyChanged(new PropertyChangedEventArgs("Location"));
                     }
                 }
@@ -125,7 +125,7 @@ namespace NmsDotnet.Database.vo
                 if (_ServicePid != value)
                 {
                     _ServicePid = value;
-                    //OnPropertyChanged(new PropertyChangedEventArgs("ServicePid"));
+                    OnPropertyChanged(new PropertyChangedEventArgs("ServicePid"));
                 }
             }
         }
@@ -145,7 +145,7 @@ namespace NmsDotnet.Database.vo
                 if (_VideoOutputId != value)
                 {
                     _VideoOutputId = value;
-                    //OnPropertyChanged(new PropertyChangedEventArgs("VideoOutputId"));
+                    OnPropertyChanged(new PropertyChangedEventArgs("VideoOutputId"));
                 }
             }
         }
@@ -219,7 +219,7 @@ namespace NmsDotnet.Database.vo
                 {
                     if (_Status != value)
                     {
-                        logger.Info(String.Format($"[{Ip}] Server ({_Status}) => ({value}) changed"));
+                        //logger.Info(String.Format($"[{Ip}] Server ({_Status}) => ({value}) changed"));
 
                         if (value.ToLower().Equals("normal"))
                         {
@@ -301,24 +301,17 @@ namespace NmsDotnet.Database.vo
 
         public int GetNewLocation()
         {
-            while (true)
+            try
             {
-                try
-                {
-                    Location = NmsInfo.GetInstance().serverList.Max(x => x.Location) + 1;
-                    logger.Info(string.Format($"max L : {Location}"));
-                }
-                catch (Exception e)
-                {
-                    logger.Error(e.ToString());
-                    Location = 0;
-                }
-                if (Location > 0)
-                {
-                    logger.Info(string.Format($"break : {Location}"));
-                    break;
-                }
+                Location = NmsInfo.GetInstance().serverList.Max(x => x.Location) + 1;
+                logger.Info(string.Format($"max L : {Location}"));
             }
+            catch (Exception e)
+            {
+                logger.Error(e.ToString());
+                Location = 0;
+            }
+
             return Location;
         }
 
@@ -351,8 +344,7 @@ namespace NmsDotnet.Database.vo
             if (PropertyChanged != null)
             {
                 PropertyChanged(this, e);
-                if (e.PropertyName.Equals("UnitName") ||
-                        e.PropertyName.Equals("Location"))
+                if (e.PropertyName.Equals("Location"))
                 {
                     UpdateServerStatus();
                 }
@@ -385,46 +377,6 @@ namespace NmsDotnet.Database.vo
 
         public string AddServer()
         {
-            /*
-            string id = null;
-            if (String.IsNullOrEmpty(UnitName))
-            {
-            }
-            else if (String.IsNullOrEmpty(Ip))
-            {
-            }
-            else if (String.IsNullOrEmpty(gid))
-            {
-            }
-            string query = "SELECT uuid() as id";
-
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                MySqlDataReader rdr = cmd.ExecuteReader();
-                while (rdr.Read())
-                {
-                    id = rdr["id"].ToString();
-                }
-                rdr.Close();
-            }
-
-            query = "INSERT INTO server (id, ip, name, gid) VALUES (@id, @ip, @name, @gid)";
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@id", id);
-                cmd.Parameters.AddWithValue("@name", this.UnitName);
-                cmd.Parameters.AddWithValue("@ip", this.Ip);
-                cmd.Parameters.AddWithValue("@gid", this.gid);
-                cmd.Prepare();
-                cmd.ExecuteNonQuery();
-            }
-            return id;
-            */
-            //this.Id = Guid.NewGuid().ToString();
             string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
             string response = Http.Put(uri, jsonBody);
@@ -468,9 +420,21 @@ namespace NmsDotnet.Database.vo
         {
             int ret = 0;
 
+            //System.Diagnostics.StackTrace t = new System.Diagnostics.StackTrace();
+            //logger.Info(t.ToString());
+
             string jsonBody = JsonConvert.SerializeObject(this);
             string uri = string.Format($"{HostManager.getInstance().uri}/api/v1/server");
             string response = Http.Post(uri, jsonBody);
+            Result result = JsonConvert.DeserializeObject<Result>(response);
+            if (result.result)
+            {
+                ret = 1;
+            }
+            else
+            {
+                ret = 0;
+            }
             return ret;
         }
 
@@ -537,7 +501,6 @@ namespace NmsDotnet.Database.vo
                     MissingMemberHandling = MissingMemberHandling.Ignore
                 };
 
-                //DataTable dt = (DataTable)JsonConvert.DeserializeObject<DataTable>(response, settings);
                 return JsonConvert.DeserializeObject<List<Server>>(response);
             }
             catch (Exception e)
@@ -545,72 +508,6 @@ namespace NmsDotnet.Database.vo
                 logger.Error(e.ToString());
                 return null;
             }
-            /*
-            DataTable dt = new DataTable();
-            string query = @"SELECT S.*
-, IF(S.status = 'Critical', 'Red', IF(S.status = 'Warning', '#FF8000', IF(S.status = 'Information', 'Blue', 'Green'))) AS color
-, G.name as grp_name
-, A.path FROM server S
-LEFT JOIN asset A ON S.status = A.id
-LEFT JOIN grp G ON G.id = S.gid
-ORDER BY S.location ASC";
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                cmd.Prepare();
-                MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
-                adpt.Fill(dt);
-            }
-
-            return dt.AsEnumerable().Select(row => new Server
-            {
-                id = row.Field<string>("id"),
-                gid = row.Field<string>("gid"),
-                name = row.Field<string>("name"),
-                ip = row.Field<string>("ip"),
-                grp_name = row.Field<string>("grp_name"),
-                type = row.Field<string>("type"),
-                location = row.Field<int>("location"),
-                //ErrorCount = row.Field<int>("error_count"),
-                ErrorCount = 0,
-                connection_error_count = row.Field<int>("connection_error_count"),
-                color = row.Field<string>("color"),
-                status = row.Field<string>("status")
-            }).ToList();
-            */
         }
-
-        //deprecated 2020-10-29
-        /*
-        public static List<Server> GetServerListByGroup(string gid)
-        {
-            DataTable dt = new DataTable();
-            string query = String.Format($"SELECT S.*" +
-                $", IF(S.status = 'critical', 'Red', IF(S.status = 'warning', '#FF8000', IF(S.status = 'information', 'Blue', 'Green'))) AS color" +
-                $", G.name as grp_name" +
-                $", A.path FROM server S" +
-                $" LEFT JOIN asset A ON S.status = A.id" +
-                $" LEFT JOIN grp G ON G.id = S.gid" +
-                $" WHERE S.gid = '{gid}'");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.getInstance().ConnectionString))
-            {
-                conn.Open();
-                MySqlDataAdapter adpt = new MySqlDataAdapter(query, conn);
-                adpt.Fill(dt);
-            }
-
-            return dt.AsEnumerable().Select(row => new Server
-            {
-                Id = row.Field<string>("id"),
-                Gid = row.Field<string>("gid"),
-                Name = row.Field<string>("name"),
-                GroupName = row.Field<string>("grp_name"),
-                Status = row.Field<string>("status"),
-                Image = row.Field<string>("path"),
-                Color = row.Field<string>("color")
-            }).ToList();
-        }
-        */
     }
 }

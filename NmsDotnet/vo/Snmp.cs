@@ -402,30 +402,6 @@ AND T.is_visible = 'Y'");
             return value;
         }
 
-        public static Server GetServerInfo(Snmp snmp)
-        {
-            Server server = null;
-            string query = string.Format($"SELECT * FROM server WHERE ip = '{snmp.IP}'");
-            using (MySqlConnection conn = new MySqlConnection(DatabaseManager.GetInstance().ConnectionString))
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand(query, conn);
-                MySqlDataReader rdr = cmd.ExecuteReader();
-                while (rdr.Read())
-                {
-                    server = new Server
-                    {
-                        Id = rdr["id"].ToString(),
-                        Ip = rdr["ip"].ToString(),
-                        UnitName = rdr["name"].ToString(),
-                        Status = rdr["status"].ToString()
-                    };
-                }
-            }
-
-            return server;
-        }
-
         public static void UpdateSnmpMessgeUseage(GlobalSettings settings)
         {
             foreach (var item in settings.SnmpCM5000Settings)
