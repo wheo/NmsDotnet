@@ -243,10 +243,14 @@ namespace NmsDotnet
 
             int currentIdx = 0;
 
-            for (int i = 0; i < MAX_SERVER; i++)
+            for (int i = 1; i < MAX_SERVER; i++)
             {
                 Server s;
-                int currentLocation = ocs[currentIdx].Location;
+                int currentLocation = 0;
+                if (ocs.Count > 0)
+                {
+                    currentLocation = ocs[currentIdx].Location;
+                }
                 if (i == currentLocation)
                 {
                     s = ocs[currentIdx];
