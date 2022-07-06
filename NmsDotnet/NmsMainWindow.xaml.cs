@@ -299,18 +299,15 @@ namespace NmsDotnet
 
         private void SnmpGetService(object sender, EventArgs e)
         {
-            if (PbMainLoading.Visibility == Visibility.Visible)
-            {
-                PbMainLoading.Visibility = Visibility.Hidden;
-                ServerListItem.Visibility = Visibility.Visible;
+            ServerListItem.Visibility = Visibility.Visible;
 
-                BtnGroupAdd.IsEnabled = true;
-                BtnServerAdd.IsEnabled = true;
-                BtnServerInfo.IsEnabled = true;
-                BtnScreenLock.IsEnabled = true;
-                BtnRevert.IsEnabled = true;
-                BtnSoundOff.IsEnabled = true;
-            }
+            BtnGroupAdd.IsEnabled = true;
+            BtnServerAdd.IsEnabled = true;
+            BtnServerInfo.IsEnabled = true;
+            BtnScreenLock.IsEnabled = true;
+            BtnRevert.IsEnabled = true;
+            BtnSoundOff.IsEnabled = true;
+
             foreach (Server server in NmsInfo.GetInstance().serverList)
             {
                 //string serviceOID = null;
@@ -1629,13 +1626,6 @@ namespace NmsDotnet
                     MessageBox.Show("새로운 장비 정보를 등록했습니다", "알림", MessageBoxButton.OK, MessageBoxImage.Information);
                     ServerDispatcherTimer();
                     DialogHost.Close("DialogServerInfo");
-
-                    if (PbMainLoading.Visibility == Visibility.Hidden)
-                    {
-                        PbMainLoading.Visibility = Visibility.Visible;
-                        ServerListItem.Visibility = Visibility.Hidden;
-                        BtnServerInfo.IsEnabled = false;
-                    }
                 }
                 /*
                 ObservableCollection<Server> servers = new ObservableCollection<Server>();

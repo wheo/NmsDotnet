@@ -572,17 +572,6 @@
                 -->
             </Canvas>
 
-            <StackPanel>
-                <ProgressBar x:Name="PbMainLoading" Visibility="Visible"
-                         HorizontalAlignment="Center"
-                         VerticalAlignment="Center"
-                         Style="{DynamicResource MaterialDesignCircularProgressBar}"
-                         Width="80" Height="80"
-                         Margin="16"
-                         IsIndeterminate="True"
-                         Value="0" />
-            </StackPanel>
-
             <StackPanel Panel.ZIndex="1">
                 <StackPanel.ContextMenu>
                     <ContextMenu>

@@ -86,7 +86,7 @@ namespace NmsDotnet.vo
         //deprecated
         //public string IsConfirm { get; set; }
 
-        static public string _LocalIp { get; } = Util.GetLocalIpAddress();
+        public static string _LocalIp { get; } = Util.GetLocalIpAddress();
 
         public int idx { get; set; }
 
@@ -242,7 +242,7 @@ VALUES (@client_ip, @ip, @port, @community, @level, @oid, @value, @snmp_type_val
 
             if (!string.IsNullOrEmpty(dayFrom) && !string.IsNullOrEmpty(dayTo))
             {
-                date_query = string.Format($" AND L.start_at BETWEEN '{dayFrom}' AND '{dayTo}'");
+                date_query = string.Format($" AND L.start_at BETWEEN '{dayFrom}' AND '{dayTo}' + INTERVAL 1 DAY");
                 order_query = "DESC";
                 is_active = "";
             }

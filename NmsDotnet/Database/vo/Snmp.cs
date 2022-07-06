@@ -238,7 +238,7 @@ AND T.is_visible = 'Y'");
             List<SnmpSetting> settings = dt.AsEnumerable().Select(row => new SnmpSetting
             {
                 Name = row.Field<string>("translate"),
-                Id = Convert.ToInt32(row["id"].ToString()),
+                Id = Convert.ToInt32(row["idx"].ToString()),
                 IsEnable = row["is_enable"].ToString() == "Y" ? true : false,
                 Level = new ComboBoxPairs { _Key = row["level"].ToString(), _Value = row["level"].ToString() },
                 LevelItem = cbxLevel
@@ -303,7 +303,7 @@ AND T.is_visible = 'Y'");
                 {
                     conn.Open();
                     MySqlCommand cmd = new MySqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@id", item.Id);
+                    cmd.Parameters.AddWithValue("@idx", item.Id);
                     cmd.Parameters.AddWithValue("@is_enable", item.IsEnable == true ? "Y" : "N");
                     cmd.Parameters.AddWithValue("@level", item.Level._Key);
                     cmd.Prepare();
@@ -319,7 +319,7 @@ AND T.is_visible = 'Y'");
                 {
                     conn.Open();
                     MySqlCommand cmd = new MySqlCommand(query, conn);
-                    cmd.Parameters.AddWithValue("@id", item.Id);
+                    cmd.Parameters.AddWithValue("@idx", item.Id);
                     cmd.Parameters.AddWithValue("@is_enable", item.IsEnable == true ? "Y" : "N");
                     cmd.Parameters.AddWithValue("@level", item.Level._Key);
                     cmd.Prepare();
